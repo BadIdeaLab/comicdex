@@ -1,7 +1,6 @@
 <a name="readme-top"></a>
 
-[![APK Build](https://github.com/ttdyce/nhviewer-universal/actions/workflows/flutter-workflow-apk.yml/badge.svg)](https://github.com/ttdyce/nhviewer-universal/actions/workflows/flutter-workflow-apk.yml)
-[![Contributors][contributors-shield]][contributors-url]
+[![APK Build](https://github.com/BadIdeaLab/comicdex/actions/workflows/flutter-workflow-apk.yml/badge.svg)](https://github.com/BadIdeaLab/comicdex/actions/workflows/flutter-workflow-apk.yml)
 [![MIT License][license-shield]][license-url]
 
 <br />
@@ -10,40 +9,40 @@
 
   <p align="center">
     A Flutter rewrite of NHViewer. <br />
-    Built with Material 3, cross-platform support, Drift-based local persistence,
-    and an incremental download management flow.
+    Built with Material 3 / glassmorphism UI, cross-platform support, Drift-based local
+    persistence, an offline tag catalog with instant search, and an incremental download
+    management flow.
     <br />
     <br />
-    <img src="https://storage.googleapis.com/cms-storage-bucket/916809aa4c8f73ad70d2.svg" width="160">
-    <br />
-    <br />
-    <a href="https://github.com/ttdyce/nhviewer-universal/issues">Report Bug</a>
+    <a href="https://github.com/BadIdeaLab/comicdex/issues">Report Bug</a>
     ·
-    <a href="https://github.com/ttdyce/nhviewer-universal/issues">Request Feature</a>
+    <a href="https://github.com/BadIdeaLab/comicdex/issues">Request Feature</a>
   </p>
 </div>
 
-<p>
-<img src="./readme-asset/index-and-search.png" alt="Home and search demo" width="270">
-<img src="./readme-asset/favorites.png" alt="Downloads and favorites era UI demo" width="270">
-<img src="./readme-asset/collections.png" alt="Collections demo" width="270">
-</p>
+<!-- Screenshots pending refresh — the previous set predates the glassmorphism UI
+     and tag catalog rework, so they were removed rather than left misleading. -->
 
 ---
 
 ## Features
 
 - Home feed with search and language-aware fallback queries
+- Local, offline tag catalog with instant cross-category search and multi-select
+  (tag / language / parody / character / artist), ranked by popularity
 - Blocked tag list — exclude specific tags from all search results
 - Collections flow for `Favorite / Next / History`
 - Downloads tab for queued, paused, failed, and completed download jobs
+- Favorites multi-select download with select-all, already-downloaded skipping, and
+  request throttling to avoid rate limits
 - Resumable page-by-page downloads with offline asset persistence
 - Repair and reload for completed downloads (re-fetch missing pages or full re-download)
 - Offline reader entry for completed downloads using local page files
-- Download sorting by latest downloaded, last read, and favorites snapshot
-- Reader end-of-comic overlay and navigation expansion on last page
+- Download list search across titles and tags, sortable by title/author/popularity/last read
+- Reader end-of-comic overlay, page-jump navigation, and navigation expansion on last page
 - Vertical reader experience
-- Basic list sorting by popularity / uploaded recently
+- Glassmorphism-styled UI across reader, screens, and sheets with cross-platform
+  performance tuning
 - Android build pipeline and GitHub-hosted unsigned iOS build verification
 
 <p align="right"><a href="#readme-top">‣ back to top</a></p>
@@ -76,8 +75,8 @@
 
 1. Clone the repo
    ```sh
-   git clone https://github.com/ttdyce/nhviewer-universal.git
-   cd nhviewer-universal
+   git clone https://github.com/BadIdeaLab/comicdex.git
+   cd comicdex
    ```
 2. Install dependencies
    ```sh
@@ -165,6 +164,8 @@ Current CI steps:
 5. `flutter analyze`
 6. `flutter test`
 7. `flutter build apk --release`
+8. Publish a GitHub Release (prerelease) with the APK and the local tag catalog
+   (`assets/tag_catalog.bin`) attached
 
 ### GitHub-hosted unsigned iOS build
 
@@ -174,7 +175,8 @@ If you cannot build iOS locally, you can produce an unsigned IPA from GitHub Act
 
 1. Open the `flutter-workflow-ipa` workflow in the Actions tab
 2. Trigger it with `workflow_dispatch`
-3. Download the `nhviewer-ios-unsigned` artifact after the macOS job finishes
+3. Download the `nhviewer-ios-unsigned` artifact, or grab it from the same Release the APK
+   workflow publishes to, after the macOS job finishes
 
 The generated IPA is unsigned. It is useful for remote build verification, but it is not ready for TestFlight or App Store submission.
 
@@ -183,6 +185,7 @@ The generated IPA is unsigned. It is useful for remote build verification, but i
 ## Project Notes
 
 - Local persistence is Drift-based (replaced sqflite in P5); schema migrations are written per-version in `local_database.dart`
+- The tag catalog (`assets/tag_catalog.bin`) is built offline from `scripts/fetch_tags.py` + `scripts/build_tag_catalog.py` and bundled with the app; see `scripts/README.md`
 - Downloaded files are stored separately from image cache so cache clearing does not remove downloads
 - Downloads support queue management, completed-library browsing, sorting, and offline reader entry
 - Downloaded library sorting uses local snapshots: downloaded time, last read time, and favorites count at download time
@@ -205,9 +208,12 @@ Distributed under the MIT License. See `LICENSE.txt` for more information.
 
 ## Contact
 
-Author: ttdyce - i@ttdyce.com
+This repository (`comicdex`) is an independently maintained, unofficial mirror. It is not
+run by, and has no other affiliation with, the original author below.
 
-Project Link: [https://github.com/ttdyce/nhviewer-universal](https://github.com/ttdyce/nhviewer-universal)
+Original Author: ttdyce - i@ttdyce.com
+
+Upstream Project: [https://github.com/ttdyce/nhviewer-universal](https://github.com/ttdyce/nhviewer-universal)
 
 <p align="right"><a href="#readme-top">‣ back to top</a></p>
 
@@ -226,7 +232,5 @@ Project Link: [https://github.com/ttdyce/nhviewer-universal](https://github.com/
 
 <p align="right"><a href="#readme-top">‣ back to top</a></p>
 
-[contributors-shield]: https://img.shields.io/github/contributors/ttdyce/nhviewer-universal.svg?style=for-the-badge
-[contributors-url]: https://github.com/ttdyce/nhviewer-universal/graphs/contributors
-[license-shield]: https://img.shields.io/github/license/ttdyce/nhviewer-universal.svg?style=for-the-badge
-[license-url]: https://github.com/ttdyce/nhviewer-universal/blob/main/LICENSE.txt
+[license-shield]: https://img.shields.io/github/license/BadIdeaLab/comicdex.svg?style=for-the-badge
+[license-url]: https://github.com/BadIdeaLab/comicdex/blob/main/LICENSE.txt
