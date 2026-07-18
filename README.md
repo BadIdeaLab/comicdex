@@ -1,6 +1,7 @@
 <a name="readme-top"></a>
 
 [![APK Build](https://github.com/BadIdeaLab/comicdex/actions/workflows/flutter-workflow-apk.yml/badge.svg)](https://github.com/BadIdeaLab/comicdex/actions/workflows/flutter-workflow-apk.yml)
+[![IPA Build](https://github.com/BadIdeaLab/comicdex/actions/workflows/flutter-workflow-ipa.yml/badge.svg)](https://github.com/BadIdeaLab/comicdex/actions/workflows/flutter-workflow-ipa.yml)
 [![MIT License][license-shield]][license-url]
 
 <br />
@@ -20,8 +21,7 @@
   </p>
 </div>
 
-<!-- Screenshots pending refresh — the previous set predates the glassmorphism UI
-     and tag catalog rework, so they were removed rather than left misleading. -->
+<!-- Screenshots pending — see conversation: new ones need censoring before they go here. -->
 
 ---
 
@@ -49,154 +49,7 @@
 
 ## Tech Stack
 
-- Flutter
-- Provider
-- Go Router
-- Drift + sqlite3
-- Dio
-- cached_network_image / flutter_cache_manager
-- flutter_image_compress
-- Freezed / json_serializable / build_runner
-
-<p align="right"><a href="#readme-top">‣ back to top</a></p>
-
-## Getting Started
-
-### Prerequisites
-
-- Flutter `3.41.5` recommended to match CI
-- Dart SDK compatible with `>=3.10.3 <4.0.0`
-- Android Studio or Xcode if you want to build mobile targets locally
-- A Flutter editor setup such as [VS Code](https://docs.flutter.dev/get-started/editor)
-
-`pubspec.yaml` currently allows Flutter `>=3.38.4`, but using the same version as CI is the safest choice when generating code and running tests.
-
-### Installation
-
-1. Clone the repo
-   ```sh
-   git clone https://github.com/BadIdeaLab/comicdex.git
-   cd comicdex
-   ```
-2. Install dependencies
-   ```sh
-   flutter pub get
-   ```
-3. Generate source files used by Drift / Freezed / JSON serialization
-   ```sh
-   dart run build_runner build --delete-conflicting-outputs
-   ```
-4. Run static analysis
-   ```sh
-   flutter analyze
-   ```
-5. Run tests
-   ```sh
-   flutter test
-   ```
-6. Start the app
-   ```sh
-   flutter run
-   ```
-
-### When To Re-run Code Generation
-
-Run the `build_runner` command again after changing:
-
-- Drift tables or database models
-- `@freezed` models
-- `@JsonSerializable` / JSON-mapped models
-
-If generated files drift out of sync, build or analysis errors are expected until regeneration is complete.
-
-<p align="right"><a href="#readme-top">‣ back to top</a></p>
-
-## Local Build Commands
-
-### Debug APK
-
-```sh
-flutter build apk --debug
-```
-
-### Release APK
-
-```sh
-flutter build apk --release
-```
-
-### iOS build without code signing
-
-```sh
-flutter build ios --release --no-codesign
-```
-
-This is useful for local verification only. It does not produce a TestFlight-ready artifact by itself.
-
-<p align="right"><a href="#readme-top">‣ back to top</a></p>
-
-## Project Build Flow
-
-The repository currently uses code generation as part of the standard build pipeline:
-
-1. `flutter pub get`
-2. `dart run build_runner build --delete-conflicting-outputs`
-3. `flutter analyze`
-4. `flutter test`
-5. platform build command such as `flutter build apk --release`
-
-This is the same order used by the GitHub Actions workflows.
-
-<p align="right"><a href="#readme-top">‣ back to top</a></p>
-
-## GitHub Actions
-
-### Android APK workflow
-
-Workflow file: [.github/workflows/flutter-workflow-apk.yml](./.github/workflows/flutter-workflow-apk.yml)
-
-Current CI steps:
-
-1. Checkout
-2. Set up Flutter `3.41.5`
-3. `flutter pub get`
-4. `dart run build_runner build --delete-conflicting-outputs`
-5. `flutter analyze`
-6. `flutter test`
-7. `flutter build apk --release`
-8. Publish a GitHub Release (prerelease) with the APK and the local tag catalog
-   (`assets/tag_catalog.bin`) attached
-
-### GitHub-hosted unsigned iOS build
-
-Workflow file: [.github/workflows/flutter-workflow-ipa.yml](./.github/workflows/flutter-workflow-ipa.yml)
-
-If you cannot build iOS locally, you can produce an unsigned IPA from GitHub Actions:
-
-1. Open the `flutter-workflow-ipa` workflow in the Actions tab
-2. Trigger it with `workflow_dispatch`
-3. Download the `nhviewer-ios-unsigned` artifact, or grab it from the same Release the APK
-   workflow publishes to, after the macOS job finishes
-
-The generated IPA is unsigned. It is useful for remote build verification, but it is not ready for TestFlight or App Store submission.
-
-<p align="right"><a href="#readme-top">‣ back to top</a></p>
-
-## Project Notes
-
-- Local persistence is Drift-based (replaced sqflite in P5); schema migrations are written per-version in `local_database.dart`
-- The tag catalog (`assets/tag_catalog.bin`) is built offline from `scripts/fetch_tags.py` + `scripts/build_tag_catalog.py` and bundled with the app; see `scripts/README.md`
-- Downloaded files are stored separately from image cache so cache clearing does not remove downloads
-- Downloads support queue management, completed-library browsing, sorting, and offline reader entry
-- Downloaded library sorting uses local snapshots: downloaded time, last read time, and favorites count at download time
-- Blocked tags are persisted in `AppOptions` as a JSON list and applied as `-tag:xxx` exclusions on every search
-- All nhentai network calls use the v2 API (`/api/v2/...`); the legacy v1 endpoints are no longer used
-
-<p align="right"><a href="#readme-top">‣ back to top</a></p>
-
-## APIs
-
-API notes and endpoint references live in [API-README.md](API-README.md).
+Flutter · Provider · Go Router · Drift + sqlite3 · Dio · Freezed / json_serializable
 
 <p align="right"><a href="#readme-top">‣ back to top</a></p>
 
