@@ -4,9 +4,6 @@ import 'package:concept_nhv/models/comic_page_image.dart';
 import 'package:concept_nhv/models/comic_search_response.dart';
 import 'package:concept_nhv/models/comic_tag.dart';
 import 'package:concept_nhv/models/comic_title.dart';
-import 'package:concept_nhv/models/tag_catalog_item.dart';
-import 'package:concept_nhv/models/tag_catalog_page.dart';
-import 'package:concept_nhv/models/tag_catalog_type.dart';
 import 'package:concept_nhv/services/nhentai_cdn_config_service.dart';
 import 'package:concept_nhv/storage/nhentai_api_key_store.dart';
 import 'package:dio/dio.dart';
@@ -23,11 +20,6 @@ abstract class NhentaiGateway {
   Future<({List<ComicTag> tags, int? numFavorites, int? uploadDate})> loadComicMeta(
     String comicId,
   );
-
-  Future<TagCatalogPage> loadTagCatalog({
-    required TagCatalogType type,
-    required int page,
-  });
 }
 
 class NhentaiApiClient implements NhentaiGateway {
@@ -91,25 +83,6 @@ class NhentaiApiClient implements NhentaiGateway {
     _comicFavoritesCache[comic.id] = comic.numFavorites;
     _comicUploadDateCache[comic.id] = comic.uploadDate;
     return (tags: comic.tags, numFavorites: comic.numFavorites, uploadDate: comic.uploadDate);
-  }
-
-  @override
-  Future<TagCatalogPage> loadTagCatalog({
-    required TagCatalogType type,
-    required int page,
-  }) async {
-    final result = await _get(
-      Uri.https(
-        'nhentai.net',
-        '/api/v2/tags/${type.apiValue}',
-        <String, String>{'sort': 'popular', 'page': '$page'},
-      ),
-    );
-
-    return _mapTagCatalogPage(
-      result.data as Map<String, dynamic>,
-      page: page,
-    );
   }
 
   Future<Response<dynamic>> _get(Uri uri) async {
@@ -192,33 +165,6 @@ class NhentaiApiClient implements NhentaiGateway {
     );
     _comicTagCache[comic.id] = comic.tags;
     return comic;
-  }
-
-  TagCatalogPage _mapTagCatalogPage(
-    Map<String, dynamic> json, {
-    required int page,
-  }) {
-    final result = List<Map<String, dynamic>>.from(
-      json['result'] as List<dynamic>? ?? const <dynamic>[],
-    );
-
-    return TagCatalogPage(
-      result: result.map(_mapTagCatalogItem).toList(growable: false),
-      numPages: (json['num_pages'] as num?)?.toInt() ?? 1,
-      perPage: (json['per_page'] as num?)?.toInt() ?? result.length,
-      page: page,
-    );
-  }
-
-  TagCatalogItem _mapTagCatalogItem(Map<String, dynamic> json) {
-    return TagCatalogItem(
-      id: (json['id'] as num?)?.toInt() ?? 0,
-      type: json['type'] as String? ?? 'tag',
-      name: json['name'] as String? ?? '',
-      slug: json['slug'] as String? ?? '',
-      url: json['url'] as String? ?? '',
-      count: (json['count'] as num?)?.toInt() ?? 0,
-    );
   }
 
   ComicPageImage _mapPageInfo(Map<String, dynamic> json) {

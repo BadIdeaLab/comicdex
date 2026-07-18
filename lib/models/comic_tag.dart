@@ -22,7 +22,8 @@ extension ComicTagQuery on ComicTag {
   ///
   /// Prefers the slug extracted from [url] (the authoritative nhentai slug),
   /// falling back to a name-based computation when [url] is absent. This
-  /// matches [TagCatalogItem.query], which uses the API-provided slug directly.
+  /// matches [LocalTagCatalogEntry.query], which uses the API-provided slug
+  /// directly.
   String get query {
     final type = this.type ?? 'tag';
     final slug = _slugFromUrl(url) ?? _slugFromName(name);

@@ -1,6 +1,8 @@
 import 'package:concept_nhv/app/app_providers.dart';
 import 'package:concept_nhv/application/feed/search_comics_use_case.dart';
 import 'package:concept_nhv/application/home/home_shell_controller.dart';
+import 'package:concept_nhv/services/local_tag_catalog_service.dart';
+import 'package:concept_nhv/models/local_tag_catalog_entry.dart';
 import 'package:concept_nhv/services/nhentai_api_client.dart';
 import 'package:concept_nhv/services/tag_display_service.dart';
 import 'package:concept_nhv/state/comic_feed_model.dart';
@@ -26,6 +28,7 @@ void main() {
           providers: buildAppProviders(
             harness.localDatabase,
             TagDisplayService.fromMap(const {}),
+            LocalTagCatalogService.fromEntries(const <LocalTagCatalogEntry>[]),
           ),
           child: Builder(
             builder: (context) {

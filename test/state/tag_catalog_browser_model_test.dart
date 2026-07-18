@@ -1,150 +1,84 @@
-import 'dart:async';
-
-import 'package:concept_nhv/application/tags/load_tag_catalog_use_case.dart';
-import 'package:concept_nhv/models/comic.dart';
-import 'package:concept_nhv/models/comic_search_response.dart';
-import 'package:concept_nhv/models/comic_tag.dart';
-import 'package:concept_nhv/models/tag_catalog_item.dart';
-import 'package:concept_nhv/models/tag_catalog_page.dart';
+import 'package:concept_nhv/models/local_tag_catalog_entry.dart';
 import 'package:concept_nhv/models/tag_catalog_type.dart';
-import 'package:concept_nhv/services/nhentai_api_client.dart';
+import 'package:concept_nhv/services/local_tag_catalog_service.dart';
+import 'package:concept_nhv/services/tag_display_service.dart';
 import 'package:concept_nhv/state/tag_catalog_browser_model.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('setType resets selection and loads the first page for the new type', () async {
-    final gateway = _FakeTagCatalogGateway();
-    final model = TagCatalogBrowserModel(
-      loadTagCatalogUseCase: LoadTagCatalogUseCase(nhentaiGateway: gateway),
-    );
+  const tagEntries = <LocalTagCatalogEntry>[
+    LocalTagCatalogEntry(
+      type: TagCatalogType.tag,
+      name: 'full color',
+      slug: 'full-color',
+      count: 10,
+    ),
+    LocalTagCatalogEntry(
+      type: TagCatalogType.tag,
+      name: 'big breasts',
+      slug: 'big-breasts',
+      count: 20,
+    ),
+  ];
+  const languageEntries = <LocalTagCatalogEntry>[
+    LocalTagCatalogEntry(
+      type: TagCatalogType.language,
+      name: 'chinese',
+      slug: 'chinese',
+      count: 5,
+    ),
+  ];
 
-    await model.ensureLoaded();
-    model.toggleSelection(
-      const TagCatalogItem(
-        id: 1,
-        type: 'tag',
-        name: 'sample',
-        slug: 'sample',
-        url: '/tag/sample/',
-        count: 1,
-      ),
+  TagCatalogBrowserModel buildModel() {
+    final service = LocalTagCatalogService.fromEntries(<LocalTagCatalogEntry>[
+      ...tagEntries,
+      ...languageEntries,
+    ]);
+    return TagCatalogBrowserModel(
+      localTagCatalogService: service,
+      tagDisplayService: TagDisplayService.fromMap({}),
     );
+  }
 
-    await model.setType(TagCatalogType.language);
+  test('ensureLoaded populates results for the default type sorted by count', () {
+    final model = buildModel();
+    model.ensureLoaded();
+
+    expect(model.type, TagCatalogType.tag);
+    expect(model.results.map((e) => e.slug), <String>['big-breasts', 'full-color']);
+  });
+
+  test('setQuery ranks prefix matches above contains matches', () async {
+    final model = buildModel();
+    model.setQuery('full');
+    await Future<void>.delayed(const Duration(milliseconds: 250));
+
+    expect(model.results.single.slug, 'full-color');
+  });
+
+  test('setType switches category results without clearing selectedQueries', () {
+    final model = buildModel();
+    model.ensureLoaded();
+    model.toggleSelection(tagEntries.first);
+
+    model.setType(TagCatalogType.language);
 
     expect(model.type, TagCatalogType.language);
-    expect(model.selectedQueries, isEmpty);
-    expect(model.currentPage?.page, 1);
-    expect(gateway.requests, <String>['tag:1', 'language:1']);
+    expect(model.results.map((e) => e.slug), <String>['chinese']);
+    expect(model.selectedQueries, <String>['tag:full-color']);
   });
 
-  test('ignores stale responses when a newer page request completes first', () async {
-    final gateway = _SequencedTagCatalogGateway();
-    final model = TagCatalogBrowserModel(
-      loadTagCatalogUseCase: LoadTagCatalogUseCase(nhentaiGateway: gateway),
-    );
+  test('selecting tags across two different categories accumulates without clearing', () {
+    final model = buildModel();
+    model.ensureLoaded();
+    model.toggleSelection(tagEntries.first);
 
-    unawaited(model.loadPage(1));
-    await model.loadPage(2);
-    gateway.completePage(1, const TagCatalogPage(
-      result: <TagCatalogItem>[],
-      numPages: 3,
-      perPage: 1,
-      page: 1,
-    ));
-    await Future<void>.delayed(Duration.zero);
-    expect(model.currentPage?.page, 2);
+    model.setType(TagCatalogType.language);
+    model.toggleSelection(languageEntries.first);
+
+    expect(
+      model.selectedQueries,
+      <String>['language:chinese', 'tag:full-color'],
+    );
   });
-}
-
-class _FakeTagCatalogGateway implements NhentaiGateway {
-  final List<String> requests = <String>[];
-
-  @override
-  Future<({List<ComicTag> tags, int? numFavorites, int? uploadDate})> loadComicMeta(
-    String comicId,
-  ) async =>
-      (tags: const <ComicTag>[], numFavorites: null, uploadDate: null);
-
-  @override
-  Future<TagCatalogPage> loadTagCatalog({
-    required TagCatalogType type,
-    required int page,
-  }) async {
-    requests.add('${type.apiValue}:$page');
-    return TagCatalogPage(
-      result: <TagCatalogItem>[
-        TagCatalogItem(
-          id: page,
-          type: type.apiValue,
-          name: 'name-$page',
-          slug: 'name-$page',
-          url: '/${type.apiValue}/name-$page/',
-          count: page,
-        ),
-      ],
-      numPages: 3,
-      perPage: 1,
-      page: page,
-    );
-  }
-
-  @override
-  Future<({Comic comic, Map<String, String>? headers})> loadComicDetail(String comicId) {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<void> pingHomepage() async {}
-
-  @override
-  Future<ComicSearchResponse> searchComics(Uri uri) {
-    throw UnimplementedError();
-  }
-}
-
-class _SequencedTagCatalogGateway implements NhentaiGateway {
-  final Map<int, Completer<TagCatalogPage>> _completers = <int, Completer<TagCatalogPage>>{
-    1: Completer<TagCatalogPage>(),
-    2: Completer<TagCatalogPage>()
-      ..complete(
-        const TagCatalogPage(
-          result: <TagCatalogItem>[],
-          numPages: 3,
-          perPage: 1,
-          page: 2,
-        ),
-      ),
-  };
-
-  void completePage(int page, TagCatalogPage result) {
-    _completers[page]!.complete(result);
-  }
-
-  @override
-  Future<({List<ComicTag> tags, int? numFavorites, int? uploadDate})> loadComicMeta(
-    String comicId,
-  ) async =>
-      (tags: const <ComicTag>[], numFavorites: null, uploadDate: null);
-
-  @override
-  Future<TagCatalogPage> loadTagCatalog({
-    required TagCatalogType type,
-    required int page,
-  }) {
-    return _completers[page]!.future;
-  }
-
-  @override
-  Future<({Comic comic, Map<String, String>? headers})> loadComicDetail(String comicId) {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<void> pingHomepage() async {}
-
-  @override
-  Future<ComicSearchResponse> searchComics(Uri uri) {
-    throw UnimplementedError();
-  }
 }

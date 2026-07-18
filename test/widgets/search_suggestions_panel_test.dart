@@ -4,10 +4,10 @@ import 'package:concept_nhv/application/home/home_shell_controller.dart';
 import 'package:concept_nhv/application/reader/load_comic_detail_use_case.dart';
 import 'package:concept_nhv/application/reader/load_offline_comic_use_case.dart';
 import 'package:concept_nhv/application/reader/open_comic_use_case.dart';
-import 'package:concept_nhv/application/tags/load_tag_catalog_use_case.dart';
-import 'package:concept_nhv/models/tag_catalog_item.dart';
-import 'package:concept_nhv/models/tag_catalog_page.dart';
+import 'package:concept_nhv/models/local_tag_catalog_entry.dart';
+import 'package:concept_nhv/models/tag_catalog_type.dart';
 import 'package:concept_nhv/services/download_asset_store.dart';
+import 'package:concept_nhv/services/local_tag_catalog_service.dart';
 import 'package:concept_nhv/services/search_query_builder.dart';
 import 'package:concept_nhv/services/tag_display_service.dart';
 import 'package:concept_nhv/services/tag_search_query_builder.dart';
@@ -35,13 +35,11 @@ void main() {
     (tester) async {
       final setup = await _pumpSearchSuggestionsPanel(
         tester,
-        tagCatalogItems: const <TagCatalogItem>[
-          TagCatalogItem(
-            id: 1,
-            type: 'tag',
+        catalogEntries: const <LocalTagCatalogEntry>[
+          LocalTagCatalogEntry(
+            type: TagCatalogType.tag,
             name: 'full color',
             slug: 'full-color',
-            url: '/tag/full-color/',
             count: 10,
           ),
         ],
@@ -58,7 +56,7 @@ void main() {
       expect(find.text('Selected 1'), findsOneWidget);
       expect(find.widgetWithText(InputChip, 'tag:full-color'), findsOneWidget);
 
-      await tester.tap(find.text('Search'));
+      await tester.tap(find.text('Search 1 tags'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 200));
 
@@ -72,45 +70,42 @@ void main() {
     },
   );
 
-  testWidgets('filters the current tag page without hiding selection summary', (
-    tester,
-  ) async {
-    await _pumpSearchSuggestionsPanel(
-      tester,
-      tagCatalogItems: const <TagCatalogItem>[
-        TagCatalogItem(
-          id: 1,
-          type: 'tag',
-          name: 'full color',
-          slug: 'full-color',
-          url: '/tag/full-color/',
-          count: 10,
-        ),
-        TagCatalogItem(
-          id: 2,
-          type: 'tag',
-          name: 'big breasts',
-          slug: 'big-breasts',
-          url: '/tag/big-breasts/',
-          count: 20,
-        ),
-      ],
-    );
+  testWidgets(
+    'searches the whole category instantly without hiding selection summary',
+    (tester) async {
+      await _pumpSearchSuggestionsPanel(
+        tester,
+        catalogEntries: const <LocalTagCatalogEntry>[
+          LocalTagCatalogEntry(
+            type: TagCatalogType.tag,
+            name: 'full color',
+            slug: 'full-color',
+            count: 10,
+          ),
+          LocalTagCatalogEntry(
+            type: TagCatalogType.tag,
+            name: 'big breasts',
+            slug: 'big-breasts',
+            count: 20,
+          ),
+        ],
+      );
 
-    await tester.tap(find.text('Tags').last);
-    await tester.pump();
-    await tester.pump(const Duration(seconds: 1));
-    await tester.tap(find.widgetWithText(FilterChip, 'full color (10)'));
-    await tester.pump();
+      await tester.tap(find.text('Tags').last);
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+      await tester.tap(find.widgetWithText(FilterChip, 'full color (10)'));
+      await tester.pump();
 
-    await tester.enterText(find.byType(TextField), 'breasts');
-    await tester.pump();
+      await tester.enterText(find.byType(TextField), 'breasts');
+      await tester.pump(const Duration(milliseconds: 200));
 
-    expect(find.widgetWithText(FilterChip, 'full color (10)'), findsNothing);
-    expect(find.widgetWithText(FilterChip, 'big breasts (20)'), findsOneWidget);
-    expect(find.text('Selected 1'), findsOneWidget);
-    expect(find.widgetWithText(InputChip, 'tag:full-color'), findsOneWidget);
-  });
+      expect(find.widgetWithText(FilterChip, 'full color (10)'), findsNothing);
+      expect(find.widgetWithText(FilterChip, 'big breasts (20)'), findsOneWidget);
+      expect(find.text('Selected 1'), findsOneWidget);
+      expect(find.widgetWithText(InputChip, 'tag:full-color'), findsOneWidget);
+    },
+  );
 }
 
 Future<
@@ -122,20 +117,13 @@ Future<
 >
 _pumpSearchSuggestionsPanel(
   WidgetTester tester, {
-  required List<TagCatalogItem> tagCatalogItems,
+  required List<LocalTagCatalogEntry> catalogEntries,
 }) async {
   final harness = SqliteTestHarness();
   await harness.initialize();
   addTearDown(harness.dispose);
 
-  final gateway = FakeNhentaiGateway(
-    tagCatalogPage: TagCatalogPage(
-      result: tagCatalogItems,
-      numPages: 1,
-      perPage: tagCatalogItems.length,
-      page: 1,
-    ),
-  );
+  final gateway = FakeNhentaiGateway();
   final homeUiModel = HomeUiModel();
   addTearDown(homeUiModel.searchController.dispose);
   addTearDown(homeUiModel.dispose);
@@ -175,13 +163,18 @@ _pumpSearchSuggestionsPanel(
   );
   addTearDown(readerModel.dispose);
 
+  final tagDisplayService = TagDisplayService.fromMap({});
+  final localTagCatalogService = LocalTagCatalogService.fromEntries(
+    catalogEntries,
+  );
   final tagCatalogModel = TagCatalogBrowserModel(
-    loadTagCatalogUseCase: LoadTagCatalogUseCase(nhentaiGateway: gateway),
+    localTagCatalogService: localTagCatalogService,
+    tagDisplayService: tagDisplayService,
   );
   addTearDown(tagCatalogModel.dispose);
 
   final providers = <SingleChildWidget>[
-    Provider<TagDisplayService>.value(value: TagDisplayService.fromMap({})),
+    Provider<TagDisplayService>.value(value: tagDisplayService),
     Provider.value(value: harness.searchHistoryRepository),
     ChangeNotifierProvider<HomeUiModel>.value(value: homeUiModel),
     ChangeNotifierProvider<TagCatalogBrowserModel>.value(

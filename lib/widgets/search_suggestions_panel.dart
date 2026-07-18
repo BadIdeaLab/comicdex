@@ -1,6 +1,5 @@
 import 'package:concept_nhv/application/home/home_shell_controller.dart';
 import 'package:concept_nhv/models/search_history_entry.dart';
-import 'package:concept_nhv/models/tag_catalog_item.dart';
 import 'package:concept_nhv/models/tag_catalog_type.dart';
 import 'package:concept_nhv/models/tag_type_l10n.dart';
 import 'package:concept_nhv/state/tag_catalog_browser_model.dart';
@@ -110,21 +109,8 @@ class _SearchSuggestionsPanelState extends State<SearchSuggestionsPanel> {
     final locale = Localizations.localeOf(context);
     return Consumer<TagCatalogBrowserModel>(
       builder: (context, model, child) {
-        final page = model.currentPage;
         final tagDisplayService = context.read<TagDisplayService>();
-        final visibleItems = page == null
-            ? const <TagCatalogItem>[]
-            : page.result
-                  .where((item) {
-                    return _matchesTagFilter(
-                      item: item,
-                      displayName: tagDisplayService.displayName(
-                        item.slug,
-                        item.name,
-                      ),
-                    );
-                  })
-                  .toList(growable: false);
+        final results = model.results;
         return Column(
           children: <Widget>[
             Padding(
@@ -140,8 +126,8 @@ class _SearchSuggestionsPanelState extends State<SearchSuggestionsPanel> {
                 }).toList(),
                 selected: <TagCatalogType>{model.type},
                 onSelectionChanged: (selection) {
-                  _clearTagFilter();
                   model.setType(selection.first);
+                  _clearTagFilter(model);
                 },
               ),
             ),
@@ -154,11 +140,11 @@ class _SearchSuggestionsPanelState extends State<SearchSuggestionsPanel> {
                   suffixIcon: _tagFilterQuery.isEmpty
                       ? null
                       : IconButton(
-                          tooltip: 'Clear tag filter',
+                          tooltip: 'Clear search',
                           icon: const Icon(Icons.clear),
-                          onPressed: _clearTagFilter,
+                          onPressed: () => _clearTagFilter(model),
                         ),
-                  hintText: 'Filter current tag page',
+                  hintText: 'Search this category',
                   isDense: true,
                   border: const OutlineInputBorder(),
                 ),
@@ -167,6 +153,7 @@ class _SearchSuggestionsPanelState extends State<SearchSuggestionsPanel> {
                   setState(() {
                     _tagFilterQuery = value;
                   });
+                  model.setQuery(value);
                 },
               ),
             ),
@@ -177,21 +164,13 @@ class _SearchSuggestionsPanelState extends State<SearchSuggestionsPanel> {
                 onClear: model.clearSelection,
               ),
             if (model.selectedQueries.isNotEmpty) const SizedBox(height: 8),
-            if (model.isLoading && page == null)
-              const Expanded(child: Center(child: CircularProgressIndicator()))
-            else if (model.errorMessage != null && page == null)
+            if (results.isEmpty)
               Expanded(
                 child: Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: <Widget>[
-                      Text(model.errorMessage!),
-                      const SizedBox(height: 8),
-                      FilledButton(
-                        onPressed: () => model.loadPage(page?.page ?? 1),
-                        child: const Text('Retry'),
-                      ),
-                    ],
+                  child: Text(
+                    _tagFilterQuery.trim().isEmpty
+                        ? 'No tags in this category'
+                        : 'No tags match "${_tagFilterQuery.trim()}"',
                   ),
                 ),
               )
@@ -200,79 +179,47 @@ class _SearchSuggestionsPanelState extends State<SearchSuggestionsPanel> {
                 child: ListView(
                   padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
                   children: <Widget>[
-                    if (model.isLoading) const LinearProgressIndicator(),
-                    if (page != null)
-                      if (visibleItems.isEmpty)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 24),
-                          child: Center(
-                            child: Text(
-                              _tagFilterQuery.trim().isEmpty
-                                  ? 'No tags on this page'
-                                  : 'No tags match "${_tagFilterQuery.trim()}" on this page',
-                            ),
-                          ),
-                        )
-                      else
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 6,
-                          children: visibleItems.map((item) {
-                            final displayName = tagDisplayService.displayName(
-                              item.slug,
-                              item.name,
-                            );
-                            return FilterChip(
-                              label: Text('$displayName (${item.count})'),
-                              selected: model.isSelected(item),
-                              onSelected: (_) => model.toggleSelection(item),
-                            );
-                          }).toList(),
-                        ),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 6,
+                      children: results.map((item) {
+                        final displayName = tagDisplayService.displayName(
+                          item.slug,
+                          item.name,
+                        );
+                        return FilterChip(
+                          label: Text('$displayName (${item.count})'),
+                          selected: model.isSelected(item),
+                          onSelected: (_) => model.toggleSelection(item),
+                        );
+                      }).toList(),
+                    ),
                   ],
                 ),
               ),
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
-              child: Row(
-                children: <Widget>[
-                  IconButton(
-                    onPressed: page == null || page.page <= 1
-                        ? null
-                        : () => model.loadPage(page.page - 1),
-                    icon: const Icon(Icons.chevron_left),
+              child: SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: model.selectedQueries.isEmpty
+                      ? null
+                      : () async {
+                          final controller = context
+                              .read<HomeShellController>();
+                          final selectedQueries = List<String>.of(
+                            model.selectedQueries,
+                          );
+                          model.clearSelection();
+                          await controller.submitTagSearch(selectedQueries);
+                        },
+                  icon: const Icon(Icons.search),
+                  label: Text(
+                    model.selectedQueries.isEmpty
+                        ? 'Select tags to search'
+                        : 'Search ${model.selectedQueries.length} tags',
                   ),
-                  Expanded(
-                    child: Text(
-                      page == null
-                          ? 'Page -'
-                          : 'Page ${page.page} / ${page.numPages}',
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: page == null || page.page >= page.numPages
-                        ? null
-                        : () => model.loadPage(page.page + 1),
-                    icon: const Icon(Icons.chevron_right),
-                  ),
-                  const SizedBox(width: 8),
-                  FilledButton.icon(
-                    onPressed: model.selectedQueries.isEmpty
-                        ? null
-                        : () async {
-                            final controller = context
-                                .read<HomeShellController>();
-                            final selectedQueries = List<String>.of(
-                              model.selectedQueries,
-                            );
-                            model.clearSelection();
-                            await controller.submitTagSearch(selectedQueries);
-                          },
-                    icon: const Icon(Icons.search),
-                    label: const Text('Search'),
-                  ),
-                ],
+                ),
               ),
             ),
           ],
@@ -285,21 +232,7 @@ class _SearchSuggestionsPanelState extends State<SearchSuggestionsPanel> {
     return context.read<SearchHistoryRepository>().load();
   }
 
-  bool _matchesTagFilter({
-    required TagCatalogItem item,
-    required String displayName,
-  }) {
-    final query = _tagFilterQuery.trim().toLowerCase();
-    if (query.isEmpty) {
-      return true;
-    }
-    return displayName.toLowerCase().contains(query) ||
-        item.name.toLowerCase().contains(query) ||
-        item.slug.toLowerCase().contains(query) ||
-        item.query.toLowerCase().contains(query);
-  }
-
-  void _clearTagFilter() {
+  void _clearTagFilter(TagCatalogBrowserModel model) {
     if (_tagFilterQuery.isEmpty && _tagFilterController.text.isEmpty) {
       return;
     }
@@ -307,6 +240,7 @@ class _SearchSuggestionsPanelState extends State<SearchSuggestionsPanel> {
       _tagFilterQuery = '';
       _tagFilterController.clear();
     });
+    model.setQuery('');
   }
 }
 

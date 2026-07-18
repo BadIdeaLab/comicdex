@@ -1,9 +1,6 @@
 import 'package:concept_nhv/models/comic.dart';
 import 'package:concept_nhv/models/comic_search_response.dart';
 import 'package:concept_nhv/models/comic_tag.dart';
-import 'package:concept_nhv/models/tag_catalog_item.dart';
-import 'package:concept_nhv/models/tag_catalog_page.dart';
-import 'package:concept_nhv/models/tag_catalog_type.dart';
 import 'package:concept_nhv/services/nhentai_api_client.dart';
 import 'package:dio/dio.dart';
 
@@ -16,7 +13,6 @@ class FakeNhentaiGateway implements NhentaiGateway {
     this.detailComic,
     this.detailHeaders,
     this.comicTags,
-    this.tagCatalogPage,
   });
 
   final DioException? pingError;
@@ -24,7 +20,6 @@ class FakeNhentaiGateway implements NhentaiGateway {
   final Comic? detailComic;
   final Map<String, String>? detailHeaders;
   final List<ComicTag>? comicTags;
-  final TagCatalogPage? tagCatalogPage;
   final List<Uri> searchedUris = <Uri>[];
   final List<String> loadedComicDetailIds = <String>[];
   final List<String> loadedComicMetaIds = <String>[];
@@ -72,19 +67,5 @@ class FakeNhentaiGateway implements NhentaiGateway {
       numFavorites: comic.numFavorites,
       uploadDate: comic.uploadDate,
     );
-  }
-
-  @override
-  Future<TagCatalogPage> loadTagCatalog({
-    required TagCatalogType type,
-    required int page,
-  }) async {
-    return tagCatalogPage ??
-        TagCatalogPage(
-          result: const <TagCatalogItem>[],
-          numPages: 1,
-          perPage: 0,
-          page: page,
-        );
   }
 }

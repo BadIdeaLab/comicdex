@@ -1,6 +1,9 @@
 enum TagCatalogType {
   tag('tag'),
-  language('language');
+  language('language'),
+  parody('parody'),
+  character('character'),
+  artist('artist');
 
   const TagCatalogType(this.apiValue);
 

@@ -118,7 +118,7 @@
 | `SearchComicsUseCase` | 建 URI → gateway 取列表 | feed |
 | `LoadCollectionSummariesUseCase` / `LoadCollectionComicsUseCase` | 收藏摘要 / 內容 | feed / library |
 | `LoadComicDetailUseCase` / `LoadOfflineComicUseCase` / `OpenComicUseCase` | 詳情 / 離線 / 開啟並寫 History | reader |
-| `LoadComicMetaUseCase` / `LoadTagCatalogUseCase` | meta / tag 目錄 | tags |
+| `LoadComicMetaUseCase` | meta | tags |
 | `SaveComicToCollectionUseCase` / `RemoveComicFromCollectionUseCase` | 收藏夾加入 / 移除 | library |
 | `InitializeFavoritesUseCase` / `SaveApiKeyUseCase` / `ClearFavoriteAuthUseCase` / `SyncRemoteFavoritesUseCase` / `ToggleFavoriteUseCase` | 收藏初始化 / API key / 遠端同步 / 切換 | favorites |
 | `HomeShellController` | `submitSearch()` / `searchWithTag()` / `submitTagSearch()` / `retryHomeFeed()` / `applySortAndFilters()` | home 編排 |
@@ -134,7 +134,8 @@
 
 | 類別 | 代表性函式 | 擴充建議 |
 | --- | --- | --- |
-| `NhentaiApiClient`（`NhentaiGateway`） | `searchComics()` / `loadComicDetail()` / `loadComicMeta()` / `loadTagCatalog()` / `pingHomepage()` | 全部走 **v2** 端點；新增端點時擴充介面 |
+| `NhentaiApiClient`（`NhentaiGateway`） | `searchComics()` / `loadComicDetail()` / `loadComicMeta()` / `pingHomepage()` | 全部走 **v2** 端點；新增端點時擴充介面 |
+| `LocalTagCatalogService` | `search()` / `applyOverrideBytes()` | 本地離線標籤資料集（P58），取代原本的 `loadTagCatalog()` 遠端分頁 |
 | `NhentaiCdnConfigService` | `load()` / `refreshInBackground()` | 啟動背景刷新，解析圖片主機 |
 | `ImageUrlResolver` / `ComicPageSourceResolver` | 組縮圖 / 內頁 URL | 與 fallback 影像元件搭配 |
 | `NhentaiAuthService` | `saveAndValidateApiKey()` / `validateStoredApiKey()` / `clearApiKey()` | API key 驗證 |

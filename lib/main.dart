@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:concept_nhv/app/bootstrap_app.dart';
+import 'package:concept_nhv/services/local_tag_catalog_service.dart';
 import 'package:concept_nhv/services/tag_display_service.dart';
 import 'package:concept_nhv/storage/local_database.dart';
 import 'package:flutter/widgets.dart';
@@ -16,6 +17,13 @@ Future<void> main() async {
   final localDatabase = LocalDatabase();
   await localDatabase.initialize();
   final tagDisplayService = await TagDisplayService.load();
+  final localTagCatalogService = await LocalTagCatalogService.load();
 
-  runApp(BootstrapApp(localDatabase: localDatabase, tagDisplayService: tagDisplayService));
+  runApp(
+    BootstrapApp(
+      localDatabase: localDatabase,
+      tagDisplayService: tagDisplayService,
+      localTagCatalogService: localTagCatalogService,
+    ),
+  );
 }

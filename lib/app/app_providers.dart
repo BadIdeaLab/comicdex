@@ -20,9 +20,9 @@ import 'package:concept_nhv/application/reader/open_comic_use_case.dart';
 import 'package:concept_nhv/application/reader/reader_progress_repository.dart';
 import 'package:concept_nhv/application/reader/reader_settings_repository.dart';
 import 'package:concept_nhv/application/tags/load_comic_meta_use_case.dart';
-import 'package:concept_nhv/application/tags/load_tag_catalog_use_case.dart';
 import 'package:concept_nhv/services/image_url_resolver.dart';
 import 'package:concept_nhv/services/download_asset_store.dart';
+import 'package:concept_nhv/services/local_tag_catalog_service.dart';
 import 'package:concept_nhv/services/tag_display_service.dart';
 import 'package:concept_nhv/services/image_compression_service.dart';
 import 'package:concept_nhv/services/library_import_service.dart';
@@ -66,9 +66,14 @@ import 'package:provider/single_child_widget.dart';
 List<SingleChildWidget> buildAppProviders(
   LocalDatabase localDatabase,
   TagDisplayService tagDisplayService,
+  LocalTagCatalogService localTagCatalogService,
 ) {
   return <SingleChildWidget>[
-    ..._buildInfrastructureProviders(localDatabase, tagDisplayService),
+    ..._buildInfrastructureProviders(
+      localDatabase,
+      tagDisplayService,
+      localTagCatalogService,
+    ),
     ..._buildStorageProviders(),
     ..._buildServiceProviders(),
     ..._buildUseCaseProviders(),
@@ -80,9 +85,11 @@ List<SingleChildWidget> buildAppProviders(
 List<SingleChildWidget> _buildInfrastructureProviders(
   LocalDatabase localDatabase,
   TagDisplayService tagDisplayService,
+  LocalTagCatalogService localTagCatalogService,
 ) {
   return <SingleChildWidget>[
     Provider<TagDisplayService>.value(value: tagDisplayService),
+    ChangeNotifierProvider<LocalTagCatalogService>.value(value: localTagCatalogService),
     Provider<LocalDatabase>.value(value: localDatabase),
     Provider(create: (context) => OptionsStore(localDatabase: context.read())),
     Provider<SecureKeyValueStore>(create: (_) => FlutterSecureKeyValueStore()),
@@ -202,10 +209,6 @@ List<SingleChildWidget> _buildUseCaseProviders() {
       create: (context) => LoadComicMetaUseCase(nhentaiGateway: context.read()),
     ),
     Provider(
-      create: (context) =>
-          LoadTagCatalogUseCase(nhentaiGateway: context.read()),
-    ),
-    Provider(
       create: (context) => SaveComicToCollectionUseCase(
         comicRepository: context.read(),
         collectionRepository: context.read(),
@@ -262,8 +265,10 @@ List<SingleChildWidget> _buildStateProviders() {
       },
     ),
     ChangeNotifierProvider(
-      create: (context) =>
-          TagCatalogBrowserModel(loadTagCatalogUseCase: context.read()),
+      create: (context) => TagCatalogBrowserModel(
+        localTagCatalogService: context.read(),
+        tagDisplayService: context.read(),
+      ),
     ),
     ChangeNotifierProvider(
       create: (context) => ComicFeedModel(

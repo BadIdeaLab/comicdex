@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:concept_nhv/models/tag_catalog_type.dart';
 import 'package:concept_nhv/services/nhentai_api_client.dart';
 import 'package:concept_nhv/services/nhentai_cdn_config_service.dart';
 import 'package:concept_nhv/storage/nhentai_api_key_store.dart';
@@ -187,44 +186,6 @@ void main() {
       expect(second.numFavorites, 42);
       // Cache should prevent a second API request.
       expect(adapter.requests, hasLength(1));
-    });
-
-    test('loadTagCatalog maps tag catalog pagination payload', () async {
-      final adapter = _QueueHttpClientAdapter(<_StubbedResponse>[
-        _StubbedResponse(
-          body: jsonEncode(<String, Object?>{
-            'num_pages': 7,
-            'per_page': 120,
-            'result': <Map<String, Object?>>[
-              <String, Object?>{
-                'id': 29963,
-                'type': 'language',
-                'name': 'chinese',
-                'slug': 'chinese',
-                'url': '/language/chinese/',
-                'count': 9,
-              },
-            ],
-          }),
-        ),
-      ]);
-      final dio = Dio()..httpClientAdapter = adapter;
-      final client = NhentaiApiClient(
-        apiKeyStore: apiKeyStore,
-        cdnConfigService: NhentaiCdnConfigService(dio: dio),
-        dio: dio,
-      );
-
-      final result = await client.loadTagCatalog(
-        type: TagCatalogType.language,
-        page: 3,
-      );
-
-      expect(result.page, 3);
-      expect(result.numPages, 7);
-      expect(result.perPage, 120);
-      expect(result.result.single.query, 'language:chinese');
-      expect(adapter.requests.single.options.uri.queryParameters['sort'], 'popular');
     });
   });
 }

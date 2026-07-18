@@ -234,7 +234,7 @@ main()
 | `LoadComicDetailUseCase` | 載入單本漫畫詳情（含 headers） |
 | `LoadOfflineComicUseCase` | 從本地下載資產組出可離線閱讀的漫畫 |
 | `OpenComicUseCase` | 開啟漫畫時寫入 `Comic` 與 `History` |
-| `LoadComicMetaUseCase` / `LoadTagCatalogUseCase` | 載入 tag / 詳情 meta、tag 目錄 |
+| `LoadComicMetaUseCase` | 載入 tag / 詳情 meta |
 | `SaveComicToCollectionUseCase` / `RemoveComicFromCollectionUseCase` | 收藏夾加入 / 移除 |
 | 收藏類：`InitializeFavoritesUseCase`、`SaveApiKeyUseCase`、`ClearFavoriteAuthUseCase`、`SyncRemoteFavoritesUseCase`、`ToggleFavoriteUseCase` | 收藏的初始化、API key、與遠端同步、切換 |
 
@@ -319,7 +319,7 @@ main()
 | `ComicSearchResponse` | 列表 / 搜尋 API 回應 |
 | `ComicCardData` | 卡片顯示用的精簡資料 |
 | `CollectionSummary` / `CollectedComic` / `StoredComic` | 收藏摘要與已存漫畫 |
-| `TagCatalogItem` / `TagCatalogPage` | tag 目錄項目與分頁 |
+| `LocalTagCatalogEntry` | 本地標籤資料集項目（type/name/slug/count，P58） |
 | `NhentaiCdnConfig` / `NhentaiApiCredential` | CDN 設定、API 認證 |
 
 **下載相關快照**

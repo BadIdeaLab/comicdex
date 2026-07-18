@@ -4,9 +4,6 @@ import 'package:concept_nhv/models/comic_language.dart';
 import 'package:concept_nhv/models/comic_search_response.dart';
 import 'package:concept_nhv/models/comic_tag.dart';
 import 'package:concept_nhv/models/popular_sort_type.dart';
-import 'package:concept_nhv/models/tag_catalog_item.dart';
-import 'package:concept_nhv/models/tag_catalog_page.dart';
-import 'package:concept_nhv/models/tag_catalog_type.dart';
 import 'package:concept_nhv/services/nhentai_api_client.dart';
 import 'package:concept_nhv/services/search_query_builder.dart';
 import 'package:dio/dio.dart';
@@ -135,19 +132,6 @@ class _SequenceNhentaiGateway implements NhentaiGateway {
     String comicId,
   ) async {
     return (tags: const <ComicTag>[], numFavorites: null, uploadDate: null);
-  }
-
-  @override
-  Future<TagCatalogPage> loadTagCatalog({
-    required TagCatalogType type,
-    required int page,
-  }) async {
-    return TagCatalogPage(
-      result: const <TagCatalogItem>[],
-      numPages: 1,
-      perPage: 0,
-      page: page,
-    );
   }
 
   @override

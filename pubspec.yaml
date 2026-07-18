@@ -83,6 +83,7 @@ flutter:
 
   assets:
     - assets/tag_zh.bin
+    - assets/tag_catalog.bin
 
   # To add assets to your application, add an assets section, like this:
   # assets:

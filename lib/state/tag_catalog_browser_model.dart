@@ -1,71 +1,68 @@
-import 'package:concept_nhv/application/tags/load_tag_catalog_use_case.dart';
-import 'package:concept_nhv/models/tag_catalog_item.dart';
-import 'package:concept_nhv/models/tag_catalog_page.dart';
+import 'dart:async';
+
+import 'package:concept_nhv/models/local_tag_catalog_entry.dart';
 import 'package:concept_nhv/models/tag_catalog_type.dart';
+import 'package:concept_nhv/services/local_tag_catalog_service.dart';
+import 'package:concept_nhv/services/tag_display_service.dart';
 import 'package:flutter/material.dart';
 
-class TagCatalogBrowserModel extends ChangeNotifier {
-  TagCatalogBrowserModel({required this.loadTagCatalogUseCase});
+const Duration _searchDebounce = Duration(milliseconds: 200);
 
-  final LoadTagCatalogUseCase loadTagCatalogUseCase;
+class TagCatalogBrowserModel extends ChangeNotifier {
+  TagCatalogBrowserModel({
+    required this.localTagCatalogService,
+    required this.tagDisplayService,
+  });
+
+  final LocalTagCatalogService localTagCatalogService;
+  final TagDisplayService tagDisplayService;
 
   TagCatalogType _type = TagCatalogType.tag;
-  TagCatalogPage? _currentPage;
-  bool _isLoading = false;
-  String? _errorMessage;
-  int _requestSequence = 0;
+  String _query = '';
+  List<LocalTagCatalogEntry> _results = const <LocalTagCatalogEntry>[];
+  Timer? _debounce;
   final Set<String> _selectedQueries = <String>{};
 
   TagCatalogType get type => _type;
-  TagCatalogPage? get currentPage => _currentPage;
-  bool get isLoading => _isLoading;
-  String? get errorMessage => _errorMessage;
+  String get query => _query;
+  List<LocalTagCatalogEntry> get results => _results;
   List<String> get selectedQueries => (_selectedQueries.toList()..sort());
 
-  Future<void> ensureLoaded() async {
-    if (_currentPage == null && !_isLoading) {
-      await loadPage(1);
+  /// Runs the initial search so the panel isn't blank on first open. Kept as
+  /// a no-arg method (rather than folding into the constructor) so callers
+  /// that already invoke `ensureLoaded()` on init need no change.
+  void ensureLoaded() {
+    if (_results.isEmpty && _query.isEmpty) {
+      _runSearch();
     }
   }
 
-  Future<void> setType(TagCatalogType type) async {
+  void setType(TagCatalogType type) {
     if (_type == type) {
       return;
     }
     _type = type;
-    _selectedQueries.clear();
-    _currentPage = null;
-    _errorMessage = null;
-    notifyListeners();
-    await loadPage(1);
+    // Selected tags intentionally survive a category switch so users can
+    // build a search that spans multiple tag types (see P58).
+    _runSearch();
   }
 
-  Future<void> loadPage(int page) async {
-    final requestId = ++_requestSequence;
-    _isLoading = true;
-    _errorMessage = null;
-    notifyListeners();
-
-    try {
-      final result = await loadTagCatalogUseCase.execute(type: _type, page: page);
-      if (requestId != _requestSequence) {
-        return;
-      }
-      _currentPage = result;
-    } catch (_) {
-      if (requestId != _requestSequence) {
-        return;
-      }
-      _errorMessage = 'Failed to load tags.';
-    } finally {
-      if (requestId == _requestSequence) {
-        _isLoading = false;
-        notifyListeners();
-      }
-    }
+  void setQuery(String value) {
+    _query = value;
+    _debounce?.cancel();
+    _debounce = Timer(_searchDebounce, _runSearch);
   }
 
-  void toggleSelection(TagCatalogItem item) {
+  void _runSearch() {
+    _results = localTagCatalogService.search(
+      _query,
+      type: _type,
+      displayNameResolver: tagDisplayService.displayName,
+    );
+    notifyListeners();
+  }
+
+  void toggleSelection(LocalTagCatalogEntry item) {
     if (_selectedQueries.contains(item.query)) {
       _selectedQueries.remove(item.query);
     } else {
@@ -74,7 +71,7 @@ class TagCatalogBrowserModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  bool isSelected(TagCatalogItem item) => _selectedQueries.contains(item.query);
+  bool isSelected(LocalTagCatalogEntry item) => _selectedQueries.contains(item.query);
 
   void removeSelection(String query) {
     if (_selectedQueries.remove(query)) {
@@ -88,5 +85,11 @@ class TagCatalogBrowserModel extends ChangeNotifier {
     }
     _selectedQueries.clear();
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    super.dispose();
   }
 }
