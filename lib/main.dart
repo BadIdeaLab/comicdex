@@ -1,0 +1,21 @@
+import 'dart:io';
+
+import 'package:concept_nhv/app/bootstrap_app.dart';
+import 'package:concept_nhv/services/tag_display_service.dart';
+import 'package:concept_nhv/storage/local_database.dart';
+import 'package:flutter/widgets.dart';
+import 'package:flutter_displaymode/flutter_displaymode.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  if (Platform.isAndroid) {
+    await FlutterDisplayMode.setHighRefreshRate();
+  }
+
+  final localDatabase = LocalDatabase();
+  await localDatabase.initialize();
+  final tagDisplayService = await TagDisplayService.load();
+
+  runApp(BootstrapApp(localDatabase: localDatabase, tagDisplayService: tagDisplayService));
+}
