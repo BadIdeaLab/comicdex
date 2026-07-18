@@ -21,7 +21,16 @@
   </p>
 </div>
 
-<!-- Screenshots pending — see conversation: new ones need censoring before they go here. -->
+<table align="center">
+  <tr>
+    <td align="center"><img src="./readme-asset/home-feed.png" width="260" alt="Home feed and search"><br/><sub>Home feed & search</sub></td>
+    <td align="center"><img src="./readme-asset/tags-character.png" width="260" alt="Tag catalog instant search"><br/><sub>Tag catalog — instant search</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="./readme-asset/downloads-list.png" width="260" alt="Downloads list view"><br/><sub>Downloads — list view</sub></td>
+    <td align="center"><img src="./readme-asset/downloads-grid.png" width="260" alt="Downloads grid view"><br/><sub>Downloads — grid view</sub></td>
+  </tr>
+</table>
 
 ---
 
@@ -44,6 +53,22 @@
 - Glassmorphism-styled UI across reader, screens, and sheets with cross-platform
   performance tuning
 - Android build pipeline and GitHub-hosted unsigned iOS build verification
+
+<p align="right"><a href="#readme-top">‣ back to top</a></p>
+
+## Login
+
+Browsing and reading don't require an account. You only need to log in if you want to sync
+your nhentai favorites into the Collections tab.
+
+1. Log into your account on [nhentai.net](https://nhentai.net)
+2. Open your account settings on the site and copy your personal API key
+3. In the app, go to **Settings → Set / Update API Key** and paste it in
+4. Tap **Sync Favorites Now** to pull your favorites in
+
+<p align="center">
+  <img src="./readme-asset/settings.png" width="280" alt="Settings screen with API key and sync options">
+</p>
 
 <p align="right"><a href="#readme-top">‣ back to top</a></p>
 
