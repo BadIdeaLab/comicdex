@@ -3,7 +3,6 @@ import 'package:concept_nhv/application/feed/search_comics_use_case.dart';
 import 'package:concept_nhv/application/search/blocked_tags_repository.dart';
 import 'package:concept_nhv/models/collection_summary.dart';
 import 'package:concept_nhv/models/comic.dart';
-import 'package:concept_nhv/models/comic_language.dart';
 import 'package:concept_nhv/models/popular_sort_type.dart';
 import 'package:flutter/material.dart';
 
@@ -27,8 +26,6 @@ class ComicFeedModel extends ChangeNotifier {
   String _lastQuery = '';
   String? _feedErrorMessage;
   bool _includePersistentTagFiltersForCurrentQuery = true;
-  ComicLanguage _languageForCurrentQuery = ComicLanguage.chinese;
-  ComicLanguage currentLanguage = ComicLanguage.chinese;
   PopularSortType? sortByPopularType;
   List<String> _tagFilters = <String>[];
 
@@ -44,11 +41,6 @@ class ComicFeedModel extends ChangeNotifier {
   int get comicsLoaded => _comics.length;
   String? get feedErrorMessage => _feedErrorMessage;
   List<String> get tagFilters => List<String>.unmodifiable(_tagFilters);
-
-  void setLanguage(ComicLanguage language) {
-    currentLanguage = language;
-    notifyListeners();
-  }
 
   void toggleSort(PopularSortType type) {
     sortByPopularType = sortByPopularType == type ? null : type;
@@ -85,7 +77,6 @@ class ComicFeedModel extends ChangeNotifier {
     PopularSortType? sortType,
     bool clearComic = false,
     bool includeTagFilters = true,
-    ComicLanguage? languageOverride,
   }) async {
     if (clearComic) {
       _comics.clear();
@@ -96,7 +87,6 @@ class ComicFeedModel extends ChangeNotifier {
 
     _lastQuery = query;
     _includePersistentTagFiltersForCurrentQuery = includeTagFilters;
-    _languageForCurrentQuery = languageOverride ?? currentLanguage;
     final combinedQuery = [
       query,
       if (includeTagFilters) ..._tagFilters,
@@ -107,7 +97,6 @@ class ComicFeedModel extends ChangeNotifier {
     final result = await searchComicsUseCase.execute(
       query: combinedQuery,
       page: page,
-      language: _languageForCurrentQuery,
       sortType: sortType ?? sortByPopularType,
       blockedTagQueries: _sessionBlockedTags,
     );
@@ -123,11 +112,7 @@ class ComicFeedModel extends ChangeNotifier {
     return result.statusCode;
   }
 
-  Future<void> fetchNextPage({
-    int? page,
-    bool? includeTagFilters,
-    ComicLanguage? languageOverride,
-  }) async {
+  Future<void> fetchNextPage({int? page, bool? includeTagFilters}) async {
     final targetPage = page ?? pageLoaded + 1;
     await searchComics(
       query: _lastQuery,
@@ -135,7 +120,6 @@ class ComicFeedModel extends ChangeNotifier {
       clearComic: targetPage == 1,
       includeTagFilters:
           includeTagFilters ?? _includePersistentTagFiltersForCurrentQuery,
-      languageOverride: languageOverride ?? _languageForCurrentQuery,
     );
   }
 
@@ -145,7 +129,6 @@ class ComicFeedModel extends ChangeNotifier {
       page: page,
       clearComic: true,
       includeTagFilters: _includePersistentTagFiltersForCurrentQuery,
-      languageOverride: _languageForCurrentQuery,
     );
   }
 }

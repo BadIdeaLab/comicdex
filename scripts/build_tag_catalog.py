@@ -20,6 +20,7 @@ INCLUDED_TYPES = ('tag', 'language', 'parody', 'character', 'artist')
 
 SRC = pathlib.Path('scripts/out/tag_raw.json')
 DST = pathlib.Path('assets/tag_catalog.bin')
+VERSION_DST = pathlib.Path('assets/tag_catalog.version')
 
 
 def build_entries(raw: list[dict]) -> list[dict]:
@@ -56,6 +57,7 @@ def main():
 
     DST.parent.mkdir(parents=True, exist_ok=True)
     DST.write_bytes(encoded)
+    VERSION_DST.write_text(args.version, encoding='utf-8')
 
     counts = Counter(e['t'] for e in entries)
     size = DST.stat().st_size
@@ -66,6 +68,7 @@ def main():
     for t in INCLUDED_TYPES:
         print(f'  {t}: {counts.get(t, 0)}')
     print(f'wrote {DST} ({size:,} bytes, {size_display})')
+    print(f'wrote {VERSION_DST}')
 
 
 if __name__ == '__main__':

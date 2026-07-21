@@ -3,7 +3,6 @@ import 'package:concept_nhv/state/comic_reader_model.dart';
 import 'package:concept_nhv/state/home_ui_model.dart';
 import 'package:concept_nhv/storage/search_history_repository.dart';
 import 'package:concept_nhv/services/tag_search_query_builder.dart';
-import 'package:concept_nhv/models/comic_language.dart';
 
 import 'home_search_action_result.dart';
 
@@ -64,9 +63,6 @@ class HomeShellController {
     if (query.isEmpty) {
       return;
     }
-    final containsExplicitLanguage = normalizedQueries.any(
-      (query) => query.startsWith('language:'),
-    );
 
     await searchHistoryRepository.save(query);
     homeUiModel.closeSearchView(query);
@@ -79,8 +75,6 @@ class HomeShellController {
       query: query,
       clearComic: true,
       includeTagFilters: false,
-      languageOverride:
-          containsExplicitLanguage ? ComicLanguage.all : null,
     );
     homeUiModel.setLoading(false);
   }

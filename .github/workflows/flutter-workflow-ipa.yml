@@ -6,6 +6,13 @@ on:
       - main
   workflow_dispatch:
 
+# Shared with flutter-workflow-apk.yml: see the comment there. Same
+# concurrency group so the two workflows' "Create Release" steps never race
+# to create the same-tagged release at the same time.
+concurrency:
+  group: latest-build-release
+  cancel-in-progress: false
+
 jobs:
   build-ios-unsigned:
     runs-on: macos-latest
@@ -53,7 +60,7 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           tag_name: latest-build
-          name: Release ${{ github.ref_name }}
+          name: Latest Build
           draft: false
           prerelease: true
           files: nhviewer-ios-unsigned.ipa

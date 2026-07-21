@@ -5,8 +5,11 @@ import 'package:concept_nhv/services/local_tag_catalog_service.dart';
 import 'package:concept_nhv/models/local_tag_catalog_entry.dart';
 import 'package:concept_nhv/services/nhentai_api_client.dart';
 import 'package:concept_nhv/services/tag_display_service.dart';
+import 'package:concept_nhv/state/app_locale_model.dart';
 import 'package:concept_nhv/state/comic_feed_model.dart';
+import 'package:concept_nhv/storage/app_locale_store.dart';
 import 'package:concept_nhv/storage/local_database.dart';
+import 'package:concept_nhv/storage/options_store.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
@@ -29,6 +32,11 @@ void main() {
             harness.localDatabase,
             TagDisplayService.fromMap(const {}),
             LocalTagCatalogService.fromEntries(const <LocalTagCatalogEntry>[]),
+            AppLocaleModel(
+              repository: AppLocaleStore(
+                optionsStore: OptionsStore(localDatabase: harness.localDatabase),
+              ),
+            ),
           ),
           child: Builder(
             builder: (context) {

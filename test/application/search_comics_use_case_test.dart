@@ -1,6 +1,5 @@
 import 'package:concept_nhv/application/feed/search_comics_use_case.dart';
 import 'package:concept_nhv/models/comic.dart';
-import 'package:concept_nhv/models/comic_language.dart';
 import 'package:concept_nhv/models/comic_search_response.dart';
 import 'package:concept_nhv/models/comic_tag.dart';
 import 'package:concept_nhv/models/popular_sort_type.dart';
@@ -10,18 +9,10 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../test_support/fixtures/sample_comic.dart';
-import '../test_support/network/sample_dio_exception.dart';
 
 void main() {
-  test('retries with fallback language query after request failure', () async {
-    final gateway = _SequenceNhentaiGateway(<Object>[
-      sampleDioException(404),
-      ComicSearchResponse(
-        result: <dynamic>[sampleComic()].cast(),
-        numPages: 1,
-        perPage: 25,
-      ),
-    ]);
+  test('sends a single request and maps a failure without retrying', () async {
+    final gateway = _SequenceNhentaiGateway(<Object>[_badResponseException(404)]);
     final useCase = SearchComicsUseCase(
       nhentaiGateway: gateway,
       searchQueryBuilder: const SearchQueryBuilder(),
@@ -30,23 +21,16 @@ void main() {
     final result = await useCase.execute(
       query: 'tag:test',
       page: 2,
-      language: ComicLanguage.chinese,
       sortType: PopularSortType.month,
     );
 
-    expect(result.statusCode, 200);
-    expect(result.comics, hasLength(1));
-    expect(result.errorMessage, isNull);
-    expect(gateway.searchedUris, hasLength(2));
-    expect(
-      gateway.searchedUris.first.queryParameters['query'],
-      'tag:test language:chinese',
-    );
-    expect(
-      gateway.searchedUris.last.queryParameters['query'],
-      'tag:test -language:english -language:japanese',
-    );
-    expect(gateway.searchedUris.last.queryParameters['sort'], 'popular-month');
+    expect(result.statusCode, 404);
+    expect(result.comics, isEmpty);
+    expect(result.errorMessage, 'Website API issue (404).');
+    expect(result.noMorePage, isTrue);
+    expect(gateway.searchedUris, hasLength(1));
+    expect(gateway.searchedUris.single.queryParameters['query'], 'tag:test');
+    expect(gateway.searchedUris.single.queryParameters['sort'], 'popular-month');
   });
 
   test('appends blocked tag exclusions to search uri', () async {
@@ -65,7 +49,6 @@ void main() {
     await useCase.execute(
       query: 'tag:art-jam',
       page: 1,
-      language: ComicLanguage.chinese,
       blockedTagQueries: <String>['tag:males-only', 'tag:full-color'],
     );
 
@@ -76,21 +59,14 @@ void main() {
     expect(query, startsWith('tag:art-jam'));
   });
 
-  test('returns mapped error when all retries fail', () async {
-    final gateway = _SequenceNhentaiGateway(<Object>[
-      _badResponseException(403),
-      _badResponseException(403),
-    ]);
+  test('returns mapped error for a 403 response', () async {
+    final gateway = _SequenceNhentaiGateway(<Object>[_badResponseException(403)]);
     final useCase = SearchComicsUseCase(
       nhentaiGateway: gateway,
       searchQueryBuilder: const SearchQueryBuilder(),
     );
 
-    final result = await useCase.execute(
-      query: '',
-      page: 1,
-      language: ComicLanguage.chinese,
-    );
+    final result = await useCase.execute(query: '', page: 1);
 
     expect(result.statusCode, 403);
     expect(result.comics, isEmpty);

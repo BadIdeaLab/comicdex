@@ -1,8 +1,13 @@
 import 'package:concept_nhv/application/downloads/download_settings_repository.dart';
 import 'package:concept_nhv/application/reader/reader_settings_repository.dart';
-import 'package:concept_nhv/models/comic_language.dart';
+import 'package:concept_nhv/application/settings/app_locale_repository.dart';
+import 'package:concept_nhv/application/tags/check_tag_catalog_update_use_case.dart';
+import 'package:concept_nhv/application/tags/update_local_tag_catalog_use_case.dart';
+import 'package:concept_nhv/l10n/app_localizations.dart';
 import 'package:concept_nhv/services/library_import_service.dart';
+import 'package:concept_nhv/services/local_tag_catalog_service.dart';
 import 'package:concept_nhv/services/nhentai_auth_service.dart';
+import 'package:concept_nhv/state/app_locale_model.dart';
 import 'package:concept_nhv/state/blocked_tags_model.dart';
 import 'package:concept_nhv/state/comic_feed_model.dart';
 import 'package:concept_nhv/state/comic_reader_model.dart';
@@ -40,6 +45,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       body: CustomScrollView(
         slivers: <Widget>[
@@ -47,12 +53,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
             pinned: true,
             backgroundColor: Colors.transparent,
             flexibleSpace: GlassContainer.bar(child: const SizedBox.expand()),
-            title: const Text('Settings'),
+            title: Text(l10n.settingsTitle),
           ),
           SliverList.list(
             children: <Widget>[
               _SettingsSection(
-                title: 'nhentai API',
+                title: l10n.sectionNhentaiApi,
                 children: <Widget>[
                   _buildSessionStatusTile(context),
                   _buildLoginTile(context),
@@ -61,32 +67,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ],
               ),
               _SettingsSection(
-                title: 'Reader',
+                title: l10n.sectionReader,
                 children: <Widget>[
                   _buildPrefetchCountTile(context),
                   _buildClearCacheTile(context),
                 ],
               ),
               _SettingsSection(
-                title: 'Downloads',
+                title: l10n.sectionDownloads,
                 children: <Widget>[
                   _buildAutoResumeDownloadsTile(context),
                   _buildPageDownloadIntervalTile(context),
                 ],
               ),
               _SettingsSection(
-                title: 'Blocked Tags',
+                title: l10n.sectionBlockedTags,
                 children: <Widget>[_buildBlockedTagsSection(context)],
               ),
               _SettingsSection(
-                title: 'General',
+                title: l10n.sectionTagDatabase,
+                children: <Widget>[_buildTagDatabaseTile(context)],
+              ),
+              _SettingsSection(
+                title: l10n.sectionGeneral,
                 children: <Widget>[
-                  _buildLanguageTile(context),
-                  _buildDiagnoseTile(),
+                  _buildAppLanguageTile(context),
+                  _buildDiagnoseTile(context),
                 ],
               ),
               _SettingsSection(
-                title: 'About',
+                title: l10n.sectionAbout,
                 children: <Widget>[
                   _buildImportTile(context),
                   _buildLicenseTile(context),
@@ -101,6 +111,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildAutoResumeDownloadsTile(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return FutureBuilder<_DownloadSettingsSnapshot>(
       future: _downloadSettingsFuture,
       builder: (context, snapshot) {
@@ -108,10 +119,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             snapshot.data?.autoResumeEnabled ??
             DownloadSettingsRepository.defaultAutoResumeEnabled;
         return SwitchListTile(
-          title: const Text('Auto Resume Downloads'),
-          subtitle: const Text(
-            'Resume interrupted downloads when the app returns to foreground or restarts',
-          ),
+          title: Text(l10n.autoResumeDownloadsTitle),
+          subtitle: Text(l10n.autoResumeDownloadsSubtitle),
           value: enabled,
           onChanged: (value) async {
             await context.read<DownloadSettingsRepository>().saveAutoResumeEnabled(
@@ -137,6 +146,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildPageDownloadIntervalTile(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return FutureBuilder<_DownloadSettingsSnapshot>(
       future: _downloadSettingsFuture,
       builder: (context, snapshot) {
@@ -144,9 +154,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             snapshot.data?.pageIntervalMs ??
             DownloadSettingsRepository.defaultPageIntervalMs;
         return ListTile(
-          title: const Text('Page Download Interval'),
+          title: Text(l10n.pageDownloadIntervalTitle),
           subtitle: Text(
-            '${_formatIntervalSeconds(pageIntervalMs)}\nApplies to new downloads or after resume',
+            '${_formatIntervalSeconds(pageIntervalMs)}\n${l10n.appliesToNewDownloadsNote}',
           ),
           trailing: const Icon(Icons.chevron_right),
           onTap: () async {
@@ -187,10 +197,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // ---------------------------------------------------------------------------
 
   Widget _buildSessionStatusTile(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final favoriteModel = context.watch<FavoriteSyncModel>();
     final status = favoriteModel.isAuthenticated
-        ? 'Authenticated'
-        : 'Not configured';
+        ? l10n.statusAuthenticated
+        : l10n.statusNotConfigured;
     final syncError = favoriteModel.syncError;
 
     String subtitle;
@@ -199,36 +210,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final total = favoriteModel.syncTotalPages;
       final retryDeadline = favoriteModel.syncRetryDeadline;
       final progressPart = (page != null && total != null)
-          ? 'Syncing... page $page / $total'
-          : 'Syncing...';
+          ? l10n.statusSyncingWithProgress(page, total)
+          : l10n.statusSyncingGeneric;
       if (retryDeadline != null) {
         final secondsLeft = retryDeadline
             .difference(DateTime.now())
             .inSeconds
             .clamp(0, 9999);
-        subtitle = '$status\n$progressPart\nRate limited, retrying in ${secondsLeft}s...';
+        subtitle =
+            '$status\n$progressPart\n${l10n.statusRateLimitedRetrying(secondsLeft)}';
       } else {
         subtitle = '$status\n$progressPart';
       }
     } else if (syncError != null) {
       subtitle = '$status\n$syncError';
     } else {
-      final lastSync = favoriteModel.lastSyncAt?.toLocal().toString() ?? 'Never';
-      subtitle = '$status\nLast sync: $lastSync';
+      final lastSync =
+          favoriteModel.lastSyncAt?.toLocal().toString() ?? l10n.statusNeverSynced;
+      subtitle = '$status\n${l10n.statusLastSync(lastSync)}';
     }
 
     return ListTile(
-      title: const Text('Status'),
+      title: Text(l10n.statusTitle),
       subtitle: Text(subtitle),
     );
   }
 
   Widget _buildLoginTile(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return ListTile(
-      title: const Text('Set / Update API Key'),
-      subtitle: const Text(
-        'Paste your personal nhentai API key from account settings',
-      ),
+      title: Text(l10n.setUpdateApiKeyTitle),
+      subtitle: Text(l10n.setUpdateApiKeySubtitle),
       onTap: () async {
         final favoriteModel = context.read<FavoriteSyncModel>();
         final feedModel = context.read<ComicFeedModel>();
@@ -245,7 +257,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           await favoriteModel.saveAndValidateApiKey(apiKey);
           await favoriteModel.syncFavorites();
           messenger.showSnackBar(
-            const SnackBar(content: Text('API key saved and validated')),
+            SnackBar(content: Text(l10n.apiKeySavedMessage)),
           );
         } on NhentaiAuthException catch (error) {
           messenger.showSnackBar(SnackBar(content: Text(error.message)));
@@ -256,9 +268,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildSyncFavoritesTile(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return ListTile(
-      title: const Text('Sync Favorites Now'),
-      subtitle: const Text('Refresh the local favorite cache from the official API'),
+      title: Text(l10n.syncFavoritesNowTitle),
+      subtitle: Text(l10n.syncFavoritesNowSubtitle),
       onTap: () async {
         final favoriteModel = context.read<FavoriteSyncModel>();
         final feedModel = context.read<ComicFeedModel>();
@@ -269,7 +282,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              ok ? 'Favorites synced from API' : favoriteModel.syncError ?? 'Sync failed',
+              ok
+                  ? l10n.favoritesSyncedMessage
+                  : favoriteModel.syncError ?? l10n.syncFailedMessage,
             ),
           ),
         );
@@ -278,27 +293,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildLogoutTile(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return ListTile(
-      title: const Text('Clear API Key'),
-      subtitle: const Text('Remove the saved API key from secure storage'),
+      title: Text(l10n.clearApiKeyTitle),
+      subtitle: Text(l10n.clearApiKeySubtitle),
       onTap: () async {
         final confirmed = await showDialog<bool>(
           context: context,
           builder: (dialogContext) {
             return AlertDialog(
-              title: const Text('Clear API key?'),
-              content: const Text(
-                'This removes the saved API key from secure storage. You will '
-                'need to enter it again to sync favorites.',
-              ),
+              title: Text(l10n.clearApiKeyDialogTitle),
+              content: Text(l10n.clearApiKeyDialogContent),
               actions: <Widget>[
                 TextButton(
                   onPressed: () => Navigator.of(dialogContext).pop(false),
-                  child: const Text('Cancel'),
+                  child: Text(l10n.cancelButton),
                 ),
                 FilledButton(
                   onPressed: () => Navigator.of(dialogContext).pop(true),
-                  child: const Text('Clear'),
+                  child: Text(l10n.clearButton),
                 ),
               ],
             );
@@ -312,37 +325,40 @@ class _SettingsScreenState extends State<SettingsScreen> {
         final messenger = ScaffoldMessenger.of(context);
         await favoriteModel.clearApiKey();
         messenger.showSnackBar(
-          const SnackBar(content: Text('API key cleared')),
+          SnackBar(content: Text(l10n.apiKeyClearedMessage)),
         );
       },
     );
   }
 
   Future<String?> _promptApiKey(BuildContext context, bool isEditing) async {
+    final l10n = AppLocalizations.of(context)!;
     final controller = TextEditingController();
     return showDialog<String>(
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: Text(isEditing ? 'Update API Key' : 'Set API Key'),
+          title: Text(
+            isEditing ? l10n.updateApiKeyDialogTitle : l10n.setApiKeyDialogTitle,
+          ),
           content: TextField(
             controller: controller,
             autofocus: true,
             obscureText: true,
-            decoration: const InputDecoration(
-              labelText: 'API Key',
-              hintText: 'Paste your nhentai API key',
+            decoration: InputDecoration(
+              labelText: l10n.apiKeyFieldLabel,
+              hintText: l10n.apiKeyFieldHint,
             ),
             onSubmitted: (value) => Navigator.of(dialogContext).pop(value),
           ),
           actions: <Widget>[
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Cancel'),
+              child: Text(l10n.cancelButton),
             ),
             FilledButton(
               onPressed: () => Navigator.of(dialogContext).pop(controller.text),
-              child: const Text('Save'),
+              child: Text(l10n.saveButton),
             ),
           ],
         );
@@ -356,13 +372,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   /// Shows the current prefetch page count and allows changing it via a slider.
   Widget _buildPrefetchCountTile(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final readerModel = context.watch<ComicReaderModel>();
     final count = readerModel.prefetchPageCount;
     return ListTile(
-      title: const Text('Pre-fetch Pages'),
+      title: Text(l10n.prefetchPagesTitle),
       subtitle: Text(
-        'Cache $count page(s) before and after the current page (default: '
-        '${ReaderSettingsRepository.defaultPrefetchPageCount})',
+        l10n.prefetchPagesSubtitle(
+          count,
+          ReaderSettingsRepository.defaultPrefetchPageCount,
+        ),
       ),
       trailing: const Icon(Icons.chevron_right),
       onTap: () => _showPrefetchDialog(context, readerModel),
@@ -383,9 +402,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   /// Clears all cached images from disk and memory.
   Widget _buildClearCacheTile(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return ListTile(
-      title: const Text('Clear Image Cache'),
-      subtitle: const Text('Delete all cached comic images from disk'),
+      title: Text(l10n.clearImageCacheTitle),
+      subtitle: Text(l10n.clearImageCacheSubtitle),
       trailing: const Icon(Icons.delete_outline),
       onTap: () async {
         final messenger = ScaffoldMessenger.of(context);
@@ -397,7 +417,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
         if (!context.mounted) return;
         messenger.showSnackBar(
-          const SnackBar(content: Text('Image cache cleared')),
+          SnackBar(content: Text(l10n.imageCacheClearedMessage)),
         );
       },
     );
@@ -408,13 +428,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // ---------------------------------------------------------------------------
 
   Widget _buildBlockedTagsSection(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final blockedTagsModel = context.watch<BlockedTagsModel>();
     final tags = blockedTagsModel.blockedTags;
 
     if (tags.isEmpty) {
-      return const ListTile(
+      return ListTile(
         dense: true,
-        subtitle: Text('No blocked tags. Long-press a tag on a comic to block it.'),
+        subtitle: Text(l10n.noBlockedTagsMessage),
       );
     }
 
@@ -426,7 +447,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           title: Text(query),
           trailing: IconButton(
             icon: const Icon(Icons.close),
-            tooltip: 'Remove',
+            tooltip: l10n.removeTooltip,
             onPressed: () => blockedTagsModel.removeTag(query),
           ),
         );
@@ -435,25 +456,106 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   // ---------------------------------------------------------------------------
+  // Tag Database tiles
+  // ---------------------------------------------------------------------------
+
+  Widget _buildTagDatabaseTile(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final service = context.watch<LocalTagCatalogService>();
+    final origin = service.isUsingOverride
+        ? l10n.tagDatabaseOriginUpdated
+        : l10n.tagDatabaseOriginBundled;
+    return ListTile(
+      title: Text(l10n.checkForTagDatabaseUpdatesTitle),
+      subtitle: Text(
+        l10n.tagDatabaseSubtitle(service.entryCount, service.version, origin),
+      ),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: () => _checkForTagCatalogUpdate(context),
+    );
+  }
+
+  Future<void> _checkForTagCatalogUpdate(BuildContext context) async {
+    final l10n = AppLocalizations.of(context)!;
+    final messenger = ScaffoldMessenger.of(context);
+    final checkUseCase = context.read<CheckTagCatalogUpdateUseCase>();
+
+    String? newVersion;
+    try {
+      newVersion = await checkUseCase.execute();
+    } catch (_) {
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.tagDatabaseCheckFailedMessage)),
+      );
+      return;
+    }
+
+    if (newVersion == null) {
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.tagDatabaseUpToDateMessage)),
+      );
+      return;
+    }
+
+    if (!context.mounted) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: Text(l10n.tagDatabaseUpdateAvailableDialogTitle),
+          content: Text(
+            l10n.tagDatabaseUpdateAvailableDialogContent(newVersion!),
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: Text(l10n.cancelButton),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: Text(l10n.updateButton),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true || !context.mounted) return;
+
+    final updateUseCase = context.read<UpdateLocalTagCatalogUseCase>();
+    try {
+      final count = await updateUseCase.execute();
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.tagDatabaseUpdatedMessage(count))),
+      );
+    } catch (_) {
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.tagDatabaseUpdateFailedMessage)),
+      );
+    }
+  }
+
+  // ---------------------------------------------------------------------------
   // General tiles
   // ---------------------------------------------------------------------------
 
-  Widget _buildLanguageTile(BuildContext context) {
-    final feedModel = context.watch<ComicFeedModel>();
+  Widget _buildAppLanguageTile(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final localeModel = context.watch<AppLocaleModel>();
     return ListTile(
-      title: const Text('Language'),
-      subtitle: Text(feedModel.currentLanguage.displayName),
+      title: Text(l10n.appLanguageTitle),
+      subtitle: Text(_appLanguageOptionLabel(l10n, localeModel.selectedOption)),
       onTap: () async {
         final messenger = ScaffoldMessenger.of(context);
-        final selected = await showDialog<ComicLanguage>(
+        final selected = await showDialog<String>(
           context: context,
-          builder: (context) {
+          builder: (dialogContext) {
             return SimpleDialog(
-              title: const Text('Language'),
-              children: ComicLanguage.values.map((language) {
+              title: Text(l10n.appLanguageTitle),
+              children: AppLocaleModel.availableOptions.map((option) {
                 return SimpleDialogOption(
-                  onPressed: () => Navigator.of(context).pop(language),
-                  child: Text(language.displayName),
+                  onPressed: () => Navigator.of(dialogContext).pop(option),
+                  child: Text(_appLanguageOptionLabel(l10n, option)),
                 );
               }).toList(),
             );
@@ -462,19 +564,40 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
         if (selected == null || !context.mounted) return;
 
-        feedModel.setLanguage(selected);
+        await localeModel.setOption(selected);
+        if (!context.mounted) return;
         messenger.clearSnackBars();
         messenger.showSnackBar(
-          SnackBar(content: Text('Language set to `${selected.displayName}`')),
+          SnackBar(
+            content: Text(
+              l10n.appLanguageChangedMessage(
+                _appLanguageOptionLabel(l10n, selected),
+              ),
+            ),
+          ),
         );
       },
     );
   }
 
-  Widget _buildDiagnoseTile() {
-    return const ListTile(
-      title: Text('Diagnose'),
-      subtitle: Text('Reserved for future diagnostics'),
+  String _appLanguageOptionLabel(AppLocalizations l10n, String option) {
+    switch (option) {
+      case AppLocaleRepository.systemOption:
+        return l10n.appLanguageSystemDefault;
+      case 'en':
+        return l10n.appLanguageEnglish;
+      case 'zh_Hant':
+        return l10n.appLanguageTraditionalChinese;
+      default:
+        return option;
+    }
+  }
+
+  Widget _buildDiagnoseTile(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return ListTile(
+      title: Text(l10n.diagnoseTitle),
+      subtitle: Text(l10n.diagnoseSubtitle),
     );
   }
 
@@ -483,18 +606,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // ---------------------------------------------------------------------------
 
   Widget _buildImportTile(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return ListTile(
-      title: const Text('Load json (network)'),
+      title: Text(l10n.loadJsonNetworkTitle),
       onTap: () async {
         final feedModel = context.read<ComicFeedModel>();
         final url = await showDialog<String>(
           context: context,
           builder: (context) {
             return AlertDialog(
-              title: const Text('Enter URL'),
+              title: Text(l10n.enterUrlDialogTitle),
               content: TextField(
                 autofocus: true,
-                decoration: const InputDecoration(labelText: 'URL'),
+                decoration: InputDecoration(labelText: l10n.urlFieldLabel),
                 onSubmitted: (value) => Navigator.of(context).pop(value),
               ),
             );
@@ -510,8 +634,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildLicenseTile(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return ListTile(
-      title: const Text('Open Source Licenses'),
+      title: Text(l10n.openSourceLicensesTitle),
       onTap: () => showLicensePage(context: context),
     );
   }
@@ -541,14 +666,13 @@ class _PrefetchCountDialogState extends State<_PrefetchCountDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return AlertDialog(
-      title: const Text('Pre-fetch Pages'),
+      title: Text(l10n.prefetchPagesTitle),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            'Pre-cache $_count page(s) before and after the current page.',
-          ),
+          Text(l10n.prefetchDialogBody(_count)),
           const SizedBox(height: 16),
           Slider(
             value: _count.toDouble(),
@@ -577,14 +701,14 @@ class _PrefetchCountDialogState extends State<_PrefetchCountDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(l10n.cancelButton),
         ),
         FilledButton(
           onPressed: () {
             widget.model.savePrefetchPageCount(_count);
             Navigator.of(context).pop();
           },
-          child: const Text('Save'),
+          child: Text(l10n.saveButton),
         ),
       ],
     );
@@ -624,8 +748,9 @@ class _PageDownloadIntervalDialogState
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return AlertDialog(
-      title: const Text('Page Download Interval'),
+      title: Text(l10n.pageDownloadIntervalTitle),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -635,12 +760,12 @@ class _PageDownloadIntervalDialogState
             autofocus: true,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: InputDecoration(
-              labelText: 'Seconds',
+              labelText: l10n.secondsFieldLabel,
               hintText: '0.5',
-              suffixText: 's',
+              suffixText: l10n.secondsFieldSuffix,
               errorText: _errorText,
             ),
-            onSubmitted: (_) => _submit(),
+            onSubmitted: (_) => _submit(l10n),
           ),
           const SizedBox(height: 12),
           Wrap(
@@ -648,14 +773,14 @@ class _PageDownloadIntervalDialogState
             runSpacing: 8,
             children: _presetSeconds.map((seconds) {
               return ActionChip(
-                label: Text('${_formatPresetSeconds(seconds)} s'),
+                label: Text(l10n.presetSecondsLabel(_formatPresetSeconds(seconds))),
                 onPressed: () => _savePreset(seconds),
               );
             }).toList(growable: false),
           ),
           const SizedBox(height: 12),
           Text(
-            'Applies to new downloads or after resume',
+            l10n.appliesToNewDownloadsNote,
             style: Theme.of(context).textTheme.bodySmall,
           ),
         ],
@@ -663,11 +788,11 @@ class _PageDownloadIntervalDialogState
       actions: <Widget>[
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(l10n.cancelButton),
         ),
         FilledButton(
-          onPressed: _submit,
-          child: const Text('Apply'),
+          onPressed: () => _submit(l10n),
+          child: Text(l10n.applyButton),
         ),
       ],
     );
@@ -678,11 +803,11 @@ class _PageDownloadIntervalDialogState
     Navigator.of(context).pop(milliseconds);
   }
 
-  void _submit() {
+  void _submit(AppLocalizations l10n) {
     final raw = _controller.text.trim();
     if (raw.isEmpty) {
       setState(() {
-        _errorText = 'Enter a number in seconds';
+        _errorText = l10n.enterNumberErrorMessage;
       });
       return;
     }
@@ -690,13 +815,13 @@ class _PageDownloadIntervalDialogState
     final seconds = double.tryParse(raw);
     if (seconds == null) {
       setState(() {
-        _errorText = 'Only plain numeric seconds are supported';
+        _errorText = l10n.onlyNumericErrorMessage;
       });
       return;
     }
     if (seconds < 0) {
       setState(() {
-        _errorText = 'Value must be 0 seconds or more';
+        _errorText = l10n.valueMustBeZeroOrMoreErrorMessage;
       });
       return;
     }
