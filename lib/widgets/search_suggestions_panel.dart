@@ -115,20 +115,24 @@ class _SearchSuggestionsPanelState extends State<SearchSuggestionsPanel> {
           children: <Widget>[
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-              child: SegmentedButton<TagCatalogType>(
-                segments: TagCatalogType.values.map((type) {
-                  return ButtonSegment<TagCatalogType>(
-                    value: type,
-                    label: Text(
-                      TagTypeL10n.localizedName(type.apiValue, locale),
-                    ),
-                  );
-                }).toList(),
-                selected: <TagCatalogType>{model.type},
-                onSelectionChanged: (selection) {
-                  model.setType(selection.first);
-                  _clearTagFilter(model);
-                },
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: SegmentedButton<TagCatalogType>(
+                  segments: TagCatalogType.values.map((type) {
+                    return ButtonSegment<TagCatalogType>(
+                      value: type,
+                      label: Text(
+                        TagTypeL10n.localizedName(type.apiValue, locale),
+                        softWrap: false,
+                      ),
+                    );
+                  }).toList(),
+                  selected: <TagCatalogType>{model.type},
+                  onSelectionChanged: (selection) {
+                    model.setType(selection.first);
+                    _clearTagFilter(model);
+                  },
+                ),
               ),
             ),
             Padding(

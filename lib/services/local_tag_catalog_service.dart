@@ -53,7 +53,7 @@ class LocalTagCatalogService extends ChangeNotifier {
       final overrideFile = File(p.join((await resolver()).path, _overrideFileName));
       if (await overrideFile.exists()) {
         final overrideCatalog = _decode(await overrideFile.readAsBytes());
-        if (_isNewerVersion(overrideCatalog.version, active.version)) {
+        if (isNewerVersion(overrideCatalog.version, active.version)) {
           active = overrideCatalog;
           isUsingOverride = true;
         }
@@ -120,7 +120,7 @@ class LocalTagCatalogService extends ChangeNotifier {
   /// when the candidate was not newer (a no-op "already up to date" result).
   Future<String> applyOverrideBytes(Uint8List xorEncodedBytes) async {
     final candidate = _decode(xorEncodedBytes);
-    if (!_isNewerVersion(candidate.version, _version)) {
+    if (!isNewerVersion(candidate.version, _version)) {
       return _version;
     }
 
@@ -168,7 +168,11 @@ class LocalTagCatalogService extends ChangeNotifier {
   }
 
   /// ISO-date version strings compare correctly with plain string comparison.
-  static bool _isNewerVersion(String candidate, String current) {
+  ///
+  /// Public so a lightweight remote version check (see
+  /// `CheckTagCatalogUpdateUseCase`) can compare against [version] without
+  /// having to decode a full candidate payload first.
+  static bool isNewerVersion(String candidate, String current) {
     return candidate.compareTo(current) > 0;
   }
 

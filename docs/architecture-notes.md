@@ -328,7 +328,7 @@ main()
 
 **列舉**
 
-`ComicLanguage`、`PopularSortType`、`ImageFormat`、`CollectionType`、`TagCatalogType`、`SearchHistoryEntry`、`TagTypeL10n`。
+`PopularSortType`、`ImageFormat`、`CollectionType`、`TagCatalogType`、`SearchHistoryEntry`、`TagTypeL10n`。
 
 ---
 

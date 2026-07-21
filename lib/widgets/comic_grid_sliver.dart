@@ -53,9 +53,7 @@ class ComicGridSliver extends StatelessWidget {
             homeUiModel.setLoading(true);
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(
-                  'Loading... page: ${pageLoaded! + 1}, language: ${feedModel.currentLanguage.name}',
-                ),
+                content: Text('Loading... page: ${pageLoaded! + 1}'),
                 duration: const Duration(seconds: 2),
               ),
             );

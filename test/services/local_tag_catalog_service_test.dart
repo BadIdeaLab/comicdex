@@ -1,19 +1,11 @@
-import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:concept_nhv/models/local_tag_catalog_entry.dart';
 import 'package:concept_nhv/models/tag_catalog_type.dart';
 import 'package:concept_nhv/services/local_tag_catalog_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-const int _xorKey = 0x42;
-
-Uint8List _encodeCatalog(String version, List<Map<String, Object?>> entries) {
-  final json = jsonEncode(<String, Object?>{'version': version, 'entries': entries});
-  final bytes = utf8.encode(json);
-  return Uint8List.fromList(bytes.map((b) => b ^ _xorKey).toList());
-}
+import '../test_support/helpers/tag_catalog_encoding.dart';
 
 void main() {
   group('search', () {
@@ -103,7 +95,7 @@ void main() {
         overrideDirectoryResolver: () async => tempDirectory,
       );
 
-      final sameVersion = _encodeCatalog('2026-06-01', <Map<String, Object?>>[
+      final sameVersion = encodeTagCatalog('2026-06-01', <Map<String, Object?>>[
         <String, Object?>{'t': 'tag', 'n': 'newer', 's': 'newer', 'c': 1},
       ]);
       final resultVersion = await service.applyOverrideBytes(sameVersion);
@@ -120,7 +112,7 @@ void main() {
         overrideDirectoryResolver: () async => tempDirectory,
       );
 
-      final newer = _encodeCatalog('2026-07-01', <Map<String, Object?>>[
+      final newer = encodeTagCatalog('2026-07-01', <Map<String, Object?>>[
         <String, Object?>{'t': 'tag', 'n': 'newer', 's': 'newer', 'c': 1},
       ]);
       final resultVersion = await service.applyOverrideBytes(newer);

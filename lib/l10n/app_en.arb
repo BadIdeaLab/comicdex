@@ -1,0 +1,143 @@
+{
+  "@@locale": "en",
+
+  "settingsTitle": "Settings",
+  "sectionNhentaiApi": "nhentai API",
+  "sectionReader": "Reader",
+  "sectionDownloads": "Downloads",
+  "sectionBlockedTags": "Blocked Tags",
+  "sectionTagDatabase": "Tag Database",
+  "sectionGeneral": "General",
+  "sectionAbout": "About",
+
+  "autoResumeDownloadsTitle": "Auto Resume Downloads",
+  "autoResumeDownloadsSubtitle": "Resume interrupted downloads when the app returns to foreground or restarts",
+  "pageDownloadIntervalTitle": "Page Download Interval",
+  "appliesToNewDownloadsNote": "Applies to new downloads or after resume",
+
+  "statusTitle": "Status",
+  "statusAuthenticated": "Authenticated",
+  "statusNotConfigured": "Not configured",
+  "statusSyncingWithProgress": "Syncing... page {page} / {total}",
+  "@statusSyncingWithProgress": {
+    "placeholders": {
+      "page": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "statusSyncingGeneric": "Syncing...",
+  "statusRateLimitedRetrying": "Rate limited, retrying in {seconds}s...",
+  "@statusRateLimitedRetrying": {
+    "placeholders": {
+      "seconds": {"type": "int"}
+    }
+  },
+  "statusLastSync": "Last sync: {value}",
+  "@statusLastSync": {
+    "placeholders": {
+      "value": {"type": "String"}
+    }
+  },
+  "statusNeverSynced": "Never",
+
+  "setUpdateApiKeyTitle": "Set / Update API Key",
+  "setUpdateApiKeySubtitle": "Paste your personal nhentai API key from account settings",
+  "apiKeySavedMessage": "API key saved and validated",
+  "syncFavoritesNowTitle": "Sync Favorites Now",
+  "syncFavoritesNowSubtitle": "Refresh the local favorite cache from the official API",
+  "favoritesSyncedMessage": "Favorites synced from API",
+  "syncFailedMessage": "Sync failed",
+  "clearApiKeyTitle": "Clear API Key",
+  "clearApiKeySubtitle": "Remove the saved API key from secure storage",
+  "clearApiKeyDialogTitle": "Clear API key?",
+  "clearApiKeyDialogContent": "This removes the saved API key from secure storage. You will need to enter it again to sync favorites.",
+  "cancelButton": "Cancel",
+  "clearButton": "Clear",
+  "apiKeyClearedMessage": "API key cleared",
+  "updateApiKeyDialogTitle": "Update API Key",
+  "setApiKeyDialogTitle": "Set API Key",
+  "apiKeyFieldLabel": "API Key",
+  "apiKeyFieldHint": "Paste your nhentai API key",
+  "saveButton": "Save",
+
+  "prefetchPagesTitle": "Pre-fetch Pages",
+  "prefetchPagesSubtitle": "Cache {count} page(s) before and after the current page (default: {defaultCount})",
+  "@prefetchPagesSubtitle": {
+    "placeholders": {
+      "count": {"type": "int"},
+      "defaultCount": {"type": "int"}
+    }
+  },
+  "prefetchDialogBody": "Pre-cache {count} page(s) before and after the current page.",
+  "@prefetchDialogBody": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "clearImageCacheTitle": "Clear Image Cache",
+  "clearImageCacheSubtitle": "Delete all cached comic images from disk",
+  "imageCacheClearedMessage": "Image cache cleared",
+
+  "noBlockedTagsMessage": "No blocked tags. Long-press a tag on a comic to block it.",
+  "removeTooltip": "Remove",
+
+  "checkForTagDatabaseUpdatesTitle": "Check for Tag Database Updates",
+  "tagDatabaseSubtitle": "{count} tags loaded (version {version}, {origin})",
+  "@tagDatabaseSubtitle": {
+    "placeholders": {
+      "count": {"type": "int"},
+      "version": {"type": "String"},
+      "origin": {"type": "String"}
+    }
+  },
+  "tagDatabaseOriginBundled": "bundled",
+  "tagDatabaseOriginUpdated": "updated",
+  "tagDatabaseCheckFailedMessage": "Failed to check for tag database updates",
+  "tagDatabaseUpToDateMessage": "Tag database is already up to date",
+  "tagDatabaseUpdateAvailableDialogTitle": "Tag Database Update Available",
+  "tagDatabaseUpdateAvailableDialogContent": "A newer tag database is available ({version}). Download and apply it now? (a few MB)",
+  "@tagDatabaseUpdateAvailableDialogContent": {
+    "placeholders": {
+      "version": {"type": "String"}
+    }
+  },
+  "updateButton": "Update",
+  "tagDatabaseUpdatedMessage": "Tag database updated ({count} tags)",
+  "@tagDatabaseUpdatedMessage": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "tagDatabaseUpdateFailedMessage": "Failed to download tag database update",
+
+  "appLanguageTitle": "App Language",
+  "appLanguageSystemDefault": "System Default",
+  "appLanguageEnglish": "English",
+  "appLanguageTraditionalChinese": "繁體中文",
+  "appLanguageChangedMessage": "App language set to {name}",
+  "@appLanguageChangedMessage": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "diagnoseTitle": "Diagnose",
+  "diagnoseSubtitle": "Reserved for future diagnostics",
+
+  "loadJsonNetworkTitle": "Load json (network)",
+  "enterUrlDialogTitle": "Enter URL",
+  "urlFieldLabel": "URL",
+  "openSourceLicensesTitle": "Open Source Licenses",
+
+  "secondsFieldLabel": "Seconds",
+  "secondsFieldSuffix": "s",
+  "presetSecondsLabel": "{seconds} s",
+  "@presetSecondsLabel": {
+    "placeholders": {
+      "seconds": {"type": "String"}
+    }
+  },
+  "applyButton": "Apply",
+  "enterNumberErrorMessage": "Enter a number in seconds",
+  "onlyNumericErrorMessage": "Only plain numeric seconds are supported",
+  "valueMustBeZeroOrMoreErrorMessage": "Value must be 0 seconds or more"
+}

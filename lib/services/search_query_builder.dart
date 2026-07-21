@@ -5,14 +5,12 @@ class SearchQueryBuilder {
 
   Uri buildSearchUri({
     required String userQuery,
-    required String languageQuery,
     required int page,
     PopularSortType? sortType,
     List<String> blockedTagQueries = const <String>[],
   }) {
     final normalizedQuery = [
       userQuery.trim(),
-      languageQuery.trim(),
       ...blockedTagQueries.map((q) => '-$q'),
     ].where((element) => element.isNotEmpty).join(' ').trim();
 

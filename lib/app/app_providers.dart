@@ -19,8 +19,11 @@ import 'package:concept_nhv/application/reader/load_offline_comic_use_case.dart'
 import 'package:concept_nhv/application/reader/open_comic_use_case.dart';
 import 'package:concept_nhv/application/reader/reader_progress_repository.dart';
 import 'package:concept_nhv/application/reader/reader_settings_repository.dart';
+import 'package:concept_nhv/application/tags/check_tag_catalog_update_use_case.dart';
 import 'package:concept_nhv/application/tags/load_comic_meta_use_case.dart';
+import 'package:concept_nhv/application/tags/update_local_tag_catalog_use_case.dart';
 import 'package:concept_nhv/services/image_url_resolver.dart';
+import 'package:concept_nhv/state/app_locale_model.dart';
 import 'package:concept_nhv/services/download_asset_store.dart';
 import 'package:concept_nhv/services/local_tag_catalog_service.dart';
 import 'package:concept_nhv/services/tag_display_service.dart';
@@ -67,12 +70,14 @@ List<SingleChildWidget> buildAppProviders(
   LocalDatabase localDatabase,
   TagDisplayService tagDisplayService,
   LocalTagCatalogService localTagCatalogService,
+  AppLocaleModel appLocaleModel,
 ) {
   return <SingleChildWidget>[
     ..._buildInfrastructureProviders(
       localDatabase,
       tagDisplayService,
       localTagCatalogService,
+      appLocaleModel,
     ),
     ..._buildStorageProviders(),
     ..._buildServiceProviders(),
@@ -86,10 +91,12 @@ List<SingleChildWidget> _buildInfrastructureProviders(
   LocalDatabase localDatabase,
   TagDisplayService tagDisplayService,
   LocalTagCatalogService localTagCatalogService,
+  AppLocaleModel appLocaleModel,
 ) {
   return <SingleChildWidget>[
     Provider<TagDisplayService>.value(value: tagDisplayService),
     ChangeNotifierProvider<LocalTagCatalogService>.value(value: localTagCatalogService),
+    ChangeNotifierProvider<AppLocaleModel>.value(value: appLocaleModel),
     Provider<LocalDatabase>.value(value: localDatabase),
     Provider(create: (context) => OptionsStore(localDatabase: context.read())),
     Provider<SecureKeyValueStore>(create: (_) => FlutterSecureKeyValueStore()),
@@ -207,6 +214,18 @@ List<SingleChildWidget> _buildUseCaseProviders() {
     ),
     Provider(
       create: (context) => LoadComicMetaUseCase(nhentaiGateway: context.read()),
+    ),
+    Provider(
+      create: (context) => CheckTagCatalogUpdateUseCase(
+        remoteAssetFetcher: context.read(),
+        localTagCatalogService: context.read(),
+      ),
+    ),
+    Provider(
+      create: (context) => UpdateLocalTagCatalogUseCase(
+        remoteAssetFetcher: context.read(),
+        localTagCatalogService: context.read(),
+      ),
     ),
     Provider(
       create: (context) => SaveComicToCollectionUseCase(

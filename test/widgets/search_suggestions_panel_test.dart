@@ -65,7 +65,7 @@ void main() {
       expect(setup.homeUiModel.searchController.text, 'tag:full-color');
       expect(
         setup.gateway.searchedUris.single.queryParameters['query'],
-        'tag:full-color language:chinese',
+        'tag:full-color',
       );
     },
   );
