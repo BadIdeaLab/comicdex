@@ -89,13 +89,17 @@ class _DownloadJobListSliverState extends State<DownloadJobListSliver> {
           );
         }
 
-        // Pagination for completed items.
+        // Pagination for completed items: [anchorPage, currentPage] is the
+        // continuously-revealed range. Jumping resets both to the same
+        // page; scrolling to the end only advances currentPage, so already
+        // revealed pages stay visible (mirrors ComicFeedModel/ComicGridSliver).
         final pageSize = DownloadManagerModel.completedPageSize;
         final totalCompletedPages =
             completedItems.isEmpty ? 1 : ((completedItems.length + pageSize - 1) ~/ pageSize);
+        final anchorPage = model.completedAnchorPage.clamp(1, totalCompletedPages);
         final currentPage = model.completedPage.clamp(1, totalCompletedPages);
-        final pageStart = (currentPage - 1) * pageSize;
-        final pageEnd = (pageStart + pageSize).clamp(0, completedItems.length);
+        final pageStart = (anchorPage - 1) * pageSize;
+        final pageEnd = (currentPage * pageSize).clamp(0, completedItems.length);
         final pagedCompletedItems = completedItems.sublist(pageStart, pageEnd);
         final showPageBar = completedItems.length > pageSize;
 
@@ -136,7 +140,7 @@ class _DownloadJobListSliverState extends State<DownloadJobListSliver> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: <Widget>[
                     PageJumpBar(
-                      currentPage: currentPage,
+                      currentPage: anchorPage,
                       totalPages: totalCompletedPages,
                       onJump: (page) async {
                         model.setCompletedPage(page);
@@ -160,6 +164,12 @@ class _DownloadJobListSliverState extends State<DownloadJobListSliver> {
                 ),
                 delegate: SliverChildBuilderDelegate(
                   (context, index) {
+                    _maybeRevealNextCompletedPage(
+                      model,
+                      index,
+                      pagedCompletedItems.length,
+                      totalCompletedPages,
+                    );
                     final item = pagedCompletedItems[index];
                     return _CompletedGridCell(
                       key: ValueKey<String>(item.comicId),
@@ -175,8 +185,15 @@ class _DownloadJobListSliverState extends State<DownloadJobListSliver> {
           } else {
             slivers.add(SliverList(
               delegate: SliverChildBuilderDelegate(
-                (context, index) =>
-                    _buildItemCard(model, pagedCompletedItems[index]),
+                (context, index) {
+                  _maybeRevealNextCompletedPage(
+                    model,
+                    index,
+                    pagedCompletedItems.length,
+                    totalCompletedPages,
+                  );
+                  return _buildItemCard(model, pagedCompletedItems[index]);
+                },
                 childCount: pagedCompletedItems.length,
               ),
             ));
@@ -186,6 +203,27 @@ class _DownloadJobListSliverState extends State<DownloadJobListSliver> {
         return SliverMainAxisGroup(slivers: slivers);
       },
     );
+  }
+
+  /// Mirrors [ComicGridSliver]'s auto-load-next-page trigger, but reveals an
+  /// already in-memory page instead of fetching one — no loading flag or
+  /// snackbar needed since there's no network latency to signal.
+  void _maybeRevealNextCompletedPage(
+    DownloadManagerModel model,
+    int index,
+    int renderedCount,
+    int totalPages,
+  ) {
+    final reachLastItem = index + 1 == renderedCount;
+    if (!reachLastItem || model.completedPage >= totalPages) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      model.revealNextCompletedPage(totalPages);
+    });
   }
 
   void _openRandomCompleted(List<DownloadListItemSnapshot> completedItems) {

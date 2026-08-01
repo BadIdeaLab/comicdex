@@ -61,6 +61,7 @@ class DownloadManagerModel extends ChangeNotifier with WidgetsBindingObserver {
   DownloadsSortMode _downloadsSortMode = DownloadsSortMode.latestDownloaded;
   DownloadsSortDirection _downloadsSortDirection =
       DownloadsSortDirection.descending;
+  int _completedAnchorPage = 1;
   int _completedPage = 1;
   bool _isInitialized = false;
   bool _isProcessing = false;
@@ -73,19 +74,33 @@ class DownloadManagerModel extends ChangeNotifier with WidgetsBindingObserver {
   DownloadsSortMode get downloadsSortMode => _downloadsSortMode;
   DownloadsSortDirection get downloadsSortDirection =>
       _downloadsSortDirection;
+  int get completedAnchorPage => _completedAnchorPage;
   int get completedPage => _completedPage;
   bool get isRefreshing => _isRefreshing;
   bool isMutating(String comicId) => _mutatingComicIds.contains(comicId);
 
+  /// Jumps to [page]: discards any pages auto-revealed beyond it so only
+  /// that page is shown, matching [ComicFeedModel.jumpToPage]'s behavior.
   void setCompletedPage(int page) {
-    if (_completedPage == page) return;
+    if (_completedAnchorPage == page && _completedPage == page) return;
+    _completedAnchorPage = page;
     _completedPage = page;
     notifyListeners();
   }
 
   void resetCompletedPage() {
-    if (_completedPage == 1) return;
+    if (_completedAnchorPage == 1 && _completedPage == 1) return;
+    _completedAnchorPage = 1;
     _completedPage = 1;
+    notifyListeners();
+  }
+
+  /// Reveals the next page beyond the currently shown range, without moving
+  /// the anchor — used when the user scrolls to the end of the currently
+  /// rendered completed downloads instead of explicitly jumping.
+  void revealNextCompletedPage(int totalPages) {
+    if (_completedPage >= totalPages) return;
+    _completedPage += 1;
     notifyListeners();
   }
 

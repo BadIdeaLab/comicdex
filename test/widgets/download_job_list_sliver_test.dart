@@ -346,7 +346,109 @@ void main() {
         expect(find.text('Repaired 1 of 2 downloads'), findsOneWidget);
       },
     );
+
+    testWidgets(
+      'scrolling to the end of the current page auto-reveals the next '
+      'page (list view), with no loading snackbar',
+      (tester) async {
+        final model = _FakeDownloadManagerModel(
+          harness: harness,
+          itemsOverride: _manyCompletedItems(35),
+        );
+
+        await tester.pumpWidget(_buildTestWidget(model: model));
+        await tester.pump();
+
+        expect(find.text('Completed 0'), findsOneWidget);
+        expect(find.text('Completed 30'), findsNothing);
+
+        await _scrollUntilVisible(tester, find.text('Completed 30'));
+
+        expect(find.text('Completed 30'), findsOneWidget);
+        expect(find.byType(SnackBar), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'scrolling to the end of the current page auto-reveals the next '
+      'page (grid view)',
+      (tester) async {
+        final model = _FakeDownloadManagerModel(
+          harness: harness,
+          itemsOverride: _manyCompletedItems(35),
+        );
+
+        await tester.pumpWidget(_buildTestWidget(model: model));
+        await tester.pump();
+        await tester.tap(find.byIcon(Icons.grid_view));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Completed 0'), findsOneWidget);
+        expect(find.text('Completed 30'), findsNothing);
+
+        await _scrollUntilVisible(tester, find.text('Completed 30'));
+
+        expect(find.text('Completed 30'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'jumping to a page shows only that page, and scrolling further '
+      'keeps auto-loading forward pages',
+      (tester) async {
+        final model = _FakeDownloadManagerModel(
+          harness: harness,
+          itemsOverride: _manyCompletedItems(65),
+        );
+
+        await tester.pumpWidget(_buildTestWidget(model: model));
+        await tester.pump();
+
+        await tester.enterText(find.byType(TextField), '2');
+        await tester.testTextInput.receiveAction(TextInputAction.done);
+        await tester.pumpAndSettle();
+
+        expect(find.text('Completed 0'), findsNothing);
+        expect(find.text('Completed 30'), findsOneWidget);
+        expect(find.text('Completed 60'), findsNothing);
+
+        await _scrollUntilVisible(tester, find.text('Completed 60'));
+
+        expect(find.text('Completed 60'), findsOneWidget);
+      },
+    );
   });
+}
+
+/// Drags [CustomScrollView] downward in small steps, pumping between each
+/// step, until [finder] resolves — used instead of [WidgetController]'s
+/// built-in `scrollUntilVisible`/`dragUntilVisible`, which throws "No
+/// element" against this widget tree.
+Future<void> _scrollUntilVisible(
+  WidgetTester tester,
+  Finder finder, {
+  double delta = -300,
+  int maxTries = 40,
+}) async {
+  for (var i = 0; i < maxTries; i++) {
+    if (finder.evaluate().isNotEmpty) {
+      return;
+    }
+    await tester.drag(find.byType(CustomScrollView), Offset(0, delta));
+    await tester.pump();
+  }
+  expect(finder, findsOneWidget);
+}
+
+List<DownloadListItemSnapshot> _manyCompletedItems(int count) {
+  return List<DownloadListItemSnapshot>.generate(
+    count,
+    (index) => _itemFromDownloadedComic(
+      comicId: 'completed-$index',
+      title: 'Completed $index',
+      requestedAt: DateTime(2026, 4, 1).subtract(Duration(days: index)),
+    ),
+  );
 }
 
 Widget _buildTestWidget({

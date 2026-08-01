@@ -1682,6 +1682,117 @@ void main() {
         manager.dispose();
       },
     );
+
+    group('completed downloads pagination', () {
+      Future<DownloadManagerModel> buildManager() async {
+        final manager = DownloadManagerModel(
+          nhentaiGateway: FakeNhentaiGateway(),
+          cdnConfigService: _FakeCdnConfigService(),
+          downloadQueueRepository: harness.downloadQueueRepository,
+          downloadedLibraryRepository: harness.downloadedLibraryRepository,
+          downloadSettingsRepository: DownloadSettingsStore(
+            optionsStore: OptionsStore(localDatabase: harness.localDatabase),
+          ),
+          downloadAssetStore: DownloadAssetStore(
+            directoryResolver: () async => tempDirectory,
+          ),
+          imageCompressionService: FakeImageCompressionService(
+            result: Uint8List.fromList(<int>[1, 2, 3, 4]),
+          ),
+          remoteAssetFetcher: FakeRemoteAssetFetcher(),
+        );
+        await manager.initialize();
+        return manager;
+      }
+
+      test(
+        'setCompletedPage jumps by setting both the anchor and current page, '
+        'discarding any auto-revealed pages',
+        () async {
+          final manager = await buildManager();
+
+          manager.setCompletedPage(3);
+
+          expect(manager.completedAnchorPage, 3);
+          expect(manager.completedPage, 3);
+
+          manager.dispose();
+        },
+      );
+
+      test(
+        'revealNextCompletedPage advances only the current page, leaving '
+        'the anchor (and therefore already-revealed pages) in place',
+        () async {
+          final manager = await buildManager();
+          manager.setCompletedPage(2);
+
+          manager.revealNextCompletedPage(5);
+
+          expect(manager.completedAnchorPage, 2);
+          expect(manager.completedPage, 3);
+
+          manager.dispose();
+        },
+      );
+
+      test(
+        'revealNextCompletedPage is a no-op once the current page reaches '
+        'totalPages',
+        () async {
+          final manager = await buildManager();
+          manager.setCompletedPage(4);
+
+          manager.revealNextCompletedPage(4);
+
+          expect(manager.completedPage, 4);
+
+          manager.dispose();
+        },
+      );
+
+      test(
+        'resetCompletedPage resets both the anchor and current page to 1',
+        () async {
+          final manager = await buildManager();
+          manager.setCompletedPage(3);
+          manager.revealNextCompletedPage(5);
+
+          manager.resetCompletedPage();
+
+          expect(manager.completedAnchorPage, 1);
+          expect(manager.completedPage, 1);
+
+          manager.dispose();
+        },
+      );
+
+      test(
+        'notifyListeners fires only when the page state actually changes',
+        () async {
+          final manager = await buildManager();
+          var notifyCount = 0;
+          manager.addListener(() => notifyCount++);
+
+          manager.setCompletedPage(1); // already (1, 1): no-op.
+          expect(notifyCount, 0);
+
+          manager.setCompletedPage(2);
+          expect(notifyCount, 1);
+
+          manager.setCompletedPage(2); // unchanged.
+          expect(notifyCount, 1);
+
+          manager.revealNextCompletedPage(2); // already at totalPages: no-op.
+          expect(notifyCount, 1);
+
+          manager.resetCompletedPage();
+          expect(notifyCount, 2);
+
+          manager.dispose();
+        },
+      );
+    });
   });
 }
 
