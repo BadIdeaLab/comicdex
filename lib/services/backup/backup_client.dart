@@ -95,6 +95,33 @@ abstract class BackupClient {
     required File snapshot,
     required int schemaVersion,
   });
+
+  /// Streams one mirrored file into [target].
+  ///
+  /// Implementations must write atomically — a partially received file left at
+  /// the final path would be indistinguishable from a complete one on the next
+  /// resume, and if its size happened to match it would never be re-fetched.
+  Future<void> downloadFile({
+    required BackupConnection connection,
+    required String sourceDeviceId,
+    required String relativePath,
+    required File target,
+  });
+
+  /// Downloads the latest database snapshot of [sourceDeviceId] into [target],
+  /// returning the schema version the server reports for it.
+  Future<int> downloadDatabase({
+    required BackupConnection connection,
+    required String sourceDeviceId,
+    required File target,
+  });
+
+  /// The mirror's inventory for another device, used when restoring from a
+  /// backup made by a different phone.
+  Future<Map<String, int>> fetchInventoryOf({
+    required BackupConnection connection,
+    required String sourceDeviceId,
+  });
 }
 
 class DioBackupClient implements BackupClient {
@@ -120,12 +147,15 @@ class DioBackupClient implements BackupClient {
     BackupConnection connection, {
     Map<String, String> extraHeaders = const <String, String>{},
     ResponseType responseType = ResponseType.json,
+    String? deviceIdOverride,
   }) {
     return Options(
       responseType: responseType,
       headers: <String, String>{
         kBackupPinHeader: connection.pin,
-        kBackupDeviceHeader: connection.deviceId,
+        // Restores read another device's partition, so the scoping header is
+        // not always this device's own name.
+        kBackupDeviceHeader: deviceIdOverride ?? connection.deviceId,
         ...extraHeaders,
       },
       // Let every status through so failures surface as BackupServerException
@@ -257,6 +287,127 @@ class DioBackupClient implements BackupClient {
     if (response.statusCode != HttpStatus.created) {
       _fail(response);
     }
+  }
+
+  @override
+  Future<Map<String, int>> fetchInventoryOf({
+    required BackupConnection connection,
+    required String sourceDeviceId,
+  }) async {
+    final response = await _dio.getUri<Object?>(
+      connection.baseUri.replace(path: '/inventory'),
+      options: _options(connection, deviceIdOverride: sourceDeviceId),
+    );
+    if (response.statusCode != HttpStatus.ok) {
+      _fail(response);
+    }
+    return _inventoryFrom(response.data);
+  }
+
+  @override
+  Future<void> downloadFile({
+    required BackupConnection connection,
+    required String sourceDeviceId,
+    required String relativePath,
+    required File target,
+  }) async {
+    final response = await _dio.getUri<ResponseBody>(
+      connection.baseUri.replace(
+        pathSegments: <String>['files', ...relativePath.split('/')],
+      ),
+      options: _options(
+        connection,
+        responseType: ResponseType.stream,
+        deviceIdOverride: sourceDeviceId,
+      ),
+    );
+    if (response.statusCode != HttpStatus.ok) {
+      throw BackupServerException(
+        response.statusCode,
+        'Could not download $relativePath',
+      );
+    }
+    await _writeAtomically(target, response.data!.stream);
+  }
+
+  @override
+  Future<int> downloadDatabase({
+    required BackupConnection connection,
+    required String sourceDeviceId,
+    required File target,
+  }) async {
+    final response = await _dio.getUri<ResponseBody>(
+      connection.baseUri.replace(path: '/database'),
+      options: _options(
+        connection,
+        responseType: ResponseType.stream,
+        deviceIdOverride: sourceDeviceId,
+      ),
+    );
+    if (response.statusCode != HttpStatus.ok) {
+      throw BackupServerException(
+        response.statusCode,
+        'No database snapshot available for $sourceDeviceId',
+      );
+    }
+    final schemaVersion = int.tryParse(
+      response.headers.value(kBackupSchemaVersionHeader) ?? '',
+    );
+    // The body is gzip as a payload format, not as transport encoding, so it is
+    // decompressed here rather than by the HTTP stack.
+    await _writeAtomically(target, gzip.decoder.bind(response.data!.stream));
+    if (schemaVersion == null) {
+      throw const BackupServerException(
+        null,
+        'Server did not report the database schema version',
+      );
+    }
+    return schemaVersion;
+  }
+
+  /// Writes to a `.part` sibling and renames only once the stream completes.
+  ///
+  /// Without this, an interrupted download leaves a truncated file at the final
+  /// path; a later resume compares by size and, if it happens to match, skips it
+  /// forever — a silently corrupt page that never heals.
+  static Future<void> _writeAtomically(
+    File target,
+    Stream<List<int>> source,
+  ) async {
+    final part = File('${target.path}.part');
+    await part.parent.create(recursive: true);
+    final sink = part.openWrite();
+    try {
+      await sink.addStream(source);
+      await sink.flush();
+      await sink.close();
+    } catch (_) {
+      await sink.close().catchError((Object _) {});
+      if (part.existsSync()) {
+        await part.delete();
+      }
+      rethrow;
+    }
+    if (target.existsSync()) {
+      await target.delete();
+    }
+    await part.rename(target.path);
+  }
+
+  static Map<String, int> _inventoryFrom(Object? raw) {
+    final data = _decodeJson(raw);
+    if (data is! List) {
+      throw const BackupServerException(null, 'Malformed inventory');
+    }
+    final inventory = <String, int>{};
+    for (final entry in data.whereType<Map<String, Object?>>()) {
+      final path = entry['path'];
+      final size = entry['sizeBytes'];
+      if (path is String && size is int) {
+        inventory[path] = size;
+      }
+    }
+    return inventory;
   }
 
   static Future<String> _digestOf(File file) async {

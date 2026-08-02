@@ -68,6 +68,53 @@ class FakeBackupClient implements BackupClient {
   /// checkpoint is never established off a snapshot that did not land.
   Object? databaseError;
 
+  /// Relative path → bytes the fake mirror will serve on download.
+  Map<String, List<int>> remoteFiles = const <String, List<int>>{};
+
+  /// Bytes and schema version the fake mirror returns for `GET /database`.
+  List<int> remoteDatabaseBytes = const <int>[1, 2, 3];
+  int remoteDatabaseSchemaVersion = 9;
+
+  final List<String> downloadedPaths = <String>[];
+
+  @override
+  Future<Map<String, int>> fetchInventoryOf({
+    required BackupConnection connection,
+    required String sourceDeviceId,
+  }) async {
+    callLog.add('inventoryOf:$sourceDeviceId');
+    return inventory;
+  }
+
+  @override
+  Future<void> downloadFile({
+    required BackupConnection connection,
+    required String sourceDeviceId,
+    required String relativePath,
+    required File target,
+  }) async {
+    callLog.add('download:$relativePath');
+    final bytes = remoteFiles[relativePath];
+    if (bytes == null) {
+      throw StateError('no such file in fake mirror: $relativePath');
+    }
+    await target.parent.create(recursive: true);
+    await target.writeAsBytes(bytes);
+    downloadedPaths.add(relativePath);
+  }
+
+  @override
+  Future<int> downloadDatabase({
+    required BackupConnection connection,
+    required String sourceDeviceId,
+    required File target,
+  }) async {
+    callLog.add('downloadDatabase:$sourceDeviceId');
+    await target.parent.create(recursive: true);
+    await target.writeAsBytes(remoteDatabaseBytes);
+    return remoteDatabaseSchemaVersion;
+  }
+
   @override
   Future<void> uploadDatabase({
     required BackupConnection connection,

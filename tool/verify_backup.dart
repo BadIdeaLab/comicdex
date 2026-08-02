@@ -10,6 +10,7 @@
 import 'dart:io';
 
 import 'package:path/path.dart' as p;
+import 'package:concept_nhv/services/backup/restore_path_resolver.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 void main(List<String> args) {
@@ -34,13 +35,15 @@ void main(List<String> args) {
   void check(String? stored) {
     if (stored == null || stored.isEmpty) return;
     checked++;
-    var rel = stored;
-    const marker = '/downloads/';
-    final at = rel.lastIndexOf(marker);
-    if (at >= 0) {
-      rel = rel.substring(at + marker.length);
-      legacyAbsolute++;
+    // Uses the production normaliser so this audit and the real restore can
+    // never drift apart.
+    final rel = normaliseRestorePath(stored);
+    if (rel == null) {
+      missing++;
+      if (samples.length < 5) samples.add(stored);
+      return;
     }
+    if (rel != stored) legacyAbsolute++;
     if (!File(p.join(downloads.path, rel)).existsSync()) {
       missing++;
       if (samples.length < 5) samples.add(stored);
