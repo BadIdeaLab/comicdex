@@ -1,7 +1,5 @@
 import 'dart:io';
 
-
-
 import 'package:concept_nhv/services/backup/backup_connection.dart';
 import 'package:concept_nhv/services/backup/backup_models.dart';
 import 'package:concept_nhv/services/backup/backup_sync_service.dart';
@@ -98,6 +96,29 @@ void main() {
       expect(client.uploadedPaths, isEmpty);
     });
 
+    test(
+      'the skip policy uploads no snapshot but still compares and uploads '
+      'files, and reports that it captured nothing',
+      () async {
+        await writeDownload('177013/cover.webp', <int>[1, 2, 3]);
+
+        final result = await buildService().run(
+          connection: connection,
+          snapshotPolicy: DatabaseSnapshotPolicy.skip,
+        );
+
+        expect(client.callLog, isNot(contains('database')));
+        expect(client.uploadedPaths, <String>['177013/cover.webp']);
+        expect(result.databaseSnapshotUploaded, isFalse);
+      },
+    );
+
+    test('the capture policy reports that the snapshot was uploaded', () async {
+      final result = await buildService().run(connection: connection);
+
+      expect(result.databaseSnapshotUploaded, isTrue);
+    });
+
     test('sends the schema version with the database snapshot', () async {
       await buildService().run(connection: connection);
 
@@ -147,24 +168,21 @@ void main() {
       },
     );
 
-    test(
-      'skips files belonging to downloads still in progress, because a page '
-      'being written right now would hash and upload truncated',
-      () async {
-        final comic = sampleComic(id: '900', mediaId: '321');
-        await harness.downloadQueueRepository.upsertJobManifest(
-          comic: comic,
-          title: 'In progress',
-        );
-        await writeDownload('900/pages/1.webp', <int>[1, 2]);
-        await writeDownload('177013/cover.webp', <int>[3, 4]);
+    test('skips files belonging to downloads still in progress, because a page '
+        'being written right now would hash and upload truncated', () async {
+      final comic = sampleComic(id: '900', mediaId: '321');
+      await harness.downloadQueueRepository.upsertJobManifest(
+        comic: comic,
+        title: 'In progress',
+      );
+      await writeDownload('900/pages/1.webp', <int>[1, 2]);
+      await writeDownload('177013/cover.webp', <int>[3, 4]);
 
-        final result = await buildService().run(connection: connection);
+      final result = await buildService().run(connection: connection);
 
-        expect(client.uploadedPaths, <String>['177013/cover.webp']);
-        expect(result.skippedInFlightCount, 1);
-      },
-    );
+      expect(client.uploadedPaths, <String>['177013/cover.webp']);
+      expect(result.skippedInFlightCount, 1);
+    });
 
     test('includes files of downloads that have completed', () async {
       final comic = sampleComic(id: '900', mediaId: '321');
@@ -181,28 +199,31 @@ void main() {
       expect(result.skippedInFlightCount, 0);
     });
 
-    test('reports real progress because the work list is known up front', () async {
-      await writeDownload('177013/cover.webp', <int>[1]);
-      await writeDownload('177013/pages/1.webp', <int>[2]);
+    test(
+      'reports real progress because the work list is known up front',
+      () async {
+        await writeDownload('177013/cover.webp', <int>[1]);
+        await writeDownload('177013/pages/1.webp', <int>[2]);
 
-      final stages = <BackupSyncStage>[];
-      double? finalFraction;
-      await buildService().run(
-        connection: connection,
-        onProgress: (progress) {
-          stages.add(progress.stage);
-          if (progress.stage == BackupSyncStage.done) {
-            finalFraction = progress.fraction;
-          }
-        },
-      );
+        final stages = <BackupSyncStage>[];
+        double? finalFraction;
+        await buildService().run(
+          connection: connection,
+          onProgress: (progress) {
+            stages.add(progress.stage);
+            if (progress.stage == BackupSyncStage.done) {
+              finalFraction = progress.fraction;
+            }
+          },
+        );
 
-      expect(stages.first, BackupSyncStage.connecting);
-      expect(stages, contains(BackupSyncStage.snapshottingDatabase));
-      expect(stages, contains(BackupSyncStage.uploading));
-      expect(stages.last, BackupSyncStage.done);
-      expect(finalFraction, 1.0);
-    });
+        expect(stages.first, BackupSyncStage.connecting);
+        expect(stages, contains(BackupSyncStage.snapshottingDatabase));
+        expect(stages, contains(BackupSyncStage.uploading));
+        expect(stages.last, BackupSyncStage.done);
+        expect(finalFraction, 1.0);
+      },
+    );
 
     test('deletes the temporary database snapshot after uploading', () async {
       await buildService().run(connection: connection);
@@ -217,6 +238,24 @@ void main() {
       expect(result.failedCount, 0);
       expect(client.uploadedDatabaseSchemaVersions, hasLength(1));
     });
+
+    test(
+      'pause stops before the next file and keeps the database snapshot',
+      () async {
+        await writeDownload('177013/cover.webp', <int>[1]);
+        await writeDownload('177013/pages/1.webp', <int>[2]);
+        final pauseToken = BackupPauseToken()..requestPause();
+
+        final result = await buildService().run(
+          connection: connection,
+          pauseToken: pauseToken,
+        );
+
+        expect(result.isPaused, isTrue);
+        expect(client.uploadedDatabaseSchemaVersions, hasLength(1));
+        expect(client.uploadedPaths, isEmpty);
+      },
+    );
   });
 
   group('BackupConnection.parseAddress', () {
@@ -243,4 +282,3 @@ void main() {
     });
   });
 }
-

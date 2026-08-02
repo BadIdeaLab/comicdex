@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 
 import '../models/activity_event.dart';
 import '../models/backup_models.dart';
+import '../models/mobile_control.dart';
 import '../server/backup_server.dart';
 import '../server/pin_guard.dart';
 import '../services/network_addresses.dart';
@@ -40,13 +41,19 @@ class ServerModel extends ChangeNotifier {
   String? _startupError;
   bool _isStarting = true;
   bool _hasServedAnyone = false;
+  Timer? _activityNotifyTimer;
+  final Map<String, MobileJobState> _lastControlStates =
+      <String, MobileJobState>{};
 
   Directory? get rootDirectory => _rootDirectory;
   String get rootPath => _rootDirectory?.path ?? '';
   bool get rootExists => _rootDirectory?.existsSync() ?? false;
   List<LanAddress> get addresses => _addresses;
   List<BackupDeviceSummary> get devices => _devices;
-  List<ActivityEvent> get activity => List<ActivityEvent>.unmodifiable(_activity);
+  List<ConnectedMobileDevice> get connectedDevices =>
+      _server?.connectedDevices ?? const <ConnectedMobileDevice>[];
+  List<ActivityEvent> get activity =>
+      List<ActivityEvent>.unmodifiable(_activity);
   PruneCandidates? get pendingPrune => _pendingPrune;
   String? get startupError => _startupError;
   bool get isStarting => _isStarting;
@@ -90,6 +97,7 @@ class ServerModel extends ChangeNotifier {
         pinGuard: _pinGuard!,
         onActivity: _onServerActivity,
         onPruneRequest: _onPruneRequest,
+        onControlDevicesChanged: _onControlDevicesChanged,
       );
       _server = server;
       await server.start(preferredPort: config.port);
@@ -171,6 +179,7 @@ class ServerModel extends ChangeNotifier {
       pinGuard: pinGuard,
       onActivity: _onServerActivity,
       onPruneRequest: _onPruneRequest,
+      onControlDevicesChanged: _onControlDevicesChanged,
     );
     _server = server;
     await server.start(preferredPort: _config.port);
@@ -184,6 +193,19 @@ class ServerModel extends ChangeNotifier {
     _log(PinRegeneratedEvent());
     notifyListeners();
     return replacement;
+  }
+
+  bool startBackup(String deviceId) {
+    return _server?.sendControlCommand(
+          deviceId,
+          MobileControlAction.startBackup,
+        ) ??
+        false;
+  }
+
+  bool pauseBackup(String deviceId) {
+    return _server?.sendControlCommand(deviceId, MobileControlAction.pause) ??
+        false;
   }
 
   void dismissPrune() {
@@ -210,10 +232,21 @@ class ServerModel extends ChangeNotifier {
 
   void _onServerActivity(ActivityEvent event) {
     _hasServedAnyone = true;
+    if (event is FileReceivedEvent || event is FileSentEvent) {
+      // Large libraries can deliver hundreds of events per second. Rebuilding
+      // the window and rescanning the complete backup tree for every page
+      // starves scrolling, buttons, and the WebSocket command channel.
+      _appendActivity(event);
+      _activityNotifyTimer ??= Timer(const Duration(milliseconds: 150), () {
+        _activityNotifyTimer = null;
+        notifyListeners();
+      });
+      return;
+    }
     _log(event);
-    // Device totals change on every upload; keep the summary honest without
-    // making the user hit refresh.
-    unawaited(refreshDevices());
+    if (event is DatabaseStoredEvent) {
+      unawaited(refreshDevices());
+    }
   }
 
   void _onPruneRequest(PruneCandidates candidates) {
@@ -221,16 +254,46 @@ class ServerModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  void _onControlDevicesChanged() {
+    _hasServedAnyone = true;
+    var shouldRefreshDevices = false;
+    final currentIds = <String>{};
+    for (final device in connectedDevices) {
+      currentIds.add(device.deviceId);
+      final previous = _lastControlStates[device.deviceId];
+      _lastControlStates[device.deviceId] = device.state;
+      final reachedCheckpoint =
+          device.state == MobileJobState.paused ||
+          device.state == MobileJobState.completed ||
+          device.state == MobileJobState.error;
+      if (reachedCheckpoint && previous != device.state) {
+        shouldRefreshDevices = true;
+      }
+    }
+    _lastControlStates.removeWhere(
+      (deviceId, _) => !currentIds.contains(deviceId),
+    );
+    notifyListeners();
+    if (shouldRefreshDevices) {
+      unawaited(refreshDevices());
+    }
+  }
+
   void _log(ActivityEvent event) {
+    _appendActivity(event);
+    notifyListeners();
+  }
+
+  void _appendActivity(ActivityEvent event) {
     _activity.insert(0, event);
     if (_activity.length > maxActivityEntries) {
       _activity.removeRange(maxActivityEntries, _activity.length);
     }
-    notifyListeners();
   }
 
   @override
   void dispose() {
+    _activityNotifyTimer?.cancel();
     final server = _server;
     if (server != null) {
       unawaited(server.stop());

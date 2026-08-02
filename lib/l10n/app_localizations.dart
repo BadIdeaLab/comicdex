@@ -564,19 +564,19 @@ abstract class AppLocalizations {
   /// No description provided for @backupTileTitle.
   ///
   /// In en, this message translates to:
-  /// **'Back up to your computer'**
+  /// **'Connect to your computer'**
   String get backupTileTitle;
 
   /// No description provided for @backupTileSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Send your library to the Comicdex backup server over Wi-Fi'**
+  /// **'Pair with the Comicdex backup server; control backup and restore on the computer'**
   String get backupTileSubtitle;
 
   /// No description provided for @backupScreenTitle.
   ///
   /// In en, this message translates to:
-  /// **'Back up to computer'**
+  /// **'Connect to computer'**
   String get backupScreenTitle;
 
   /// No description provided for @backupAddressLabel.
@@ -615,11 +615,71 @@ abstract class AppLocalizations {
   /// **'Start backup'**
   String get backupStartButton;
 
+  /// No description provided for @backupConnectButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect'**
+  String get backupConnectButton;
+
+  /// No description provided for @backupDisconnectButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Disconnect'**
+  String get backupDisconnectButton;
+
+  /// No description provided for @backupDesktopControlsNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Once connected, start or pause backup from the computer. This phone performs the transfer and reports its progress there.'**
+  String get backupDesktopControlsNote;
+
   /// No description provided for @backupKeepForegroundNote.
   ///
   /// In en, this message translates to:
-  /// **'Keep this screen open while backing up. Large libraries can take a while.'**
+  /// **'Keep the app in the foreground while connected or transferring. Mobile operating systems may suspend a background app.'**
   String get backupKeepForegroundNote;
+
+  /// No description provided for @backupControlDisconnected.
+  ///
+  /// In en, this message translates to:
+  /// **'Not connected'**
+  String get backupControlDisconnected;
+
+  /// No description provided for @backupControlReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Connected · waiting for a command from the computer'**
+  String get backupControlReady;
+
+  /// No description provided for @backupControlRunning.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup started by the computer'**
+  String get backupControlRunning;
+
+  /// No description provided for @backupControlPausing.
+  ///
+  /// In en, this message translates to:
+  /// **'Pausing after the current file…'**
+  String get backupControlPausing;
+
+  /// No description provided for @backupControlPaused.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup paused'**
+  String get backupControlPaused;
+
+  /// No description provided for @backupControlCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup completed'**
+  String get backupControlCompleted;
+
+  /// No description provided for @backupControlError.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection or backup failed'**
+  String get backupControlError;
 
   /// No description provided for @backupStageConnecting.
   ///

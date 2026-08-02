@@ -101,6 +101,37 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get controlTitle => 'Connected phones';
+
+  @override
+  String get controlEmpty =>
+      'No phone is connected. Open Backup in the mobile app and pair it first.';
+
+  @override
+  String get controlStartBackup => 'Start backup';
+
+  @override
+  String get controlPause => 'Pause';
+
+  @override
+  String get controlStateIdle => 'Connected · ready';
+
+  @override
+  String get controlStateRunning => 'Backing up…';
+
+  @override
+  String get controlStatePausing => 'Pausing after the current file…';
+
+  @override
+  String get controlStatePaused => 'Paused';
+
+  @override
+  String get controlStateCompleted => 'Backup completed';
+
+  @override
+  String get controlStateError => 'Backup failed';
+
+  @override
   String get activityTitle => 'Activity';
 
   @override

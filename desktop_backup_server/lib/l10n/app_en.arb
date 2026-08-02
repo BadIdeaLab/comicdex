@@ -57,6 +57,17 @@
     }
   },
 
+  "controlTitle": "Connected phones",
+  "controlEmpty": "No phone is connected. Open Backup in the mobile app and pair it first.",
+  "controlStartBackup": "Start backup",
+  "controlPause": "Pause",
+  "controlStateIdle": "Connected · ready",
+  "controlStateRunning": "Backing up…",
+  "controlStatePausing": "Pausing after the current file…",
+  "controlStatePaused": "Paused",
+  "controlStateCompleted": "Backup completed",
+  "controlStateError": "Backup failed",
+
   "activityTitle": "Activity",
   "activityEmpty": "Waiting for a device to connect…",
   "activityFolderChanged": "Backup folder changed to {path}",

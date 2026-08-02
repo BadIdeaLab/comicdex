@@ -288,7 +288,39 @@ class AppLocalizationsZh extends AppLocalizations {
   String get backupStartButton => '開始備份';
 
   @override
+  String get backupConnectButton => 'Connect';
+
+  @override
+  String get backupDisconnectButton => 'Disconnect';
+
+  @override
+  String get backupDesktopControlsNote =>
+      'Once connected, start or pause backup from the computer. This phone performs the transfer and reports its progress there.';
+
+  @override
   String get backupKeepForegroundNote => '備份期間請保持這個畫面開著。書庫較大時會需要一段時間。';
+
+  @override
+  String get backupControlDisconnected => 'Not connected';
+
+  @override
+  String get backupControlReady =>
+      'Connected · waiting for a command from the computer';
+
+  @override
+  String get backupControlRunning => 'Backup started by the computer';
+
+  @override
+  String get backupControlPausing => 'Pausing after the current file…';
+
+  @override
+  String get backupControlPaused => 'Backup paused';
+
+  @override
+  String get backupControlCompleted => 'Backup completed';
+
+  @override
+  String get backupControlError => 'Connection or backup failed';
 
   @override
   String get backupStageConnecting => '連線中…';
@@ -606,13 +638,13 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get sectionBackup => '備份';
 
   @override
-  String get backupTileTitle => '備份到電腦';
+  String get backupTileTitle => '連線到電腦';
 
   @override
-  String get backupTileSubtitle => '透過 Wi-Fi 把書庫傳到 Comicdex 備份伺服器';
+  String get backupTileSubtitle => '與 Comicdex 備份伺服器配對，並從電腦端控制備份與還原';
 
   @override
-  String get backupScreenTitle => '備份到電腦';
+  String get backupScreenTitle => '連線到電腦';
 
   @override
   String get backupAddressLabel => '位址（電腦畫面上顯示的）';
@@ -633,7 +665,37 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get backupStartButton => '開始備份';
 
   @override
-  String get backupKeepForegroundNote => '備份期間請保持這個畫面開著。書庫較大時會需要一段時間。';
+  String get backupConnectButton => '連線';
+
+  @override
+  String get backupDisconnectButton => '中斷連線';
+
+  @override
+  String get backupDesktopControlsNote => '連線後請在電腦端開始或暫停備份；手機會執行傳輸，並把進度回報到電腦。';
+
+  @override
+  String get backupKeepForegroundNote => '連線或傳輸期間請保持 App 在前景；行動作業系統可能暫停背景 App。';
+
+  @override
+  String get backupControlDisconnected => '尚未連線';
+
+  @override
+  String get backupControlReady => '已連線，等待電腦端命令';
+
+  @override
+  String get backupControlRunning => '電腦端已開始備份';
+
+  @override
+  String get backupControlPausing => '目前檔案完成後暫停…';
+
+  @override
+  String get backupControlPaused => '備份已暫停';
+
+  @override
+  String get backupControlCompleted => '備份完成';
+
+  @override
+  String get backupControlError => '連線或備份失敗';
 
   @override
   String get backupStageConnecting => '連線中…';

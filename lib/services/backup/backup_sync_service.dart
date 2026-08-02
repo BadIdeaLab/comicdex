@@ -40,9 +40,17 @@ class BackupSyncService {
   /// a backup that claims to hold a comic it cannot restore. In this order the
   /// worst case is an uploaded file the snapshot does not mention yet, which is
   /// harmless and picked up by the next backup.
+  ///
+  /// [snapshotPolicy] lets a paused backup resume without minting another
+  /// database snapshot — see [DatabaseSnapshotPolicy]. Skipping is safe only
+  /// because the earlier snapshot in the *same* logical backup already uploaded:
+  /// files sent after it are, at worst, orphans the snapshot does not mention,
+  /// which is the same harmless case the ordering rule above already permits.
   Future<BackupSyncResult> run({
     required BackupConnection connection,
     void Function(BackupSyncProgress progress)? onProgress,
+    BackupPauseToken? pauseToken,
+    DatabaseSnapshotPolicy snapshotPolicy = DatabaseSnapshotPolicy.capture,
   }) async {
     onProgress?.call(
       const BackupSyncProgress(stage: BackupSyncStage.connecting),
@@ -50,21 +58,29 @@ class BackupSyncService {
     // Fail before any long work if the PIN or address is wrong.
     await client.checkHealth(connection);
 
-    onProgress?.call(
-      const BackupSyncProgress(stage: BackupSyncStage.snapshottingDatabase),
-    );
-    final snapshot = await _snapshotBuilder();
-    try {
-      await client.uploadDatabase(
-        connection: connection,
-        snapshot: snapshot,
-        schemaVersion: schemaVersion,
+    var databaseSnapshotUploaded = false;
+    if (snapshotPolicy == DatabaseSnapshotPolicy.capture) {
+      onProgress?.call(
+        const BackupSyncProgress(stage: BackupSyncStage.snapshottingDatabase),
       );
-    } finally {
-      await _deleteQuietly(snapshot);
+      final snapshot = await _snapshotBuilder();
+      try {
+        await client.uploadDatabase(
+          connection: connection,
+          snapshot: snapshot,
+          schemaVersion: schemaVersion,
+        );
+        // Set only after the upload returns: a throw here must leave this false
+        // so the caller cannot establish a resume checkpoint.
+        databaseSnapshotUploaded = true;
+      } finally {
+        await _deleteQuietly(snapshot);
+      }
     }
 
-    onProgress?.call(const BackupSyncProgress(stage: BackupSyncStage.comparing));
+    onProgress?.call(
+      const BackupSyncProgress(stage: BackupSyncStage.comparing),
+    );
     final inFlightComicIds = await _inFlightComicIds();
     final localFiles = await collectLocalFiles(
       excludedComicIds: inFlightComicIds,
@@ -78,6 +94,9 @@ class BackupSyncService {
     var uploaded = 0;
     final failures = <String>[];
     for (final file in pending) {
+      if (pauseToken?.isPauseRequested ?? false) {
+        break;
+      }
       onProgress?.call(
         BackupSyncProgress(
           stage: BackupSyncStage.uploading,
@@ -114,6 +133,8 @@ class BackupSyncService {
       failedCount: failures.length,
       skippedInFlightCount: inFlightComicIds.length,
       failures: failures,
+      isPaused: pauseToken?.isPauseRequested ?? false,
+      databaseSnapshotUploaded: databaseSnapshotUploaded,
     );
   }
 

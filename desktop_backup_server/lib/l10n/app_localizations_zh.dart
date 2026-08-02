@@ -100,6 +100,37 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get controlTitle => 'Connected phones';
+
+  @override
+  String get controlEmpty =>
+      'No phone is connected. Open Backup in the mobile app and pair it first.';
+
+  @override
+  String get controlStartBackup => 'Start backup';
+
+  @override
+  String get controlPause => 'Pause';
+
+  @override
+  String get controlStateIdle => 'Connected · ready';
+
+  @override
+  String get controlStateRunning => 'Backing up…';
+
+  @override
+  String get controlStatePausing => 'Pausing after the current file…';
+
+  @override
+  String get controlStatePaused => 'Paused';
+
+  @override
+  String get controlStateCompleted => 'Backup completed';
+
+  @override
+  String get controlStateError => 'Backup failed';
+
+  @override
   String get activityTitle => '活動紀錄';
 
   @override
@@ -271,6 +302,36 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String devicesLastSync(String timestamp) {
     return '上次同步 $timestamp';
   }
+
+  @override
+  String get controlTitle => '已連線手機';
+
+  @override
+  String get controlEmpty => '目前沒有手機連線。請先在手機 App 的備份頁面完成配對。';
+
+  @override
+  String get controlStartBackup => '開始備份';
+
+  @override
+  String get controlPause => '暫停';
+
+  @override
+  String get controlStateIdle => '已連線，可開始';
+
+  @override
+  String get controlStateRunning => '備份中…';
+
+  @override
+  String get controlStatePausing => '目前檔案完成後暫停…';
+
+  @override
+  String get controlStatePaused => '已暫停';
+
+  @override
+  String get controlStateCompleted => '備份完成';
+
+  @override
+  String get controlStateError => '備份失敗';
 
   @override
   String get activityTitle => '活動紀錄';

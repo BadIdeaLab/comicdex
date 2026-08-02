@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:concept_nhv/services/backup/backup_client.dart';
@@ -20,6 +21,7 @@ class FakeBackupClient implements BackupClient {
 
   /// Relative paths whose upload should throw, to exercise partial failure.
   Set<String> failUploadsFor;
+  Completer<void>? uploadGate;
 
   final List<String> callLog = <String>[];
   final List<String> uploadedPaths = <String>[];
@@ -55,11 +57,16 @@ class FakeBackupClient implements BackupClient {
     required File file,
   }) async {
     callLog.add('file:$relativePath');
+    await uploadGate?.future;
     if (failUploadsFor.contains(relativePath)) {
       throw StateError('simulated upload failure for $relativePath');
     }
     uploadedPaths.add(relativePath);
   }
+
+  /// Set to make the database upload fail, so tests can prove a resume
+  /// checkpoint is never established off a snapshot that did not land.
+  Object? databaseError;
 
   @override
   Future<void> uploadDatabase({
@@ -68,6 +75,10 @@ class FakeBackupClient implements BackupClient {
     required int schemaVersion,
   }) async {
     callLog.add('database');
+    final error = databaseError;
+    if (error != null) {
+      throw error;
+    }
     uploadedDatabaseSchemaVersions.add(schemaVersion);
   }
 }

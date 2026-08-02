@@ -14,7 +14,13 @@ class LocalBackupFile {
 }
 
 /// Which phase the sync is in, for the progress UI.
-enum BackupSyncStage { connecting, snapshottingDatabase, comparing, uploading, done }
+enum BackupSyncStage {
+  connecting,
+  snapshottingDatabase,
+  comparing,
+  uploading,
+  done,
+}
 
 class BackupSyncProgress {
   const BackupSyncProgress({
@@ -35,6 +41,21 @@ class BackupSyncProgress {
       totalFiles == 0 ? null : (uploadedFiles / totalFiles).clamp(0.0, 1.0);
 }
 
+/// Whether a run should take a fresh database snapshot.
+///
+/// A logical backup uploads exactly one snapshot. Pausing and resuming within
+/// that same backup must not keep minting new ones — the snapshot is only there
+/// to describe the file set being uploaded, and re-taking it per resume both
+/// wastes the server's retention slots and hides older generations the user may
+/// actually want to roll back to.
+enum DatabaseSnapshotPolicy {
+  /// Start of a new logical backup: capture and upload before scanning files.
+  capture,
+
+  /// Resuming a paused backup whose snapshot already uploaded successfully.
+  skip,
+}
+
 class BackupSyncResult {
   const BackupSyncResult({
     required this.uploadedCount,
@@ -42,6 +63,8 @@ class BackupSyncResult {
     required this.failedCount,
     required this.skippedInFlightCount,
     this.failures = const <String>[],
+    this.isPaused = false,
+    this.databaseSnapshotUploaded = false,
   });
 
   /// Files sent this run.
@@ -56,6 +79,23 @@ class BackupSyncResult {
   final int skippedInFlightCount;
 
   final List<String> failures;
+  final bool isPaused;
+
+  /// True only when *this* run successfully completed `PUT /database`.
+  ///
+  /// The resume checkpoint may only be established off this flag: marking a
+  /// backup resumable when the snapshot upload actually failed would let the
+  /// next resume skip the snapshot entirely, leaving the server with files but
+  /// no database describing them.
+  final bool databaseSnapshotUploaded;
 
   bool get hasFailures => failedCount > 0;
+}
+
+/// Cooperative pause checked between atomic upload operations.
+class BackupPauseToken {
+  bool _isPauseRequested = false;
+
+  bool get isPauseRequested => _isPauseRequested;
+  void requestPause() => _isPauseRequested = true;
 }

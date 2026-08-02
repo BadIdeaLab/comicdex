@@ -274,14 +274,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sectionBackup => 'Backup';
 
   @override
-  String get backupTileTitle => 'Back up to your computer';
+  String get backupTileTitle => 'Connect to your computer';
 
   @override
   String get backupTileSubtitle =>
-      'Send your library to the Comicdex backup server over Wi-Fi';
+      'Pair with the Comicdex backup server; control backup and restore on the computer';
 
   @override
-  String get backupScreenTitle => 'Back up to computer';
+  String get backupScreenTitle => 'Connect to computer';
 
   @override
   String get backupAddressLabel => 'Address (shown on the computer)';
@@ -303,8 +303,40 @@ class AppLocalizationsEn extends AppLocalizations {
   String get backupStartButton => 'Start backup';
 
   @override
+  String get backupConnectButton => 'Connect';
+
+  @override
+  String get backupDisconnectButton => 'Disconnect';
+
+  @override
+  String get backupDesktopControlsNote =>
+      'Once connected, start or pause backup from the computer. This phone performs the transfer and reports its progress there.';
+
+  @override
   String get backupKeepForegroundNote =>
-      'Keep this screen open while backing up. Large libraries can take a while.';
+      'Keep the app in the foreground while connected or transferring. Mobile operating systems may suspend a background app.';
+
+  @override
+  String get backupControlDisconnected => 'Not connected';
+
+  @override
+  String get backupControlReady =>
+      'Connected · waiting for a command from the computer';
+
+  @override
+  String get backupControlRunning => 'Backup started by the computer';
+
+  @override
+  String get backupControlPausing => 'Pausing after the current file…';
+
+  @override
+  String get backupControlPaused => 'Backup paused';
+
+  @override
+  String get backupControlCompleted => 'Backup completed';
+
+  @override
+  String get backupControlError => 'Connection or backup failed';
 
   @override
   String get backupStageConnecting => 'Connecting…';

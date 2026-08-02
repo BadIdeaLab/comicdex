@@ -261,6 +261,66 @@ abstract class AppLocalizations {
   /// **'last sync {timestamp}'**
   String devicesLastSync(String timestamp);
 
+  /// No description provided for @controlTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Connected phones'**
+  String get controlTitle;
+
+  /// No description provided for @controlEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No phone is connected. Open Backup in the mobile app and pair it first.'**
+  String get controlEmpty;
+
+  /// No description provided for @controlStartBackup.
+  ///
+  /// In en, this message translates to:
+  /// **'Start backup'**
+  String get controlStartBackup;
+
+  /// No description provided for @controlPause.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause'**
+  String get controlPause;
+
+  /// No description provided for @controlStateIdle.
+  ///
+  /// In en, this message translates to:
+  /// **'Connected · ready'**
+  String get controlStateIdle;
+
+  /// No description provided for @controlStateRunning.
+  ///
+  /// In en, this message translates to:
+  /// **'Backing up…'**
+  String get controlStateRunning;
+
+  /// No description provided for @controlStatePausing.
+  ///
+  /// In en, this message translates to:
+  /// **'Pausing after the current file…'**
+  String get controlStatePausing;
+
+  /// No description provided for @controlStatePaused.
+  ///
+  /// In en, this message translates to:
+  /// **'Paused'**
+  String get controlStatePaused;
+
+  /// No description provided for @controlStateCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup completed'**
+  String get controlStateCompleted;
+
+  /// No description provided for @controlStateError.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup failed'**
+  String get controlStateError;
+
   /// No description provided for @activityTitle.
   ///
   /// In en, this message translates to:

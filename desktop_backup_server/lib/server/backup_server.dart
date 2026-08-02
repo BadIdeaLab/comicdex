@@ -4,6 +4,7 @@ import 'dart:io';
 
 import '../models/activity_event.dart';
 import '../models/backup_models.dart';
+import '../models/mobile_control.dart';
 import '../storage/backup_exceptions.dart';
 import '../storage/backup_library.dart';
 import 'pin_guard.dart';
@@ -30,6 +31,7 @@ class BackupServer {
     required this.pinGuard,
     this.onActivity,
     this.onPruneRequest,
+    this.onControlDevicesChanged,
   });
 
   final BackupLibrary library;
@@ -42,6 +44,7 @@ class BackupServer {
   /// The phone asked what is stale. Nothing is deleted here — the UI holds these
   /// candidates until the user explicitly confirms.
   final void Function(PruneCandidates candidates)? onPruneRequest;
+  final VoidCallback? onControlDevicesChanged;
 
   HttpServer? _httpServer;
 
@@ -49,15 +52,50 @@ class BackupServer {
   /// syncs, and letting an upload interleave with a prune would race over the
   /// same paths.
   bool _writeInProgress = false;
+  final Map<String, _MobileControlSession> _controlSessions =
+      <String, _MobileControlSession>{};
 
   int? get port => _httpServer?.port;
   bool get isRunning => _httpServer != null;
+  List<ConnectedMobileDevice> get connectedDevices {
+    final devices = _controlSessions.values
+        .map((session) => session.device)
+        .toList();
+    devices.sort((a, b) => a.deviceId.compareTo(b.deviceId));
+    return devices;
+  }
+
+  bool sendControlCommand(String deviceId, MobileControlAction action) {
+    final session = _controlSessions[deviceId];
+    if (session == null) {
+      return false;
+    }
+    final commandId = '${DateTime.now().microsecondsSinceEpoch}';
+    session.socket.add(
+      jsonEncode(<String, Object?>{
+        'type': 'command',
+        'action': action.name,
+        'commandId': commandId,
+      }),
+    );
+    if (action == MobileControlAction.pause) {
+      session.device = session.device.copyWith(
+        state: MobileJobState.pausing,
+        commandId: commandId,
+      );
+      onControlDevicesChanged?.call();
+    }
+    return true;
+  }
 
   /// Binds to [preferredPort], walking upward if it is taken so a port already
   /// claimed by something else does not block startup entirely.
   ///
   /// Pass `0` to let the OS pick (used by tests).
-  Future<int> start({int preferredPort = kDefaultPort, int attempts = 20}) async {
+  Future<int> start({
+    int preferredPort = kDefaultPort,
+    int attempts = 20,
+  }) async {
     if (_httpServer != null) {
       return _httpServer!.port;
     }
@@ -65,7 +103,10 @@ class BackupServer {
     for (var offset = 0; offset < attempts; offset++) {
       final candidate = preferredPort == 0 ? 0 : preferredPort + offset;
       try {
-        final server = await HttpServer.bind(InternetAddress.anyIPv4, candidate);
+        final server = await HttpServer.bind(
+          InternetAddress.anyIPv4,
+          candidate,
+        );
         _httpServer = server;
         unawaited(_listen(server));
         return server.port;
@@ -83,6 +124,14 @@ class BackupServer {
     final server = _httpServer;
     _httpServer = null;
     await server?.close(force: true);
+    final sockets = _controlSessions.values
+        .map((session) => session.socket)
+        .toList(growable: false);
+    _controlSessions.clear();
+    for (final socket in sockets) {
+      await socket.close();
+    }
+    onControlDevicesChanged?.call();
   }
 
   Future<void> _listen(HttpServer server) async {
@@ -110,6 +159,9 @@ class BackupServer {
       await response.close();
     } on HttpException {
       // Client hung up mid-response; nothing useful left to do.
+    } on StateError {
+      // A WebSocket upgrade detaches the HTTP response; closing it again is a
+      // harmless no-op from the server's point of view.
     }
   }
 
@@ -162,13 +214,26 @@ class BackupServer {
       });
       return;
     }
-    if (segments.length == 1 && segments.first == 'devices' && method == 'GET') {
+    if (segments.length == 1 &&
+        segments.first == 'devices' &&
+        method == 'GET') {
       final devices = await library.listDevices();
       _writeJson(
         response,
         HttpStatus.ok,
         devices.map((device) => device.toJson()).toList(growable: false),
       );
+      return;
+    }
+
+    if (segments.length == 2 &&
+        segments[0] == 'control' &&
+        segments[1] == 'connect' &&
+        method == 'GET') {
+      final deviceId = BackupLibrary.validateDeviceId(
+        request.headers.value(kDeviceHeader),
+      );
+      await _handleControlConnection(request, deviceId);
       return;
     }
 
@@ -234,7 +299,9 @@ class BackupServer {
   Future<void> _handleInventory(HttpRequest request, String deviceId) async {
     final entries = await library.inventory(deviceId);
     final payload = utf8.encode(
-      jsonEncode(entries.map((entry) => entry.toJson()).toList(growable: false)),
+      jsonEncode(
+        entries.map((entry) => entry.toJson()).toList(growable: false),
+      ),
     );
     // Transparent transport compression: the client's HTTP stack unwraps this
     // automatically, unlike the database payload which is gzip *content*.
@@ -267,7 +334,9 @@ class BackupServer {
         source: request,
         expectedSha256: expected,
       );
-      onActivity?.call(FileReceivedEvent(deviceId: deviceId, path: relativePath));
+      onActivity?.call(
+        FileReceivedEvent(deviceId: deviceId, path: relativePath),
+      );
       _writeJson(request.response, HttpStatus.created, <String, Object?>{
         'path': relativePath,
         'sizeBytes': size,
@@ -356,21 +425,93 @@ class BackupServer {
         'Expected a JSON body of {"paths": [...]}',
       );
     }
-    final phonePaths = (decoded['paths']! as List)
-        .whereType<String>()
-        .toSet();
+    final phonePaths = (decoded['paths']! as List).whereType<String>().toSet();
     final candidates = await library.pruneCandidates(
       deviceId: deviceId,
       phonePaths: phonePaths,
     );
     onPruneRequest?.call(candidates);
     onActivity?.call(
-      PruneRequestedEvent(
-        deviceId: deviceId,
-        count: candidates.entries.length,
-      ),
+      PruneRequestedEvent(deviceId: deviceId, count: candidates.entries.length),
     );
     _writeJson(request.response, HttpStatus.ok, candidates.toJson());
+  }
+
+  Future<void> _handleControlConnection(
+    HttpRequest request,
+    String deviceId,
+  ) async {
+    if (!WebSocketTransformer.isUpgradeRequest(request)) {
+      _writeJson(request.response, HttpStatus.badRequest, <String, Object?>{
+        'error': 'Expected a WebSocket upgrade',
+      });
+      return;
+    }
+    final socket = await WebSocketTransformer.upgrade(request);
+    socket.pingInterval = const Duration(seconds: 10);
+    final previous = _controlSessions.remove(deviceId);
+    await previous?.socket.close(WebSocketStatus.normalClosure, 'Replaced');
+
+    final session = _MobileControlSession(
+      socket: socket,
+      device: ConnectedMobileDevice(
+        deviceId: deviceId,
+        state: MobileJobState.idle,
+        connectedAt: DateTime.now(),
+      ),
+    );
+    _controlSessions[deviceId] = session;
+    onControlDevicesChanged?.call();
+    socket.add(jsonEncode(<String, Object?>{'type': 'connected'}));
+
+    try {
+      await for (final raw in socket) {
+        if (raw is String) {
+          _handleControlMessage(session, raw);
+        }
+      }
+    } finally {
+      if (identical(_controlSessions[deviceId], session)) {
+        _controlSessions.remove(deviceId);
+        onControlDevicesChanged?.call();
+      }
+    }
+  }
+
+  void _handleControlMessage(_MobileControlSession session, String raw) {
+    Object? decoded;
+    try {
+      decoded = jsonDecode(raw);
+    } on FormatException {
+      return;
+    }
+    if (decoded is! Map<String, Object?> || decoded['type'] != 'status') {
+      return;
+    }
+    final rawState = decoded['state'];
+    final state = MobileJobState.values.where(
+      (value) => value.name == rawState,
+    );
+    if (state.isEmpty) {
+      return;
+    }
+    final uploadedFiles = decoded['uploadedFiles'];
+    final totalFiles = decoded['totalFiles'];
+    session.device = session.device.copyWith(
+      state: state.first,
+      commandId: decoded['commandId'] is String
+          ? decoded['commandId']! as String
+          : null,
+      currentPath: decoded['currentPath'] is String
+          ? decoded['currentPath']! as String
+          : null,
+      uploadedFiles: uploadedFiles is int ? uploadedFiles : 0,
+      totalFiles: totalFiles is int ? totalFiles : 0,
+      message: decoded['message'] is String
+          ? decoded['message']! as String
+          : null,
+    );
+    onControlDevicesChanged?.call();
   }
 
   // ---------------------------------------------------------------------
@@ -394,4 +535,13 @@ class BackupServer {
     response.headers.contentType = ContentType.json;
     response.write(jsonEncode(body));
   }
+}
+
+typedef VoidCallback = void Function();
+
+class _MobileControlSession {
+  _MobileControlSession({required this.socket, required this.device});
+
+  final WebSocket socket;
+  ConnectedMobileDevice device;
 }

@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
 import 'package:desktop_backup_server/models/backup_models.dart';
+import 'package:desktop_backup_server/models/mobile_control.dart';
 import 'package:desktop_backup_server/server/backup_server.dart';
 import 'package:desktop_backup_server/server/pin_guard.dart';
 import 'package:desktop_backup_server/storage/backup_library.dart';
@@ -170,10 +172,9 @@ void main() {
       test('health reports the protocol version once authenticated', () async {
         final response = await send('GET', '/health', deviceId: null);
         expect(response.statusCode, HttpStatus.ok);
-        expect(
-          jsonDecode(await textOf(response)),
-          <String, Object?>{'protocolVersion': kProtocolVersion},
-        );
+        expect(jsonDecode(await textOf(response)), <String, Object?>{
+          'protocolVersion': kProtocolVersion,
+        });
       });
     });
 
@@ -191,7 +192,11 @@ void main() {
       });
 
       test('each device only sees its own files', () async {
-        await (await putFile('177013/cover.webp', <int>[1, 2, 3])).drain<void>();
+        await (await putFile('177013/cover.webp', <int>[
+          1,
+          2,
+          3,
+        ])).drain<void>();
 
         final other = await send('GET', '/inventory', deviceId: 'iPad-Air');
         expect(jsonDecode(await textOf(other)), isEmpty);
@@ -278,7 +283,8 @@ void main() {
 
         final upload = await putDatabase(payload);
         expect(upload.statusCode, HttpStatus.created);
-        final created = jsonDecode(await textOf(upload)) as Map<String, Object?>;
+        final created =
+            jsonDecode(await textOf(upload)) as Map<String, Object?>;
         expect(created['schemaVersion'], 9);
 
         final download = await send('GET', '/database');
@@ -308,10 +314,14 @@ void main() {
       });
 
       test('history lists snapshots newest first', () async {
-        await (await putDatabase(utf8.encode('one'), schemaVersion: 8))
-            .drain<void>();
-        await (await putDatabase(utf8.encode('two'), schemaVersion: 9))
-            .drain<void>();
+        await (await putDatabase(
+          utf8.encode('one'),
+          schemaVersion: 8,
+        )).drain<void>();
+        await (await putDatabase(
+          utf8.encode('two'),
+          schemaVersion: 9,
+        )).drain<void>();
 
         final response = await send('GET', '/database/history');
         final history = jsonDecode(await textOf(response)) as List<Object?>;
@@ -322,7 +332,11 @@ void main() {
 
     group('devices endpoint', () {
       test('summarises every device partition', () async {
-        await (await putFile('177013/cover.webp', <int>[1, 2, 3])).drain<void>();
+        await (await putFile('177013/cover.webp', <int>[
+          1,
+          2,
+          3,
+        ])).drain<void>();
         await (await putDatabase(utf8.encode('db'))).drain<void>();
 
         final response = await send('GET', '/devices', deviceId: null);
@@ -335,6 +349,67 @@ void main() {
         expect(device['totalBytes'], 3);
         expect(device['latestDbSchemaVersion'], 9);
         expect(device['lastSyncAt'], isNotNull);
+      });
+    });
+
+    group('mobile control channel', () {
+      test('tracks status and sends desktop commands over WebSocket', () async {
+        final socket = await WebSocket.connect(
+          'ws://127.0.0.1:$port/control/connect',
+          headers: <String, String>{
+            kPinHeader: pinGuard.pin,
+            kDeviceHeader: 'Pixel-8',
+          },
+        );
+        final messages = StreamIterator<Object?>(socket);
+        expect(await messages.moveNext(), isTrue);
+        expect(jsonDecode(messages.current! as String), <String, Object?>{
+          'type': 'connected',
+        });
+        expect(server.connectedDevices.single.deviceId, 'Pixel-8');
+
+        expect(
+          server.sendControlCommand('Pixel-8', MobileControlAction.startBackup),
+          isTrue,
+        );
+        expect(await messages.moveNext(), isTrue);
+        final command =
+            jsonDecode(messages.current! as String) as Map<String, Object?>;
+        expect(command['action'], 'startBackup');
+        expect(command['commandId'], isNotEmpty);
+
+        socket.add(
+          jsonEncode(<String, Object?>{
+            'type': 'status',
+            'state': 'running',
+            'uploadedFiles': 2,
+            'totalFiles': 5,
+            'currentPath': '177013/pages/2.webp',
+          }),
+        );
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+        final status = server.connectedDevices.single;
+        expect(status.state, MobileJobState.running);
+        expect(status.uploadedFiles, 2);
+        expect(status.totalFiles, 5);
+
+        await messages.cancel();
+        await socket.close();
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+        expect(server.connectedDevices, isEmpty);
+      });
+
+      test('rejects a WebSocket connection with a wrong PIN', () async {
+        await expectLater(
+          WebSocket.connect(
+            'ws://127.0.0.1:$port/control/connect',
+            headers: <String, String>{
+              kPinHeader: '000000',
+              kDeviceHeader: 'Pixel-8',
+            },
+          ),
+          throwsA(isA<WebSocketException>()),
+        );
       });
     });
 
@@ -354,7 +429,8 @@ void main() {
         );
         expect(response.statusCode, HttpStatus.ok);
 
-        final payload = jsonDecode(await textOf(response)) as Map<String, Object?>;
+        final payload =
+            jsonDecode(await textOf(response)) as Map<String, Object?>;
         expect(payload['fileCount'], 1);
         expect(payload['totalBytes'], 2);
 

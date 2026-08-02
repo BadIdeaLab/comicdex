@@ -5,15 +5,12 @@ import 'package:flutter/services.dart';
 import '../l10n/app_localizations.dart';
 import '../models/activity_event.dart';
 import '../models/backup_models.dart';
+import '../models/mobile_control.dart';
 import '../state/app_locale_model.dart';
 import '../state/server_model.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({
-    super.key,
-    required this.model,
-    required this.localeModel,
-  });
+  const HomeScreen({super.key, required this.model, required this.localeModel});
 
   final ServerModel model;
   final AppLocaleModel localeModel;
@@ -80,6 +77,8 @@ class _HomeScreenState extends State<HomeScreen> {
               _ConnectionCard(model: model),
               const SizedBox(height: 12),
               _BackupFolderCard(model: model, onChangeFolder: _pickFolder),
+              const SizedBox(height: 12),
+              _ConnectedDevicesCard(model: model),
               const SizedBox(height: 12),
               _DevicesCard(model: model),
               const SizedBox(height: 12),
@@ -495,6 +494,99 @@ class _DevicesCard extends StatelessWidget {
       ),
     );
   }
+}
+
+class _ConnectedDevicesCard extends StatelessWidget {
+  const _ConnectedDevicesCard({required this.model});
+
+  final ServerModel model;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text(l10n.controlTitle, style: theme.textTheme.titleMedium),
+            const SizedBox(height: 8),
+            if (model.connectedDevices.isEmpty)
+              Text(l10n.controlEmpty)
+            else
+              ...model.connectedDevices.map((device) {
+                final progress = device.totalFiles == 0
+                    ? null
+                    : device.uploadedFiles / device.totalFiles;
+                return ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.phonelink_ring),
+                  title: Text(device.deviceId),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(_controlStateLabel(l10n, device.state)),
+                      if (progress != null) ...<Widget>[
+                        const SizedBox(height: 4),
+                        LinearProgressIndicator(value: progress.clamp(0, 1)),
+                      ],
+                      if (device.currentPath != null)
+                        Text(
+                          device.currentPath!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall,
+                        ),
+                      if (device.message != null)
+                        Text(
+                          device.message!,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: device.state == MobileJobState.error
+                                ? theme.colorScheme.error
+                                : null,
+                          ),
+                        ),
+                    ],
+                  ),
+                  trailing: Wrap(
+                    spacing: 8,
+                    children: <Widget>[
+                      FilledButton.icon(
+                        onPressed: device.canStart
+                            ? () => model.startBackup(device.deviceId)
+                            : null,
+                        icon: const Icon(Icons.backup),
+                        label: Text(l10n.controlStartBackup),
+                      ),
+                      OutlinedButton.icon(
+                        onPressed: device.canPause
+                            ? () => model.pauseBackup(device.deviceId)
+                            : null,
+                        icon: const Icon(Icons.pause),
+                        label: Text(l10n.controlPause),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+String _controlStateLabel(AppLocalizations l10n, MobileJobState state) {
+  return switch (state) {
+    MobileJobState.idle => l10n.controlStateIdle,
+    MobileJobState.running => l10n.controlStateRunning,
+    MobileJobState.pausing => l10n.controlStatePausing,
+    MobileJobState.paused => l10n.controlStatePaused,
+    MobileJobState.completed => l10n.controlStateCompleted,
+    MobileJobState.error => l10n.controlStateError,
+  };
 }
 
 class _ActivityCard extends StatelessWidget {

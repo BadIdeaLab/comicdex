@@ -25,7 +25,9 @@ import 'package:concept_nhv/application/tags/update_local_tag_catalog_use_case.d
 import 'package:concept_nhv/services/image_url_resolver.dart';
 import 'package:concept_nhv/state/app_locale_model.dart';
 import 'package:concept_nhv/services/backup/backup_client.dart';
+import 'package:concept_nhv/services/backup/backup_control_client.dart';
 import 'package:concept_nhv/services/backup/backup_sync_service.dart';
+import 'package:concept_nhv/services/backup/device_name_service.dart';
 import 'package:concept_nhv/services/download_asset_store.dart';
 import 'package:concept_nhv/services/local_tag_catalog_service.dart';
 import 'package:concept_nhv/services/tag_display_service.dart';
@@ -40,6 +42,7 @@ import 'package:concept_nhv/services/remote_favorite_gateway.dart';
 import 'package:concept_nhv/services/search_query_builder.dart';
 import 'package:concept_nhv/services/tag_search_query_builder.dart';
 import 'package:concept_nhv/state/blocked_tags_model.dart';
+import 'package:concept_nhv/state/backup_control_model.dart';
 import 'package:concept_nhv/state/comic_feed_model.dart';
 import 'package:concept_nhv/state/comic_reader_model.dart';
 import 'package:concept_nhv/state/download_manager_model.dart';
@@ -98,7 +101,9 @@ List<SingleChildWidget> _buildInfrastructureProviders(
 ) {
   return <SingleChildWidget>[
     Provider<TagDisplayService>.value(value: tagDisplayService),
-    ChangeNotifierProvider<LocalTagCatalogService>.value(value: localTagCatalogService),
+    ChangeNotifierProvider<LocalTagCatalogService>.value(
+      value: localTagCatalogService,
+    ),
     ChangeNotifierProvider<AppLocaleModel>.value(value: appLocaleModel),
     Provider<LocalDatabase>.value(value: localDatabase),
     Provider(create: (context) => OptionsStore(localDatabase: context.read())),
@@ -169,6 +174,17 @@ List<SingleChildWidget> _buildServiceProviders() {
           ),
         );
       },
+    ),
+    Provider<BackupControlClient>(
+      create: (_) => WebSocketBackupControlClient(),
+    ),
+    Provider(create: (_) => DeviceNameService()),
+    ChangeNotifierProvider(
+      create: (context) => BackupControlModel(
+        client: context.read(),
+        healthClient: context.read(),
+        syncService: context.read(),
+      ),
     ),
     Provider(
       create: (_) {

@@ -1,11 +1,10 @@
 import 'package:concept_nhv/l10n/app_localizations.dart';
-import 'package:concept_nhv/services/backup/backup_client.dart';
 import 'package:concept_nhv/services/backup/backup_connection.dart';
-import 'package:concept_nhv/services/backup/backup_models.dart';
-import 'package:concept_nhv/services/backup/backup_sync_service.dart';
+import 'package:concept_nhv/services/backup/backup_client.dart';
+import 'package:concept_nhv/services/backup/device_name_service.dart';
+import 'package:concept_nhv/state/backup_control_model.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:wakelock_plus/wakelock_plus.dart';
 
 class BackupScreen extends StatefulWidget {
   const BackupScreen({super.key});
@@ -18,26 +17,36 @@ class _BackupScreenState extends State<BackupScreen> {
   final TextEditingController _addressController = TextEditingController();
   final TextEditingController _pinController = TextEditingController();
   final TextEditingController _deviceNameController = TextEditingController();
+  String? _validationError;
 
-  BackupSyncProgress? _progress;
-  BackupSyncResult? _result;
-  String? _error;
-  bool _isRunning = false;
+  @override
+  void initState() {
+    super.initState();
+    _loadSuggestedDeviceName();
+  }
+
+  Future<void> _loadSuggestedDeviceName() async {
+    final service = context.read<DeviceNameService>();
+    final name = await service.suggestedName();
+    if (mounted && _deviceNameController.text.trim().isEmpty) {
+      _deviceNameController.text = name;
+    }
+  }
 
   @override
   void dispose() {
     _addressController.dispose();
     _pinController.dispose();
     _deviceNameController.dispose();
-    // Belt and braces: if the screen is torn down mid-run the lock must not
-    // outlive it and hold the display on.
-    WakelockPlus.disable();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final model = context.watch<BackupControlModel>();
+    final fieldsEnabled =
+        !model.isConnected && model.state != BackupControlState.connecting;
     return Scaffold(
       appBar: AppBar(title: Text(l10n.backupScreenTitle)),
       body: ListView(
@@ -45,7 +54,7 @@ class _BackupScreenState extends State<BackupScreen> {
         children: <Widget>[
           TextField(
             controller: _addressController,
-            enabled: !_isRunning,
+            enabled: fieldsEnabled,
             decoration: InputDecoration(
               labelText: l10n.backupAddressLabel,
               hintText: l10n.backupAddressHint,
@@ -57,7 +66,7 @@ class _BackupScreenState extends State<BackupScreen> {
           const SizedBox(height: 12),
           TextField(
             controller: _pinController,
-            enabled: !_isRunning,
+            enabled: fieldsEnabled,
             decoration: InputDecoration(
               labelText: l10n.backupPinLabel,
               border: const OutlineInputBorder(),
@@ -67,7 +76,7 @@ class _BackupScreenState extends State<BackupScreen> {
           const SizedBox(height: 12),
           TextField(
             controller: _deviceNameController,
-            enabled: !_isRunning,
+            enabled: fieldsEnabled,
             decoration: InputDecoration(
               labelText: l10n.backupDeviceNameLabel,
               helperText: l10n.backupDeviceNameHelp,
@@ -76,18 +85,37 @@ class _BackupScreenState extends State<BackupScreen> {
             ),
           ),
           const SizedBox(height: 20),
-          FilledButton.icon(
-            onPressed: _isRunning ? null : _startBackup,
-            icon: const Icon(Icons.backup),
-            label: Text(l10n.backupStartButton),
-          ),
+          if (model.isConnected)
+            OutlinedButton.icon(
+              onPressed:
+                  model.state == BackupControlState.running ||
+                      model.state == BackupControlState.pausing
+                  ? null
+                  : model.disconnect,
+              icon: const Icon(Icons.link_off),
+              label: Text(l10n.backupDisconnectButton),
+            )
+          else
+            FilledButton.icon(
+              onPressed: model.state == BackupControlState.connecting
+                  ? null
+                  : _connect,
+              icon: const Icon(Icons.link),
+              label: Text(l10n.backupConnectButton),
+            ),
           const SizedBox(height: 16),
-          if (_isRunning) _buildProgress(context, l10n),
-          if (_error != null) _buildBanner(context, _error!, isError: true),
-          if (_result != null) _buildSummary(context, l10n, _result!),
+          _StatusCard(model: model),
+          if (_validationError != null) ...<Widget>[
+            const SizedBox(height: 12),
+            _ErrorBanner(message: _validationError!),
+          ],
+          if (model.error != null && _validationError == null) ...<Widget>[
+            const SizedBox(height: 12),
+            _ErrorBanner(message: l10n.backupErrorGeneric(model.error!)),
+          ],
           const SizedBox(height: 16),
           Text(
-            l10n.backupApiKeyNote,
+            l10n.backupDesktopControlsNote,
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 8),
@@ -95,72 +123,112 @@ class _BackupScreenState extends State<BackupScreen> {
             l10n.backupKeepForegroundNote,
             style: Theme.of(context).textTheme.bodySmall,
           ),
+          const SizedBox(height: 8),
+          Text(
+            l10n.backupApiKeyNote,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildProgress(BuildContext context, AppLocalizations l10n) {
-    final progress = _progress;
-    final label = switch (progress?.stage) {
-      BackupSyncStage.snapshottingDatabase => l10n.backupStageSnapshot,
-      BackupSyncStage.comparing => l10n.backupStageComparing,
-      BackupSyncStage.uploading || BackupSyncStage.done => l10n
-          .backupStageUploading(
-            progress!.uploadedFiles,
-            progress.totalFiles,
-          ),
-      _ => l10n.backupStageConnecting,
+  Future<void> _connect() async {
+    final l10n = AppLocalizations.of(context)!;
+    final pin = _pinController.text.trim();
+    final deviceId = _deviceNameController.text.trim();
+    final rawAddress = _addressController.text.trim();
+    if (pin.isEmpty || deviceId.isEmpty || rawAddress.isEmpty) {
+      setState(() => _validationError = l10n.backupErrorMissingFields);
+      return;
+    }
+    final baseUri = BackupConnection.parseAddress(rawAddress);
+    if (baseUri == null) {
+      setState(() => _validationError = l10n.backupErrorInvalidAddress);
+      return;
+    }
+    setState(() => _validationError = null);
+    try {
+      await context.read<BackupControlModel>().connect(
+        BackupConnection(baseUri: baseUri, pin: pin, deviceId: deviceId),
+      );
+    } on BackupServerException catch (error) {
+      setState(() {
+        _validationError = error.isUnauthorized
+            ? l10n.backupErrorWrongPin
+            : error.isLockedOut
+            ? l10n.backupErrorLockedOut
+            : l10n.backupErrorGeneric(error.message);
+      });
+    } on Object {
+      setState(() => _validationError = l10n.backupErrorUnreachable);
+    }
+  }
+}
+
+class _StatusCard extends StatelessWidget {
+  const _StatusCard({required this.model});
+
+  final BackupControlModel model;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final progress = model.progress;
+    final fraction = progress?.fraction;
+    final label = switch (model.state) {
+      BackupControlState.disconnected => l10n.backupControlDisconnected,
+      BackupControlState.connecting => l10n.backupStageConnecting,
+      BackupControlState.idle => l10n.backupControlReady,
+      BackupControlState.running => l10n.backupControlRunning,
+      BackupControlState.pausing => l10n.backupControlPausing,
+      BackupControlState.paused => l10n.backupControlPaused,
+      BackupControlState.completed => l10n.backupControlCompleted,
+      BackupControlState.error => l10n.backupControlError,
     };
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        // A real fraction, not an indeterminate spinner: the work list is known
-        // before any file is sent.
-        LinearProgressIndicator(value: progress?.fraction),
-        const SizedBox(height: 8),
-        Text(label),
-        if (progress?.currentPath != null) ...<Widget>[
-          const SizedBox(height: 4),
-          Text(
-            progress!.currentPath!,
-            style: Theme.of(context).textTheme.bodySmall,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ],
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Row(
+              children: <Widget>[
+                Icon(model.isConnected ? Icons.link : Icons.link_off, size: 18),
+                const SizedBox(width: 8),
+                Expanded(child: Text(label)),
+              ],
+            ),
+            if (model.state == BackupControlState.running ||
+                model.state == BackupControlState.pausing) ...<Widget>[
+              const SizedBox(height: 10),
+              LinearProgressIndicator(value: fraction),
+              if (progress?.currentPath != null) ...<Widget>[
+                const SizedBox(height: 4),
+                Text(
+                  progress!.currentPath!,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+            ],
+          ],
+        ),
+      ),
     );
   }
+}
 
-  Widget _buildSummary(
-    BuildContext context,
-    AppLocalizations l10n,
-    BackupSyncResult result,
-  ) {
-    final lines = <String>[
-      l10n.backupSummaryUploaded(result.uploadedCount),
-      if (result.skippedCount > 0)
-        l10n.backupSummarySkipped(result.skippedCount),
-      if (result.skippedInFlightCount > 0)
-        l10n.backupSummaryInFlight(result.skippedInFlightCount),
-      if (result.failedCount > 0) l10n.backupSummaryFailed(result.failedCount),
-    ];
-    return _buildBanner(
-      context,
-      lines.join('\n'),
-      isError: result.hasFailures,
-    );
-  }
+class _ErrorBanner extends StatelessWidget {
+  const _ErrorBanner({required this.message});
 
-  Widget _buildBanner(
-    BuildContext context,
-    String message, {
-    required bool isError,
-  }) {
-    final scheme = Theme.of(context).colorScheme;
-    final color = isError ? scheme.error : scheme.primary;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = Theme.of(context).colorScheme.error;
     return Container(
-      margin: const EdgeInsets.only(top: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.08),
@@ -168,93 +236,12 @@ class _BackupScreenState extends State<BackupScreen> {
         border: Border.all(color: color.withValues(alpha: 0.4)),
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Icon(
-            isError ? Icons.error_outline : Icons.check_circle_outline,
-            size: 18,
-            color: color,
-          ),
+          Icon(Icons.error_outline, size: 18, color: color),
           const SizedBox(width: 8),
           Expanded(child: Text(message)),
         ],
       ),
     );
-  }
-
-  Future<void> _startBackup() async {
-    final l10n = AppLocalizations.of(context)!;
-    final pin = _pinController.text.trim();
-    final deviceId = _deviceNameController.text.trim();
-    if (pin.isEmpty || deviceId.isEmpty || _addressController.text.trim().isEmpty) {
-      setState(() {
-        _error = l10n.backupErrorMissingFields;
-        _result = null;
-      });
-      return;
-    }
-    final baseUri = BackupConnection.parseAddress(_addressController.text);
-    if (baseUri == null) {
-      setState(() {
-        _error = l10n.backupErrorInvalidAddress;
-        _result = null;
-      });
-      return;
-    }
-
-    // Resolved before the first await so the context is not used across a gap.
-    final service = context.read<BackupSyncService>();
-
-    setState(() {
-      _isRunning = true;
-      _error = null;
-      _result = null;
-      _progress = const BackupSyncProgress(stage: BackupSyncStage.connecting);
-    });
-    // Transfers can run for many minutes; without this the screen locks, the
-    // OS suspends the app, and the transfer dies partway through.
-    await WakelockPlus.enable();
-
-    try {
-      final result = await service.run(
-        connection: BackupConnection(
-          baseUri: baseUri,
-          pin: pin,
-          deviceId: deviceId,
-        ),
-        onProgress: (progress) {
-          if (mounted) {
-            setState(() => _progress = progress);
-          }
-        },
-      );
-      if (mounted) {
-        setState(() => _result = result);
-      }
-    } catch (error) {
-      if (mounted) {
-        setState(() => _error = _describeError(l10n, error));
-      }
-    } finally {
-      await WakelockPlus.disable();
-      if (mounted) {
-        setState(() => _isRunning = false);
-      }
-    }
-  }
-
-  /// Turns failures into advice. A wrong PIN and an unreachable machine both
-  /// present as "it didn't work", but need completely different next steps.
-  String _describeError(AppLocalizations l10n, Object error) {
-    if (error is BackupServerException) {
-      if (error.isUnauthorized) {
-        return l10n.backupErrorWrongPin;
-      }
-      if (error.isLockedOut) {
-        return l10n.backupErrorLockedOut;
-      }
-      return l10n.backupErrorGeneric(error.message);
-    }
-    return l10n.backupErrorUnreachable;
   }
 }
