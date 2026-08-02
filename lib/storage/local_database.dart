@@ -283,6 +283,13 @@ class LocalDatabase extends _$LocalDatabase {
     });
   }
 
+  /// Where the database lives when no custom resolver is supplied.
+  ///
+  /// Public so the pending-restore step can swap the file in at startup, before
+  /// any connection exists — it needs this path without constructing a
+  /// [LocalDatabase] first.
+  static Future<String> resolveDefaultDatabasePath() => _defaultDatabasePath();
+
   static Future<String> _defaultDatabasePath() async {
     if (kIsWeb) {
       throw UnsupportedError('LocalDatabase is not supported on web.');

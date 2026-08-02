@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:concept_nhv/app/bootstrap_app.dart';
+import 'package:concept_nhv/services/backup/pending_restore_applier.dart';
 import 'package:concept_nhv/services/local_tag_catalog_service.dart';
 import 'package:concept_nhv/services/tag_display_service.dart';
 import 'package:concept_nhv/state/app_locale_model.dart';
@@ -9,6 +10,7 @@ import 'package:concept_nhv/storage/local_database.dart';
 import 'package:concept_nhv/storage/options_store.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
+import 'package:path_provider/path_provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,6 +18,13 @@ Future<void> main() async {
   if (Platform.isAndroid) {
     await FlutterDisplayMode.setHighRefreshRate();
   }
+
+  // Before LocalDatabase — a restore stages its database here and this is the
+  // only safe moment to swap it in, while nothing holds a connection yet.
+  await applyPendingRestore(
+    supportDirectory: getApplicationSupportDirectory,
+    databasePath: LocalDatabase.resolveDefaultDatabasePath,
+  );
 
   final localDatabase = LocalDatabase();
   await localDatabase.initialize();
