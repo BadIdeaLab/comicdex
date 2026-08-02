@@ -56,6 +56,8 @@ dependencies:
   flutter_displaymode: ^0.7.0
   freezed_annotation: ^3.1.0
   json_annotation: ^4.11.0
+  crypto: ^3.0.7
+  wakelock_plus: ^1.5.2
 
 dev_dependencies:
   flutter_test:

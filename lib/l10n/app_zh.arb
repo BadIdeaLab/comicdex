@@ -85,5 +85,63 @@
   "applyButton": "套用",
   "enterNumberErrorMessage": "請輸入秒數",
   "onlyNumericErrorMessage": "只能輸入純數字秒數",
-  "valueMustBeZeroOrMoreErrorMessage": "數值必須大於等於 0 秒"
+  "valueMustBeZeroOrMoreErrorMessage": "數值必須大於等於 0 秒",
+
+  "sectionBackup": "備份",
+  "backupTileTitle": "備份到電腦",
+  "backupTileSubtitle": "透過 Wi-Fi 把書庫傳到 Comicdex 備份伺服器",
+  "backupScreenTitle": "備份到電腦",
+  "backupAddressLabel": "位址（電腦畫面上顯示的）",
+  "backupAddressHint": "192.168.1.20:8787",
+  "backupPinLabel": "配對碼",
+  "backupDeviceNameLabel": "這台裝置的名稱",
+  "backupDeviceNameHelp": "決定電腦上這台裝置的資料夾名稱。備份仍然可以還原到任何裝置。",
+  "backupStartButton": "開始備份",
+  "backupKeepForegroundNote": "備份期間請保持這個畫面開著。書庫較大時會需要一段時間。",
+  "backupStageConnecting": "連線中…",
+  "backupStageSnapshot": "準備資料庫中…",
+  "backupStageComparing": "比對電腦上已有的檔案…",
+  "backupStageUploading": "上傳中 {current} / {total}",
+  "@backupStageUploading": {
+    "placeholders": {
+      "current": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "backupErrorInvalidAddress": "請照電腦畫面上顯示的格式輸入，例如 192.168.1.20:8787",
+  "backupErrorMissingFields": "請填寫位址、配對碼與裝置名稱",
+  "backupErrorWrongPin": "配對碼錯誤。請對照電腦畫面上的數字——每次重新啟動那個程式都會更換。",
+  "backupErrorLockedOut": "配對碼錯誤太多次，請等幾分鐘後再試。",
+  "backupErrorUnreachable": "連不到那台電腦。請確認手機和電腦在同一個 Wi-Fi、位址正確，以及 Windows 防火牆有允許那個伺服器程式。",
+  "backupErrorGeneric": "備份失敗：{message}",
+  "@backupErrorGeneric": {
+    "placeholders": {
+      "message": { "type": "String" }
+    }
+  },
+  "backupSummaryUploaded": "已備份 {uploaded} 個檔案",
+  "@backupSummaryUploaded": {
+    "placeholders": {
+      "uploaded": { "type": "int" }
+    }
+  },
+  "backupSummarySkipped": "{skipped} 個電腦上已經有了",
+  "@backupSummarySkipped": {
+    "placeholders": {
+      "skipped": { "type": "int" }
+    }
+  },
+  "backupSummaryFailed": "{failed} 個失敗——再執行一次備份就會只補傳這些",
+  "@backupSummaryFailed": {
+    "placeholders": {
+      "failed": { "type": "int" }
+    }
+  },
+  "backupSummaryInFlight": "有 {count} 本仍在下載中，這次略過",
+  "@backupSummaryInFlight": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "backupApiKeyNote": "備份不包含 nhentai API 金鑰，還原後需要重新登入。"
 }

@@ -16,6 +16,13 @@
 	<string>6.0</string>
 	<key>CFBundleName</key>
 	<string>concept_nhv</string>
+	<!-- Required from iOS 14 to reach the LAN backup server. The check happens
+	     at the BSD socket layer, so Dart's own networking is subject to it too,
+	     and from iOS 18 this key is mandatory for the permission prompt to
+	     appear at all. Without it the connection just fails in a way that looks
+	     like the machine is unreachable. -->
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Used to connect to the Comicdex backup server running on your own computer, so your library can be backed up over your local network.</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>

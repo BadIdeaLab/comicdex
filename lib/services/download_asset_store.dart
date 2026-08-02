@@ -12,6 +12,12 @@ class DownloadAssetStore {
 
   final DownloadDirectoryResolver _directoryResolver;
 
+  /// The directory every comic folder lives under.
+  ///
+  /// Exposed for whole-library operations (backup walks the tree); per-comic
+  /// callers should use [resolveRootDirectory] instead.
+  Future<Directory> resolveDownloadsRoot() => _directoryResolver();
+
   Future<Directory> resolveRootDirectory(String comicId) async {
     final baseDirectory = await _directoryResolver();
     final comicDirectory = Directory(p.join(baseDirectory.path, comicId));

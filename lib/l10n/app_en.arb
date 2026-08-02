@@ -139,5 +139,63 @@
   "applyButton": "Apply",
   "enterNumberErrorMessage": "Enter a number in seconds",
   "onlyNumericErrorMessage": "Only plain numeric seconds are supported",
-  "valueMustBeZeroOrMoreErrorMessage": "Value must be 0 seconds or more"
+  "valueMustBeZeroOrMoreErrorMessage": "Value must be 0 seconds or more",
+
+  "sectionBackup": "Backup",
+  "backupTileTitle": "Back up to your computer",
+  "backupTileSubtitle": "Send your library to the Comicdex backup server over Wi-Fi",
+  "backupScreenTitle": "Back up to computer",
+  "backupAddressLabel": "Address (shown on the computer)",
+  "backupAddressHint": "192.168.1.20:8787",
+  "backupPinLabel": "Pairing PIN",
+  "backupDeviceNameLabel": "This device's name",
+  "backupDeviceNameHelp": "Names this device's folder on the computer. Backups can still be restored onto any device.",
+  "backupStartButton": "Start backup",
+  "backupKeepForegroundNote": "Keep this screen open while backing up. Large libraries can take a while.",
+  "backupStageConnecting": "Connecting…",
+  "backupStageSnapshot": "Preparing database…",
+  "backupStageComparing": "Checking what the computer already has…",
+  "backupStageUploading": "Uploading {current} of {total}",
+  "@backupStageUploading": {
+    "placeholders": {
+      "current": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "backupErrorInvalidAddress": "Enter the address exactly as shown on the computer, for example 192.168.1.20:8787",
+  "backupErrorMissingFields": "Fill in the address, PIN, and device name",
+  "backupErrorWrongPin": "Wrong PIN. Check the number shown on the computer — it changes every time that app restarts.",
+  "backupErrorLockedOut": "Too many wrong PINs. Wait a few minutes, then try again.",
+  "backupErrorUnreachable": "Could not reach that computer. Check you are on the same Wi-Fi, that the address is right, and that Windows Firewall is allowing the server app.",
+  "backupErrorGeneric": "Backup failed: {message}",
+  "@backupErrorGeneric": {
+    "placeholders": {
+      "message": { "type": "String" }
+    }
+  },
+  "backupSummaryUploaded": "Backed up {uploaded} file(s)",
+  "@backupSummaryUploaded": {
+    "placeholders": {
+      "uploaded": { "type": "int" }
+    }
+  },
+  "backupSummarySkipped": "{skipped} already on the computer",
+  "@backupSummarySkipped": {
+    "placeholders": {
+      "skipped": { "type": "int" }
+    }
+  },
+  "backupSummaryFailed": "{failed} failed — run the backup again to retry just those",
+  "@backupSummaryFailed": {
+    "placeholders": {
+      "failed": { "type": "int" }
+    }
+  },
+  "backupSummaryInFlight": "{count} comic(s) still downloading were skipped this time",
+  "@backupSummaryInFlight": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "backupApiKeyNote": "Your nhentai API key is not included in backups. You will sign in again after restoring."
 }

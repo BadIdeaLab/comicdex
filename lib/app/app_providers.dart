@@ -24,6 +24,8 @@ import 'package:concept_nhv/application/tags/load_comic_meta_use_case.dart';
 import 'package:concept_nhv/application/tags/update_local_tag_catalog_use_case.dart';
 import 'package:concept_nhv/services/image_url_resolver.dart';
 import 'package:concept_nhv/state/app_locale_model.dart';
+import 'package:concept_nhv/services/backup/backup_client.dart';
+import 'package:concept_nhv/services/backup/backup_sync_service.dart';
 import 'package:concept_nhv/services/download_asset_store.dart';
 import 'package:concept_nhv/services/local_tag_catalog_service.dart';
 import 'package:concept_nhv/services/tag_display_service.dart';
@@ -57,6 +59,7 @@ import 'package:concept_nhv/storage/reader_progress_store.dart';
 import 'package:concept_nhv/storage/reader_settings_store.dart';
 import 'package:concept_nhv/storage/search_history_repository.dart';
 import 'package:concept_nhv/storage/secure_key_value_store.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:provider/single_child_widget.dart';
 
@@ -151,6 +154,22 @@ List<SingleChildWidget> _buildServiceProviders() {
       create: (_) => const FlutterImageCompressionService(),
     ),
     Provider<RemoteAssetFetcher>(create: (_) => DioRemoteAssetFetcher()),
+    Provider<BackupClient>(create: (_) => DioBackupClient()),
+    Provider<BackupSyncService>(
+      create: (context) {
+        final database = context.read<LocalDatabase>();
+        return BackupSyncService(
+          client: context.read(),
+          downloadAssetStore: context.read(),
+          downloadQueueRepository: context.read(),
+          schemaVersion: database.schemaVersion,
+          snapshotBuilder: vacuumSnapshotBuilder(
+            database: database,
+            temporaryDirectory: getTemporaryDirectory,
+          ),
+        );
+      },
+    ),
     Provider(
       create: (_) {
         final service = NhentaiCdnConfigService();

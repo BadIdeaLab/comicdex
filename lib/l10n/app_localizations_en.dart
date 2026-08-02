@@ -269,4 +269,103 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get valueMustBeZeroOrMoreErrorMessage =>
       'Value must be 0 seconds or more';
+
+  @override
+  String get sectionBackup => 'Backup';
+
+  @override
+  String get backupTileTitle => 'Back up to your computer';
+
+  @override
+  String get backupTileSubtitle =>
+      'Send your library to the Comicdex backup server over Wi-Fi';
+
+  @override
+  String get backupScreenTitle => 'Back up to computer';
+
+  @override
+  String get backupAddressLabel => 'Address (shown on the computer)';
+
+  @override
+  String get backupAddressHint => '192.168.1.20:8787';
+
+  @override
+  String get backupPinLabel => 'Pairing PIN';
+
+  @override
+  String get backupDeviceNameLabel => 'This device\'s name';
+
+  @override
+  String get backupDeviceNameHelp =>
+      'Names this device\'s folder on the computer. Backups can still be restored onto any device.';
+
+  @override
+  String get backupStartButton => 'Start backup';
+
+  @override
+  String get backupKeepForegroundNote =>
+      'Keep this screen open while backing up. Large libraries can take a while.';
+
+  @override
+  String get backupStageConnecting => 'Connecting…';
+
+  @override
+  String get backupStageSnapshot => 'Preparing database…';
+
+  @override
+  String get backupStageComparing => 'Checking what the computer already has…';
+
+  @override
+  String backupStageUploading(int current, int total) {
+    return 'Uploading $current of $total';
+  }
+
+  @override
+  String get backupErrorInvalidAddress =>
+      'Enter the address exactly as shown on the computer, for example 192.168.1.20:8787';
+
+  @override
+  String get backupErrorMissingFields =>
+      'Fill in the address, PIN, and device name';
+
+  @override
+  String get backupErrorWrongPin =>
+      'Wrong PIN. Check the number shown on the computer — it changes every time that app restarts.';
+
+  @override
+  String get backupErrorLockedOut =>
+      'Too many wrong PINs. Wait a few minutes, then try again.';
+
+  @override
+  String get backupErrorUnreachable =>
+      'Could not reach that computer. Check you are on the same Wi-Fi, that the address is right, and that Windows Firewall is allowing the server app.';
+
+  @override
+  String backupErrorGeneric(String message) {
+    return 'Backup failed: $message';
+  }
+
+  @override
+  String backupSummaryUploaded(int uploaded) {
+    return 'Backed up $uploaded file(s)';
+  }
+
+  @override
+  String backupSummarySkipped(int skipped) {
+    return '$skipped already on the computer';
+  }
+
+  @override
+  String backupSummaryFailed(int failed) {
+    return '$failed failed — run the backup again to retry just those';
+  }
+
+  @override
+  String backupSummaryInFlight(int count) {
+    return '$count comic(s) still downloading were skipped this time';
+  }
+
+  @override
+  String get backupApiKeyNote =>
+      'Your nhentai API key is not included in backups. You will sign in again after restoring.';
 }

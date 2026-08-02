@@ -256,6 +256,97 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get valueMustBeZeroOrMoreErrorMessage => '數值必須大於等於 0 秒';
+
+  @override
+  String get sectionBackup => '備份';
+
+  @override
+  String get backupTileTitle => '備份到電腦';
+
+  @override
+  String get backupTileSubtitle => '透過 Wi-Fi 把書庫傳到 Comicdex 備份伺服器';
+
+  @override
+  String get backupScreenTitle => '備份到電腦';
+
+  @override
+  String get backupAddressLabel => '位址（電腦畫面上顯示的）';
+
+  @override
+  String get backupAddressHint => '192.168.1.20:8787';
+
+  @override
+  String get backupPinLabel => '配對碼';
+
+  @override
+  String get backupDeviceNameLabel => '這台裝置的名稱';
+
+  @override
+  String get backupDeviceNameHelp => '決定電腦上這台裝置的資料夾名稱。備份仍然可以還原到任何裝置。';
+
+  @override
+  String get backupStartButton => '開始備份';
+
+  @override
+  String get backupKeepForegroundNote => '備份期間請保持這個畫面開著。書庫較大時會需要一段時間。';
+
+  @override
+  String get backupStageConnecting => '連線中…';
+
+  @override
+  String get backupStageSnapshot => '準備資料庫中…';
+
+  @override
+  String get backupStageComparing => '比對電腦上已有的檔案…';
+
+  @override
+  String backupStageUploading(int current, int total) {
+    return '上傳中 $current / $total';
+  }
+
+  @override
+  String get backupErrorInvalidAddress => '請照電腦畫面上顯示的格式輸入，例如 192.168.1.20:8787';
+
+  @override
+  String get backupErrorMissingFields => '請填寫位址、配對碼與裝置名稱';
+
+  @override
+  String get backupErrorWrongPin => '配對碼錯誤。請對照電腦畫面上的數字——每次重新啟動那個程式都會更換。';
+
+  @override
+  String get backupErrorLockedOut => '配對碼錯誤太多次，請等幾分鐘後再試。';
+
+  @override
+  String get backupErrorUnreachable =>
+      '連不到那台電腦。請確認手機和電腦在同一個 Wi-Fi、位址正確，以及 Windows 防火牆有允許那個伺服器程式。';
+
+  @override
+  String backupErrorGeneric(String message) {
+    return '備份失敗：$message';
+  }
+
+  @override
+  String backupSummaryUploaded(int uploaded) {
+    return '已備份 $uploaded 個檔案';
+  }
+
+  @override
+  String backupSummarySkipped(int skipped) {
+    return '$skipped 個電腦上已經有了';
+  }
+
+  @override
+  String backupSummaryFailed(int failed) {
+    return '$failed 個失敗——再執行一次備份就會只補傳這些';
+  }
+
+  @override
+  String backupSummaryInFlight(int count) {
+    return '有 $count 本仍在下載中，這次略過';
+  }
+
+  @override
+  String get backupApiKeyNote => '備份不包含 nhentai API 金鑰，還原後需要重新登入。';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -510,4 +601,95 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get valueMustBeZeroOrMoreErrorMessage => '數值必須大於等於 0 秒';
+
+  @override
+  String get sectionBackup => '備份';
+
+  @override
+  String get backupTileTitle => '備份到電腦';
+
+  @override
+  String get backupTileSubtitle => '透過 Wi-Fi 把書庫傳到 Comicdex 備份伺服器';
+
+  @override
+  String get backupScreenTitle => '備份到電腦';
+
+  @override
+  String get backupAddressLabel => '位址（電腦畫面上顯示的）';
+
+  @override
+  String get backupAddressHint => '192.168.1.20:8787';
+
+  @override
+  String get backupPinLabel => '配對碼';
+
+  @override
+  String get backupDeviceNameLabel => '這台裝置的名稱';
+
+  @override
+  String get backupDeviceNameHelp => '決定電腦上這台裝置的資料夾名稱。備份仍然可以還原到任何裝置。';
+
+  @override
+  String get backupStartButton => '開始備份';
+
+  @override
+  String get backupKeepForegroundNote => '備份期間請保持這個畫面開著。書庫較大時會需要一段時間。';
+
+  @override
+  String get backupStageConnecting => '連線中…';
+
+  @override
+  String get backupStageSnapshot => '準備資料庫中…';
+
+  @override
+  String get backupStageComparing => '比對電腦上已有的檔案…';
+
+  @override
+  String backupStageUploading(int current, int total) {
+    return '上傳中 $current / $total';
+  }
+
+  @override
+  String get backupErrorInvalidAddress => '請照電腦畫面上顯示的格式輸入，例如 192.168.1.20:8787';
+
+  @override
+  String get backupErrorMissingFields => '請填寫位址、配對碼與裝置名稱';
+
+  @override
+  String get backupErrorWrongPin => '配對碼錯誤。請對照電腦畫面上的數字——每次重新啟動那個程式都會更換。';
+
+  @override
+  String get backupErrorLockedOut => '配對碼錯誤太多次，請等幾分鐘後再試。';
+
+  @override
+  String get backupErrorUnreachable =>
+      '連不到那台電腦。請確認手機和電腦在同一個 Wi-Fi、位址正確，以及 Windows 防火牆有允許那個伺服器程式。';
+
+  @override
+  String backupErrorGeneric(String message) {
+    return '備份失敗：$message';
+  }
+
+  @override
+  String backupSummaryUploaded(int uploaded) {
+    return '已備份 $uploaded 個檔案';
+  }
+
+  @override
+  String backupSummarySkipped(int skipped) {
+    return '$skipped 個電腦上已經有了';
+  }
+
+  @override
+  String backupSummaryFailed(int failed) {
+    return '$failed 個失敗——再執行一次備份就會只補傳這些';
+  }
+
+  @override
+  String backupSummaryInFlight(int count) {
+    return '有 $count 本仍在下載中，這次略過';
+  }
+
+  @override
+  String get backupApiKeyNote => '備份不包含 nhentai API 金鑰，還原後需要重新登入。';
 }

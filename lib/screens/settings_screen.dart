@@ -4,6 +4,7 @@ import 'package:concept_nhv/application/settings/app_locale_repository.dart';
 import 'package:concept_nhv/application/tags/check_tag_catalog_update_use_case.dart';
 import 'package:concept_nhv/application/tags/update_local_tag_catalog_use_case.dart';
 import 'package:concept_nhv/l10n/app_localizations.dart';
+import 'package:concept_nhv/screens/backup_screen.dart';
 import 'package:concept_nhv/services/library_import_service.dart';
 import 'package:concept_nhv/services/local_tag_catalog_service.dart';
 import 'package:concept_nhv/services/nhentai_auth_service.dart';
@@ -87,6 +88,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               _SettingsSection(
                 title: l10n.sectionTagDatabase,
                 children: <Widget>[_buildTagDatabaseTile(context)],
+              ),
+              _SettingsSection(
+                title: l10n.sectionBackup,
+                children: <Widget>[_buildBackupTile(context)],
               ),
               _SettingsSection(
                 title: l10n.sectionGeneral,
@@ -458,6 +463,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // ---------------------------------------------------------------------------
   // Tag Database tiles
   // ---------------------------------------------------------------------------
+
+  Widget _buildBackupTile(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return ListTile(
+      title: Text(l10n.backupTileTitle),
+      subtitle: Text(l10n.backupTileSubtitle),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute<void>(builder: (_) => const BackupScreen()),
+      ),
+    );
+  }
 
   Widget _buildTagDatabaseTile(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;

@@ -554,6 +554,162 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Value must be 0 seconds or more'**
   String get valueMustBeZeroOrMoreErrorMessage;
+
+  /// No description provided for @sectionBackup.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup'**
+  String get sectionBackup;
+
+  /// No description provided for @backupTileTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Back up to your computer'**
+  String get backupTileTitle;
+
+  /// No description provided for @backupTileSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Send your library to the Comicdex backup server over Wi-Fi'**
+  String get backupTileSubtitle;
+
+  /// No description provided for @backupScreenTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Back up to computer'**
+  String get backupScreenTitle;
+
+  /// No description provided for @backupAddressLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Address (shown on the computer)'**
+  String get backupAddressLabel;
+
+  /// No description provided for @backupAddressHint.
+  ///
+  /// In en, this message translates to:
+  /// **'192.168.1.20:8787'**
+  String get backupAddressHint;
+
+  /// No description provided for @backupPinLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Pairing PIN'**
+  String get backupPinLabel;
+
+  /// No description provided for @backupDeviceNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'This device\'s name'**
+  String get backupDeviceNameLabel;
+
+  /// No description provided for @backupDeviceNameHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Names this device\'s folder on the computer. Backups can still be restored onto any device.'**
+  String get backupDeviceNameHelp;
+
+  /// No description provided for @backupStartButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Start backup'**
+  String get backupStartButton;
+
+  /// No description provided for @backupKeepForegroundNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep this screen open while backing up. Large libraries can take a while.'**
+  String get backupKeepForegroundNote;
+
+  /// No description provided for @backupStageConnecting.
+  ///
+  /// In en, this message translates to:
+  /// **'Connecting…'**
+  String get backupStageConnecting;
+
+  /// No description provided for @backupStageSnapshot.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing database…'**
+  String get backupStageSnapshot;
+
+  /// No description provided for @backupStageComparing.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking what the computer already has…'**
+  String get backupStageComparing;
+
+  /// No description provided for @backupStageUploading.
+  ///
+  /// In en, this message translates to:
+  /// **'Uploading {current} of {total}'**
+  String backupStageUploading(int current, int total);
+
+  /// No description provided for @backupErrorInvalidAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the address exactly as shown on the computer, for example 192.168.1.20:8787'**
+  String get backupErrorInvalidAddress;
+
+  /// No description provided for @backupErrorMissingFields.
+  ///
+  /// In en, this message translates to:
+  /// **'Fill in the address, PIN, and device name'**
+  String get backupErrorMissingFields;
+
+  /// No description provided for @backupErrorWrongPin.
+  ///
+  /// In en, this message translates to:
+  /// **'Wrong PIN. Check the number shown on the computer — it changes every time that app restarts.'**
+  String get backupErrorWrongPin;
+
+  /// No description provided for @backupErrorLockedOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many wrong PINs. Wait a few minutes, then try again.'**
+  String get backupErrorLockedOut;
+
+  /// No description provided for @backupErrorUnreachable.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not reach that computer. Check you are on the same Wi-Fi, that the address is right, and that Windows Firewall is allowing the server app.'**
+  String get backupErrorUnreachable;
+
+  /// No description provided for @backupErrorGeneric.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup failed: {message}'**
+  String backupErrorGeneric(String message);
+
+  /// No description provided for @backupSummaryUploaded.
+  ///
+  /// In en, this message translates to:
+  /// **'Backed up {uploaded} file(s)'**
+  String backupSummaryUploaded(int uploaded);
+
+  /// No description provided for @backupSummarySkipped.
+  ///
+  /// In en, this message translates to:
+  /// **'{skipped} already on the computer'**
+  String backupSummarySkipped(int skipped);
+
+  /// No description provided for @backupSummaryFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'{failed} failed — run the backup again to retry just those'**
+  String backupSummaryFailed(int failed);
+
+  /// No description provided for @backupSummaryInFlight.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} comic(s) still downloading were skipped this time'**
+  String backupSummaryInFlight(int count);
+
+  /// No description provided for @backupApiKeyNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Your nhentai API key is not included in backups. You will sign in again after restoring.'**
+  String get backupApiKeyNote;
 }
 
 class _AppLocalizationsDelegate
