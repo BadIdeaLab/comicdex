@@ -40,6 +40,22 @@ void main() {
         expect(BackupLibrary.validateDeviceId('  iPad Air '), 'iPad Air');
       });
 
+      test(
+        'accepts an iOS model identifier, which contains a comma — rejecting '
+        'it made the WebSocket upgrade 400 and surfaced as "cannot reach '
+        'this computer"',
+        () {
+          expect(
+            BackupLibrary.validateDeviceId('iPad iPad13,16'),
+            'iPad iPad13,16',
+          );
+          expect(
+            BackupLibrary.validateDeviceId('iPhone16,2 (Pro Max)'),
+            'iPhone16,2 (Pro Max)',
+          );
+        },
+      );
+
       test('rejects names that could escape the backup root', () {
         for (final bad in <String?>[
           null,
@@ -48,6 +64,7 @@ void main() {
           '..',
           '.',
           'a/b',
+          'a,b/c',
           r'a\b',
           '../evil',
         ]) {

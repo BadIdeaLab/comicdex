@@ -160,6 +160,8 @@ class _BackupScreenState extends State<BackupScreen> {
             ? l10n.backupErrorLockedOut
             : l10n.backupErrorGeneric(error.message);
       });
+    } on BackupPairingRejectedException {
+      setState(() => _validationError = l10n.backupErrorPairingRejected);
     } on Object {
       setState(() => _validationError = l10n.backupErrorUnreachable);
     }

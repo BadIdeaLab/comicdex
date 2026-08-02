@@ -20,7 +20,14 @@ const String _downloadsDirName = 'downloads';
 const String _dbDirName = 'db';
 const String _manifestFileName = 'manifest.json';
 
-final RegExp _deviceIdPattern = RegExp(r'^[A-Za-z0-9][A-Za-z0-9 ._-]{0,63}$');
+/// Characters allowed in a device id, which becomes a directory name.
+///
+/// Commas are permitted because iOS reports its model as `iPad13,16` — a device
+/// name auto-filled from that is entirely legitimate, and rejecting it produced
+/// a `400` on the WebSocket upgrade that surfaced to the user as "cannot reach
+/// this computer". Commas are legal in filenames on every platform this runs on.
+/// Path separators, `..` and the rest stay excluded.
+final RegExp _deviceIdPattern = RegExp(r'^[A-Za-z0-9][A-Za-z0-9 ._,()-]{0,63}$');
 final RegExp _snapshotPattern =
     RegExp(r'^database-(\d{8})-(\d{9})-v(\d+)\.db$');
 

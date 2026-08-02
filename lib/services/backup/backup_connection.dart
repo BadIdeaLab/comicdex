@@ -33,11 +33,13 @@ class BackupConnection {
     }
     text = text.split('/').first;
 
-    final host = text.contains(':') ? text.substring(0, text.lastIndexOf(':')) : text;
+    final host = text.contains(':')
+        ? text.substring(0, text.lastIndexOf(':'))
+        : text;
     final portText = text.contains(':')
         ? text.substring(text.lastIndexOf(':') + 1)
         : '$defaultPort';
-    if (host.isEmpty) {
+    if (!_isValidHost(host)) {
       return null;
     }
     final port = int.tryParse(portText);
@@ -45,5 +47,39 @@ class BackupConnection {
       return null;
     }
     return Uri(scheme: 'http', host: host, port: port);
+  }
+
+  static final RegExp _hostCharacters = RegExp(r'^[A-Za-z0-9.-]+$');
+  static final RegExp _numericHost = RegExp(r'^[0-9.]+$');
+
+  /// Rejects hosts that cannot possibly be the desktop server.
+  ///
+  /// Worth being strict here: an address the user fat-fingered (`192.168.137,1`
+  /// instead of `192.168.137.1` — the keys are adjacent on a numeric keypad)
+  /// otherwise sails through, gets attempted as a hostname, and comes back as a
+  /// generic connect failure. The user is then told to check their Wi-Fi and
+  /// firewall for what is really a typo. Catching it here turns that into the
+  /// "enter it exactly as shown on the computer" message instead.
+  static bool _isValidHost(String host) {
+    if (host.isEmpty || !_hostCharacters.hasMatch(host)) {
+      return false;
+    }
+    if (!_numericHost.hasMatch(host)) {
+      // A real hostname; the OS resolver can judge it.
+      return true;
+    }
+    // Digits and dots only means an IPv4 literal was intended, so hold it to
+    // that — `192.168.1` or `192.168.137.1.5` are typos, not hostnames.
+    final octets = host.split('.');
+    if (octets.length != 4) {
+      return false;
+    }
+    return octets.every((octet) {
+      if (octet.isEmpty || octet.length > 3) {
+        return false;
+      }
+      final value = int.tryParse(octet);
+      return value != null && value >= 0 && value <= 255;
+    });
   }
 }

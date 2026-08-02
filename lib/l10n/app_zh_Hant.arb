@@ -1,6 +1,5 @@
 {
   "@@locale": "zh_Hant",
-
   "settingsTitle": "設定",
   "sectionNhentaiApi": "nhentai API",
   "sectionReader": "閱讀器",
@@ -9,12 +8,10 @@
   "sectionTagDatabase": "標籤資料庫",
   "sectionGeneral": "一般",
   "sectionAbout": "關於",
-
   "autoResumeDownloadsTitle": "自動繼續下載",
   "autoResumeDownloadsSubtitle": "App 回到前景或重新啟動時自動繼續中斷的下載",
   "pageDownloadIntervalTitle": "頁面下載間隔",
   "appliesToNewDownloadsNote": "套用於新的下載或繼續下載時",
-
   "statusTitle": "狀態",
   "statusAuthenticated": "已驗證",
   "statusNotConfigured": "尚未設定",
@@ -23,7 +20,6 @@
   "statusRateLimitedRetrying": "已達速率限制，{seconds} 秒後重試...",
   "statusLastSync": "上次同步：{value}",
   "statusNeverSynced": "從未同步",
-
   "setUpdateApiKeyTitle": "設定 / 更新 API Key",
   "setUpdateApiKeySubtitle": "貼上你在 nhentai 帳號設定裡取得的個人 API Key",
   "apiKeySavedMessage": "API Key 已儲存並驗證成功",
@@ -43,17 +39,14 @@
   "apiKeyFieldLabel": "API Key",
   "apiKeyFieldHint": "貼上你的 nhentai API Key",
   "saveButton": "儲存",
-
   "prefetchPagesTitle": "預先載入頁數",
   "prefetchPagesSubtitle": "預先快取目前頁面前後 {count} 頁（預設：{defaultCount}）",
   "prefetchDialogBody": "預先快取目前頁面前後 {count} 頁。",
   "clearImageCacheTitle": "清除圖片快取",
   "clearImageCacheSubtitle": "刪除磁碟上所有已快取的漫畫圖片",
   "imageCacheClearedMessage": "圖片快取已清除",
-
   "noBlockedTagsMessage": "沒有已封鎖的標籤。長按漫畫上的標籤即可封鎖。",
   "removeTooltip": "移除",
-
   "checkForTagDatabaseUpdatesTitle": "檢查標籤資料庫更新",
   "tagDatabaseSubtitle": "已載入 {count} 筆標籤（版本 {version}，{origin}）",
   "tagDatabaseOriginBundled": "內建",
@@ -65,7 +58,6 @@
   "updateButton": "更新",
   "tagDatabaseUpdatedMessage": "標籤資料庫已更新（{count} 筆）",
   "tagDatabaseUpdateFailedMessage": "下載標籤資料庫更新失敗",
-
   "appLanguageTitle": "App 顯示語言",
   "appLanguageSystemDefault": "跟隨系統",
   "appLanguageEnglish": "English",
@@ -73,12 +65,10 @@
   "appLanguageChangedMessage": "App 語言已設為 {name}",
   "diagnoseTitle": "診斷",
   "diagnoseSubtitle": "保留給未來的診斷功能使用",
-
   "loadJsonNetworkTitle": "載入 json（網路）",
   "enterUrlDialogTitle": "輸入網址",
   "urlFieldLabel": "網址",
   "openSourceLicensesTitle": "開放原始碼授權",
-
   "secondsFieldLabel": "秒數",
   "secondsFieldSuffix": "秒",
   "presetSecondsLabel": "{seconds} 秒",
@@ -86,7 +76,6 @@
   "enterNumberErrorMessage": "請輸入秒數",
   "onlyNumericErrorMessage": "只能輸入純數字秒數",
   "valueMustBeZeroOrMoreErrorMessage": "數值必須大於等於 0 秒",
-
   "sectionBackup": "備份",
   "backupTileTitle": "連線到電腦",
   "backupTileSubtitle": "與 Comicdex 備份伺服器配對，並從電腦端控制備份與還原",
@@ -114,8 +103,12 @@
   "backupStageUploading": "上傳中 {current} / {total}",
   "@backupStageUploading": {
     "placeholders": {
-      "current": { "type": "int" },
-      "total": { "type": "int" }
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
     }
   },
   "backupErrorInvalidAddress": "請照電腦畫面上顯示的格式輸入，例如 192.168.1.20:8787",
@@ -126,32 +119,43 @@
   "backupErrorGeneric": "備份失敗：{message}",
   "@backupErrorGeneric": {
     "placeholders": {
-      "message": { "type": "String" }
+      "message": {
+        "type": "String"
+      }
     }
   },
   "backupSummaryUploaded": "已備份 {uploaded} 個檔案",
   "@backupSummaryUploaded": {
     "placeholders": {
-      "uploaded": { "type": "int" }
+      "uploaded": {
+        "type": "int"
+      }
     }
   },
   "backupSummarySkipped": "{skipped} 個電腦上已經有了",
   "@backupSummarySkipped": {
     "placeholders": {
-      "skipped": { "type": "int" }
+      "skipped": {
+        "type": "int"
+      }
     }
   },
   "backupSummaryFailed": "{failed} 個失敗——再執行一次備份就會只補傳這些",
   "@backupSummaryFailed": {
     "placeholders": {
-      "failed": { "type": "int" }
+      "failed": {
+        "type": "int"
+      }
     }
   },
   "backupSummaryInFlight": "有 {count} 本仍在下載中，這次略過",
   "@backupSummaryInFlight": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
-  "backupApiKeyNote": "備份不包含 nhentai API 金鑰，還原後需要重新登入。"
+  "backupApiKeyNote": "備份不包含 nhentai API 金鑰，還原後需要重新登入。",
+  "backupErrorPairingRejected": "電腦接受了配對碼，但拒絕建立連線。通常是裝置名稱含有它不接受的字元——請改用只有英數字、空格、點或連字號的簡單名稱。"
 }

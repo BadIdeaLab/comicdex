@@ -770,6 +770,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Your nhentai API key is not included in backups. You will sign in again after restoring.'**
   String get backupApiKeyNote;
+
+  /// No description provided for @backupErrorPairingRejected.
+  ///
+  /// In en, this message translates to:
+  /// **'The computer accepted the PIN but refused to pair. This usually means the device name contains characters it will not accept — try a simpler name using letters, digits, spaces, dots or hyphens.'**
+  String get backupErrorPairingRejected;
 }
 
 class _AppLocalizationsDelegate

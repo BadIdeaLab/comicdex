@@ -379,6 +379,10 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get backupApiKeyNote => '備份不包含 nhentai API 金鑰，還原後需要重新登入。';
+
+  @override
+  String get backupErrorPairingRejected =>
+      '電腦接受了配對碼，但拒絕建立連線。通常是裝置名稱含有它不接受的字元——請改用只有英數字、空格、點或連字號的簡單名稱。';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -754,4 +758,8 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get backupApiKeyNote => '備份不包含 nhentai API 金鑰，還原後需要重新登入。';
+
+  @override
+  String get backupErrorPairingRejected =>
+      '電腦接受了配對碼，但拒絕建立連線。通常是裝置名稱含有它不接受的字元——請改用只有英數字、空格、點或連字號的簡單名稱。';
 }

@@ -400,4 +400,8 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get backupApiKeyNote =>
       'Your nhentai API key is not included in backups. You will sign in again after restoring.';
+
+  @override
+  String get backupErrorPairingRejected =>
+      'The computer accepted the PIN but refused to pair. This usually means the device name contains characters it will not accept — try a simpler name using letters, digits, spaces, dots or hyphens.';
 }

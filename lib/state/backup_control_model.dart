@@ -86,7 +86,18 @@ class BackupControlModel extends ChangeNotifier {
     notifyListeners();
     try {
       await _healthClient.checkHealth(connection);
-      await _client.connect(connection);
+      try {
+        await _client.connect(connection);
+      } on Object catch (error) {
+        // Health already succeeded, so the machine is definitely reachable and
+        // the PIN is right — the server refused the pairing itself (e.g. a
+        // device name it will not accept). Reported as a server error rather
+        // than a connectivity one, because `WebSocket.connect` throws a plain
+        // WebSocketException that would otherwise be misread as "cannot reach
+        // this computer" and send the user hunting through Wi-Fi and firewall
+        // settings for a problem that is not there.
+        throw BackupPairingRejectedException('$error');
+      }
       _connection = connection;
       _state = BackupControlState.idle;
       _sendState();

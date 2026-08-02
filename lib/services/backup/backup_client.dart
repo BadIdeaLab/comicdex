@@ -57,6 +57,21 @@ class BackupServerException implements Exception {
   String toString() => 'BackupServerException($statusCode): $message';
 }
 
+/// The server was reachable and the PIN accepted, but it refused to open the
+/// control connection.
+///
+/// Distinct from a connectivity failure on purpose: by the time this is thrown
+/// the health check has already succeeded, so telling the user to check their
+/// Wi-Fi and firewall would send them looking for a problem that is not there.
+class BackupPairingRejectedException implements Exception {
+  const BackupPairingRejectedException(this.details);
+
+  final String details;
+
+  @override
+  String toString() => 'BackupPairingRejectedException: $details';
+}
+
 /// Talks to the desktop backup server.
 ///
 /// An interface rather than a concrete class so the sync orchestration can be
