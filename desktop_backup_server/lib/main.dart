@@ -5,15 +5,22 @@ import 'l10n/app_localizations.dart';
 import 'screens/home_screen.dart';
 import 'state/app_locale_model.dart';
 import 'state/server_model.dart';
+import 'storage/server_config.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final localeModel = AppLocaleModel();
-  await localeModel.initialize();
-  final model = ServerModel();
+
+  // One read of config.json, shared by both models.
+  final configStore = ServerConfigStore();
+  final config = await configStore.load();
+
+  final localeModel = AppLocaleModel(configStore: configStore)
+    ..adoptConfig(config);
+  final model = ServerModel(configStore: configStore);
   // Started before the first frame so the connection details (address, port,
   // PIN) are already on screen when the window appears.
-  await model.initialize();
+  await model.initialize(config);
+
   runApp(BackupServerApp(model: model, localeModel: localeModel));
 }
 

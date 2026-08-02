@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+
+import '../storage/server_config.dart';
 
 /// Chosen UI language for the desktop app.
 ///
 /// Mirrors the mobile app's approach (see its `AppLocaleModel`): `null` locale
 /// means "follow the OS", which is the default.
 class AppLocaleModel extends ChangeNotifier {
-  static const String systemOption = 'system';
-  static const String _prefsKey = 'appLocaleOption';
+  AppLocaleModel({required ServerConfigStore configStore})
+    : _configStore = configStore;
+
+  static const String systemOption = ServerConfig.defaultLanguage;
 
   /// Hard-coded rather than derived from `AppLocalizations.supportedLocales`
   /// because that list also contains the bare `zh` entry that `flutter gen-l10n`
@@ -17,6 +20,8 @@ class AppLocaleModel extends ChangeNotifier {
     'en',
     'zh_Hant',
   ];
+
+  final ServerConfigStore _configStore;
 
   String _option = systemOption;
 
@@ -31,13 +36,12 @@ class AppLocaleModel extends ChangeNotifier {
     _ => null,
   };
 
-  Future<void> initialize() async {
-    final prefs = await SharedPreferences.getInstance();
-    final saved = prefs.getString(_prefsKey);
-    if (saved != null && availableOptions.contains(saved)) {
-      _option = saved;
+  /// Seeds from an already-loaded config so startup only reads the file once.
+  void adoptConfig(ServerConfig config) {
+    if (availableOptions.contains(config.language)) {
+      _option = config.language;
+      notifyListeners();
     }
-    notifyListeners();
   }
 
   Future<void> setOption(String option) async {
@@ -46,7 +50,7 @@ class AppLocaleModel extends ChangeNotifier {
     }
     _option = option;
     notifyListeners();
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_prefsKey, option);
+    final current = await _configStore.load();
+    await _configStore.save(current.copyWith(language: option));
   }
 }

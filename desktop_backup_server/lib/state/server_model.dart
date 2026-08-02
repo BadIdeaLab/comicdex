@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 
 import '../models/activity_event.dart';
 import '../models/backup_models.dart';
@@ -9,17 +11,22 @@ import '../server/backup_server.dart';
 import '../server/pin_guard.dart';
 import '../services/network_addresses.dart';
 import '../storage/backup_library.dart';
-import '../storage/server_settings_store.dart';
+import '../storage/server_config.dart';
 
 /// Drives the whole desktop app: owns the library, the server, and everything
 /// the UI renders.
 class ServerModel extends ChangeNotifier {
-  ServerModel({ServerSettingsStore? settingsStore})
-    : _settingsStore = settingsStore ?? ServerSettingsStore();
+  ServerModel({required ServerConfigStore configStore})
+    : _configStore = configStore;
 
   static const int maxActivityEntries = 100;
+  static const String defaultFolderName = 'ComicdexBackups';
 
-  final ServerSettingsStore _settingsStore;
+  final ServerConfigStore _configStore;
+
+  ServerConfig _config = const ServerConfig();
+
+  ServerConfig get config => _config;
 
   BackupLibrary? _library;
   BackupServer? _server;
@@ -55,13 +62,19 @@ class ServerModel extends ChangeNotifier {
   /// wrong IP.
   bool get hasServedAnyone => _hasServedAnyone;
 
-  Future<void> initialize() async {
+  /// Starts everything from an already-loaded [config] so the file is read once
+  /// at launch and shared with [AppLocaleModel].
+  Future<void> initialize(ServerConfig config) async {
     _isStarting = true;
+    _config = config;
     notifyListeners();
 
     try {
-      _rootDirectory = await _settingsStore.resolveRootDirectory();
-      final library = BackupLibrary(root: _rootDirectory!);
+      _rootDirectory = await _resolveRootDirectory(config);
+      final library = BackupLibrary(
+        root: _rootDirectory!,
+        maxDbSnapshots: config.maxDbSnapshots,
+      );
       _library = library;
 
       if (library.rootExists) {
@@ -79,7 +92,7 @@ class ServerModel extends ChangeNotifier {
         onPruneRequest: _onPruneRequest,
       );
       _server = server;
-      await server.start();
+      await server.start(preferredPort: config.port);
 
       _addresses = await listLanAddresses();
       _startupError = null;
@@ -109,6 +122,32 @@ class ServerModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Resolves the folder to back up into, creating the Documents default only
+  /// on first run.
+  ///
+  /// A previously chosen folder is returned even when it is currently missing:
+  /// [BackupLibrary] then reports it as unavailable, which is far safer than
+  /// quietly relocating to an empty default the phone would read as "nothing
+  /// backed up yet".
+  Future<Directory> _resolveRootDirectory(ServerConfig config) async {
+    final configured = config.backupRootPath;
+    if (configured != null) {
+      return Directory(configured);
+    }
+    final documents = await getApplicationDocumentsDirectory();
+    final fallback = Directory(p.join(documents.path, defaultFolderName));
+    if (!fallback.existsSync()) {
+      await fallback.create(recursive: true);
+    }
+    await _persistConfig(_config.copyWith(backupRootPath: fallback.path));
+    return fallback;
+  }
+
+  Future<void> _persistConfig(ServerConfig config) async {
+    _config = config;
+    await _configStore.save(config);
+  }
+
   /// Switches to a folder the user picked. The directory is created if needed —
   /// that is safe here precisely because it was an explicit choice, unlike the
   /// automatic fallback the library refuses to do.
@@ -117,9 +156,12 @@ class ServerModel extends ChangeNotifier {
     if (!directory.existsSync()) {
       await directory.create(recursive: true);
     }
-    await _settingsStore.saveRootPath(path);
+    await _persistConfig(_config.copyWith(backupRootPath: path));
     _rootDirectory = directory;
-    final library = BackupLibrary(root: directory);
+    final library = BackupLibrary(
+      root: directory,
+      maxDbSnapshots: _config.maxDbSnapshots,
+    );
     _library = library;
 
     final pinGuard = _pinGuard ??= PinGuard();
@@ -131,7 +173,7 @@ class ServerModel extends ChangeNotifier {
       onPruneRequest: _onPruneRequest,
     );
     _server = server;
-    await server.start();
+    await server.start(preferredPort: _config.port);
 
     _log(BackupFolderChangedEvent(path: path));
     await refreshDevices();

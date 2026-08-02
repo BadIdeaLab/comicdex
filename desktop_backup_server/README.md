@@ -50,6 +50,38 @@ The window lists every network adapter, not a guessed "best" one. Dev machines
 usually also have WSL, Hyper-V or VirtualBox adapters that the phone cannot
 reach, so pick the one matching your actual Wi-Fi/Ethernet connection.
 
+## Settings
+
+Settings live in a plain JSON file you can read and edit by hand:
+
+```
+%APPDATA%\ComicdexBackupServer\config.json
+```
+
+```json
+{
+  "backupRootPath": "E:\\ProgramData\\ComicdexBackups",
+  "port": 8787,
+  "maxDbSnapshots": 10,
+  "language": "system"
+}
+```
+
+A malformed or missing value falls back to its default rather than blocking
+startup, so editing it is safe.
+
+The path is chosen deliberately rather than via `path_provider`. Flutter's
+`shared_preferences` on Windows resolves under
+`%APPDATA%\<CompanyName>\<ProductName>`, both taken from the executable's
+version metadata in `windows/runner/Runner.rc` — so renaming the app silently
+moves the store and orphans every setting. Settings must not depend on metadata
+that is expected to change.
+
+Note that the **device list is not stored here**. Which devices exist, and where
+each one's database lives, is derived by scanning the backup folder. A registry
+would be a second source of truth that drifts the moment a folder is moved or
+copied; the directory tree is the honest record.
+
 ## Safety properties worth knowing
 
 - **The PIN is regenerated on every launch** and lives only in memory. Repeated
