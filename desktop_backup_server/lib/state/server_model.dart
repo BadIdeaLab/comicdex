@@ -113,6 +113,22 @@ class ServerModel extends ChangeNotifier {
     }
   }
 
+  /// What the toolbar's refresh button runs: re-scans the network adapters as
+  /// well as the backup folder.
+  ///
+  /// Adapters can appear and disappear while the app is open — plugging in
+  /// Ethernet, joining Wi-Fi, or turning on Windows' mobile hotspot (which adds
+  /// a `192.168.137.1` adapter). Without rescanning, the only way to see a newly
+  /// available address was to restart the app.
+  ///
+  /// Kept separate from [refreshDevices] on purpose: that one runs on transfer
+  /// checkpoints, and enumerating interfaces there would put avoidable work back
+  /// on the hot path this app already had to trim once.
+  Future<void> refreshAll() async {
+    _addresses = await listLanAddresses();
+    await refreshDevices();
+  }
+
   Future<void> refreshDevices() async {
     final library = _library;
     if (library == null || !library.rootExists) {

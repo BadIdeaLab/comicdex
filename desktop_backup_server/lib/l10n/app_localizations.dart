@@ -132,7 +132,7 @@ abstract class AppLocalizations {
   /// No description provided for @refreshDevices.
   ///
   /// In en, this message translates to:
-  /// **'Refresh devices'**
+  /// **'Refresh addresses and devices'**
   String get refreshDevices;
 
   /// No description provided for @connectTitle.

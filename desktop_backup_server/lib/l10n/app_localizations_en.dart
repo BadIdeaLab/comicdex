@@ -24,7 +24,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get languageTraditionalChinese => '繁體中文';
 
   @override
-  String get refreshDevices => 'Refresh devices';
+  String get refreshDevices => 'Refresh addresses and devices';
 
   @override
   String get connectTitle => 'Connect from your phone';

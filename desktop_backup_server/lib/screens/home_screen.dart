@@ -58,7 +58,7 @@ class _HomeScreenState extends State<HomeScreen> {
           _LanguageMenu(localeModel: widget.localeModel),
           IconButton(
             tooltip: l10n.refreshDevices,
-            onPressed: widget.model.refreshDevices,
+            onPressed: widget.model.refreshAll,
             icon: const Icon(Icons.refresh),
           ),
           const SizedBox(width: 8),

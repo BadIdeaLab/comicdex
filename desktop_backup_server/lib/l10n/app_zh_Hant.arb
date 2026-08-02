@@ -8,7 +8,7 @@
   "languageEnglish": "English",
   "languageTraditionalChinese": "繁體中文",
 
-  "refreshDevices": "重新整理裝置清單",
+  "refreshDevices": "重新掃描網路位址與裝置清單",
 
   "connectTitle": "從手機連線",
   "connectAddressLabel": "位址",

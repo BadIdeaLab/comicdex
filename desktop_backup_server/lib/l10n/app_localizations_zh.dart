@@ -24,7 +24,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get languageTraditionalChinese => '繁體中文';
 
   @override
-  String get refreshDevices => '重新整理裝置清單';
+  String get refreshDevices => '重新掃描網路位址與裝置清單';
 
   @override
   String get connectTitle => '從手機連線';
@@ -228,7 +228,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get languageTraditionalChinese => '繁體中文';
 
   @override
-  String get refreshDevices => '重新整理裝置清單';
+  String get refreshDevices => '重新掃描網路位址與裝置清單';
 
   @override
   String get connectTitle => '從手機連線';

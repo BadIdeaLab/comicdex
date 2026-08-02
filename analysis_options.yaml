@@ -10,6 +10,16 @@
 include: package:flutter_lints/flutter.yaml
 
 analyzer:
+  # desktop_backup_server/ is a separate pub package with its own pubspec and
+  # analysis_options; it is analyzed by its own `flutter analyze` run.
+  #
+  # It must be excluded here or the root analyzer folds those files into this
+  # package's context, where neither `package:desktop_backup_server/...` nor its
+  # own dependencies resolve. That does not reproduce locally once its
+  # `.dart_tool/package_config.json` exists, so it only ever surfaces on a clean
+  # CI checkout — which is exactly where it is most expensive to discover.
+  exclude:
+    - desktop_backup_server/**
   errors:
     invalid_annotation_target: ignore
 
