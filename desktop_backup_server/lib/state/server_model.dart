@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 
+import '../models/activity_event.dart';
 import '../models/backup_models.dart';
 import '../server/backup_server.dart';
 import '../server/pin_guard.dart';
@@ -27,7 +28,7 @@ class ServerModel extends ChangeNotifier {
   Directory? _rootDirectory;
   List<LanAddress> _addresses = const <LanAddress>[];
   List<BackupDeviceSummary> _devices = const <BackupDeviceSummary>[];
-  final List<String> _activity = <String>[];
+  final List<ActivityEvent> _activity = <ActivityEvent>[];
   PruneCandidates? _pendingPrune;
   String? _startupError;
   bool _isStarting = true;
@@ -38,7 +39,7 @@ class ServerModel extends ChangeNotifier {
   bool get rootExists => _rootDirectory?.existsSync() ?? false;
   List<LanAddress> get addresses => _addresses;
   List<BackupDeviceSummary> get devices => _devices;
-  List<String> get activity => List<String>.unmodifiable(_activity);
+  List<ActivityEvent> get activity => List<ActivityEvent>.unmodifiable(_activity);
   PruneCandidates? get pendingPrune => _pendingPrune;
   String? get startupError => _startupError;
   bool get isStarting => _isStarting;
@@ -66,7 +67,7 @@ class ServerModel extends ChangeNotifier {
       if (library.rootExists) {
         final removed = await library.cleanupPartFiles();
         if (removed > 0) {
-          _log('Cleaned up $removed interrupted transfer(s)');
+          _log(PartFilesCleanedEvent(count: removed));
         }
       }
 
@@ -132,13 +133,13 @@ class ServerModel extends ChangeNotifier {
     _server = server;
     await server.start();
 
-    _log('Backup folder changed to $path');
+    _log(BackupFolderChangedEvent(path: path));
     await refreshDevices();
   }
 
   String regeneratePin() {
     final replacement = _pinGuard?.regenerate() ?? '------';
-    _log('PIN regenerated');
+    _log(PinRegeneratedEvent());
     notifyListeners();
     return replacement;
   }
@@ -160,14 +161,14 @@ class ServerModel extends ChangeNotifier {
       relativePaths: pending.entries.map((entry) => entry.path),
     );
     _pendingPrune = null;
-    _log('Deleted $deleted stale file(s) for ${pending.deviceId}');
+    _log(StaleFilesDeletedEvent(deviceId: pending.deviceId, count: deleted));
     await refreshDevices();
     return deleted;
   }
 
-  void _onServerActivity(String message) {
+  void _onServerActivity(ActivityEvent event) {
     _hasServedAnyone = true;
-    _log(message);
+    _log(event);
     // Device totals change on every upload; keep the summary honest without
     // making the user hit refresh.
     unawaited(refreshDevices());
@@ -178,13 +179,8 @@ class ServerModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  void _log(String message) {
-    final stamp = DateTime.now();
-    String two(int value) => value.toString().padLeft(2, '0');
-    _activity.insert(
-      0,
-      '${two(stamp.hour)}:${two(stamp.minute)}:${two(stamp.second)}  $message',
-    );
+  void _log(ActivityEvent event) {
+    _activity.insert(0, event);
     if (_activity.length > maxActivityEntries) {
       _activity.removeRange(maxActivityEntries, _activity.length);
     }

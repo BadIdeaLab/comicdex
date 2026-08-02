@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import '../models/activity_event.dart';
 import '../models/backup_models.dart';
 import '../storage/backup_exceptions.dart';
 import '../storage/backup_library.dart';
@@ -34,8 +35,9 @@ class BackupServer {
   final BackupLibrary library;
   final PinGuard pinGuard;
 
-  /// Human-readable progress for the desktop UI ("Received 177013/pages/1.webp").
-  final void Function(String message)? onActivity;
+  /// Progress for the desktop UI's activity log. Structured rather than
+  /// pre-formatted text so the server stays language-agnostic.
+  final void Function(ActivityEvent event)? onActivity;
 
   /// The phone asked what is stale. Nothing is deleted here — the UI holds these
   /// candidates until the user explicitly confirms.
@@ -130,7 +132,7 @@ class BackupServer {
       address: address,
     );
     if (pinResult == PinCheckResult.lockedOut) {
-      onActivity?.call('Blocked repeated wrong PIN from $address');
+      onActivity?.call(PinBlockedEvent(address: address));
       _writeJson(response, HttpStatus.tooManyRequests, <String, Object?>{
         'error': 'Too many failed PIN attempts. Try again later.',
       });
@@ -265,7 +267,7 @@ class BackupServer {
         source: request,
         expectedSha256: expected,
       );
-      onActivity?.call('Received $relativePath from $deviceId');
+      onActivity?.call(FileReceivedEvent(deviceId: deviceId, path: relativePath));
       _writeJson(request.response, HttpStatus.created, <String, Object?>{
         'path': relativePath,
         'sizeBytes': size,
@@ -292,7 +294,7 @@ class BackupServer {
     response.headers.contentType = ContentType.binary;
     response.headers.contentLength = await file.length();
     await response.addStream(file.openRead());
-    onActivity?.call('Sent $relativePath to $deviceId');
+    onActivity?.call(FileSentEvent(deviceId: deviceId, path: relativePath));
   }
 
   Future<void> _handlePutDatabase(HttpRequest request, String deviceId) async {
@@ -320,7 +322,7 @@ class BackupServer {
         expectedSha256: expected,
         schemaVersion: schemaVersion,
       );
-      onActivity?.call('Stored database snapshot for $deviceId');
+      onActivity?.call(DatabaseStoredEvent(deviceId: deviceId));
       _writeJson(request.response, HttpStatus.created, snapshot.toJson());
     } finally {
       _releaseWriteLock();
@@ -343,7 +345,7 @@ class BackupServer {
     response.headers.contentType = ContentType('application', 'gzip');
     response.headers.set(kSchemaVersionHeader, '${snapshot.schemaVersion}');
     await response.addStream(gzip.encoder.bind(file.openRead()));
-    onActivity?.call('Sent database snapshot to $deviceId');
+    onActivity?.call(DatabaseSentEvent(deviceId: deviceId));
   }
 
   Future<void> _handlePrune(HttpRequest request, String deviceId) async {
@@ -363,7 +365,10 @@ class BackupServer {
     );
     onPruneRequest?.call(candidates);
     onActivity?.call(
-      'Prune requested by $deviceId: ${candidates.entries.length} stale files',
+      PruneRequestedEvent(
+        deviceId: deviceId,
+        count: candidates.entries.length,
+      ),
     );
     _writeJson(request.response, HttpStatus.ok, candidates.toJson());
   }

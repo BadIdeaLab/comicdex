@@ -1,13 +1,22 @@
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
+import '../l10n/app_localizations.dart';
+import '../models/activity_event.dart';
 import '../models/backup_models.dart';
+import '../state/app_locale_model.dart';
 import '../state/server_model.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key, required this.model});
+  const HomeScreen({
+    super.key,
+    required this.model,
+    required this.localeModel,
+  });
 
   final ServerModel model;
+  final AppLocaleModel localeModel;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -44,15 +53,18 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Comicdex Backup Server'),
+        title: Text(l10n.appTitle),
         actions: <Widget>[
+          _LanguageMenu(localeModel: widget.localeModel),
           IconButton(
-            tooltip: 'Refresh devices',
+            tooltip: l10n.refreshDevices,
             onPressed: widget.model.refreshDevices,
             icon: const Icon(Icons.refresh),
           ),
+          const SizedBox(width: 8),
         ],
       ),
       body: ListenableBuilder(
@@ -67,10 +79,7 @@ class _HomeScreenState extends State<HomeScreen> {
             children: <Widget>[
               _ConnectionCard(model: model),
               const SizedBox(height: 12),
-              _BackupFolderCard(
-                model: model,
-                onChangeFolder: _pickFolder,
-              ),
+              _BackupFolderCard(model: model, onChangeFolder: _pickFolder),
               const SizedBox(height: 12),
               _DevicesCard(model: model),
               const SizedBox(height: 12),
@@ -83,8 +92,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _pickFolder() async {
+    final l10n = AppLocalizations.of(context)!;
     final selected = await getDirectoryPath(
-      confirmButtonText: 'Use this folder',
+      confirmButtonText: l10n.folderPickConfirm,
     );
     if (selected == null || !mounted) {
       return;
@@ -93,11 +103,12 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _confirmPrune(PruneCandidates candidates) async {
+    final l10n = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('Delete files the phone no longer has?'),
+          title: Text(l10n.pruneTitle),
           content: SizedBox(
             width: 460,
             child: Column(
@@ -105,16 +116,14 @@ class _HomeScreenState extends State<HomeScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Text(
-                  '${candidates.deviceId} asked to clean up '
-                  '${candidates.entries.length} file(s), freeing '
-                  '${_formatBytes(candidates.totalBytes)}.',
+                  l10n.pruneSummary(
+                    candidates.deviceId,
+                    candidates.entries.length,
+                    formatBytes(candidates.totalBytes),
+                  ),
                 ),
                 const SizedBox(height: 12),
-                const Text(
-                  'These exist in the backup but not on the phone. Deleting is '
-                  'permanent — if they were removed from the phone by mistake, '
-                  'keeping them here is the only remaining copy.',
-                ),
+                Text(l10n.pruneExplanation),
                 const SizedBox(height: 12),
                 ConstrainedBox(
                   constraints: const BoxConstraints(maxHeight: 200),
@@ -137,14 +146,14 @@ class _HomeScreenState extends State<HomeScreen> {
           actions: <Widget>[
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('Keep everything'),
+              child: Text(l10n.pruneKeep),
             ),
             FilledButton(
               style: FilledButton.styleFrom(
                 backgroundColor: Theme.of(context).colorScheme.error,
               ),
               onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text('Delete'),
+              child: Text(l10n.pruneDelete),
             ),
           ],
         );
@@ -158,7 +167,7 @@ class _HomeScreenState extends State<HomeScreen> {
       final deleted = await widget.model.confirmPrune();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Deleted $deleted file(s)')),
+          SnackBar(content: Text(l10n.pruneDeletedToast(deleted))),
         );
       }
     } else {
@@ -169,6 +178,44 @@ class _HomeScreenState extends State<HomeScreen> {
 
 // ---------------------------------------------------------------------------
 
+class _LanguageMenu extends StatelessWidget {
+  const _LanguageMenu({required this.localeModel});
+
+  final AppLocaleModel localeModel;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return ListenableBuilder(
+      listenable: localeModel,
+      builder: (context, _) {
+        return PopupMenuButton<String>(
+          tooltip: l10n.languageLabel,
+          icon: const Icon(Icons.translate),
+          initialValue: localeModel.option,
+          onSelected: localeModel.setOption,
+          itemBuilder: (context) {
+            return <PopupMenuEntry<String>>[
+              PopupMenuItem<String>(
+                value: AppLocaleModel.systemOption,
+                child: Text(l10n.languageSystem),
+              ),
+              PopupMenuItem<String>(
+                value: 'en',
+                child: Text(l10n.languageEnglish),
+              ),
+              PopupMenuItem<String>(
+                value: 'zh_Hant',
+                child: Text(l10n.languageTraditionalChinese),
+              ),
+            ];
+          },
+        );
+      },
+    );
+  }
+}
+
 class _ConnectionCard extends StatelessWidget {
   const _ConnectionCard({required this.model});
 
@@ -177,17 +224,18 @@ class _ConnectionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            Text('Connect from your phone', style: theme.textTheme.titleMedium),
+            Text(l10n.connectTitle, style: theme.textTheme.titleMedium),
             const SizedBox(height: 12),
             if (!model.isRunning)
               Text(
-                'Server is not running.',
+                l10n.connectServerStopped,
                 style: TextStyle(color: theme.colorScheme.error),
               )
             else ...<Widget>[
@@ -198,22 +246,23 @@ class _ConnectionCard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
-                        Text('Address', style: theme.textTheme.labelMedium),
+                        Text(
+                          l10n.connectAddressLabel,
+                          style: theme.textTheme.labelMedium,
+                        ),
                         const SizedBox(height: 4),
                         if (model.addresses.isEmpty)
-                          const Text('No network connection found')
+                          Text(l10n.connectNoNetwork)
                         else
-                          // Every adapter is listed rather than guessed: dev
-                          // machines usually also have WSL/VirtualBox adapters
-                          // the phone cannot reach.
+                          // Sorted so physical adapters come first: a machine
+                          // with WSL installed otherwise leads with an address
+                          // the phone can never reach, and that timeout is
+                          // indistinguishable from a firewall block.
                           ...model.addresses.map(
-                            (address) => Padding(
-                              padding: const EdgeInsets.only(bottom: 2),
-                              child: SelectableText(
-                                '${address.address}:${model.port}'
-                                '   (${address.interfaceName})',
-                                style: theme.textTheme.titleMedium,
-                              ),
+                            (address) => _AddressRow(
+                              address: '${address.address}:${model.port}',
+                              interfaceName: address.interfaceName,
+                              isLikelyVirtual: address.isLikelyVirtual,
                             ),
                           ),
                       ],
@@ -223,7 +272,10 @@ class _ConnectionCard extends StatelessWidget {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: <Widget>[
-                      Text('Pairing PIN', style: theme.textTheme.labelMedium),
+                      Text(
+                        l10n.connectPinLabel,
+                        style: theme.textTheme.labelMedium,
+                      ),
                       const SizedBox(height: 4),
                       SelectableText(
                         model.pin,
@@ -237,7 +289,7 @@ class _ConnectionCard extends StatelessWidget {
                       TextButton.icon(
                         onPressed: model.regeneratePin,
                         icon: const Icon(Icons.autorenew, size: 16),
-                        label: const Text('New PIN'),
+                        label: Text(l10n.connectNewPin),
                       ),
                     ],
                   ),
@@ -245,7 +297,7 @@ class _ConnectionCard extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                'The PIN changes every time this app restarts.',
+                l10n.connectPinChangesNote,
                 style: theme.textTheme.bodySmall,
               ),
               if (!model.hasServedAnyone) ...<Widget>[
@@ -253,11 +305,7 @@ class _ConnectionCard extends StatelessWidget {
                 _InfoBanner(
                   icon: Icons.shield_outlined,
                   color: theme.colorScheme.tertiary,
-                  message:
-                      'No device has connected yet. If your phone cannot reach '
-                      'this machine, check that Windows Firewall is allowing '
-                      'this app on private networks — that prompt is the most '
-                      'common cause, and it looks the same as a wrong address.',
+                  message: l10n.firewallHint,
                 ),
               ],
               if (model.lockedOutAddresses.isNotEmpty) ...<Widget>[
@@ -265,14 +313,71 @@ class _ConnectionCard extends StatelessWidget {
                 _InfoBanner(
                   icon: Icons.lock_outline,
                   color: theme.colorScheme.error,
-                  message:
-                      'Temporarily blocked after repeated wrong PINs: '
-                      '${model.lockedOutAddresses.join(', ')}',
+                  message: l10n.lockedOutHint(
+                    model.lockedOutAddresses.join(', '),
+                  ),
                 ),
               ],
             ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _AddressRow extends StatelessWidget {
+  const _AddressRow({
+    required this.address,
+    required this.interfaceName,
+    required this.isLikelyVirtual,
+  });
+
+  final String address;
+  final String interfaceName;
+  final bool isLikelyVirtual;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    final muted = theme.colorScheme.onSurfaceVariant;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 2),
+      child: Row(
+        children: <Widget>[
+          SelectableText(
+            address,
+            style: theme.textTheme.titleMedium?.copyWith(
+              color: isLikelyVirtual ? muted : null,
+              fontWeight: isLikelyVirtual ? FontWeight.normal : FontWeight.w600,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              isLikelyVirtual
+                  ? '($interfaceName — ${l10n.connectVirtualAdapterTag})'
+                  : '($interfaceName)',
+              style: theme.textTheme.bodySmall?.copyWith(color: muted),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          IconButton(
+            tooltip: l10n.connectCopyAddress,
+            iconSize: 16,
+            visualDensity: VisualDensity.compact,
+            icon: const Icon(Icons.copy),
+            onPressed: () async {
+              await Clipboard.setData(ClipboardData(text: address));
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(l10n.connectAddressCopied(address))),
+                );
+              }
+            },
+          ),
+        ],
       ),
     );
   }
@@ -287,6 +392,7 @@ class _BackupFolderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final missing = !model.rootExists;
     return Card(
       child: Padding(
@@ -300,10 +406,15 @@ class _BackupFolderCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
-                      Text('Backup folder', style: theme.textTheme.titleMedium),
+                      Text(
+                        l10n.folderTitle,
+                        style: theme.textTheme.titleMedium,
+                      ),
                       const SizedBox(height: 4),
                       SelectableText(
-                        model.rootPath.isEmpty ? '(not set)' : model.rootPath,
+                        model.rootPath.isEmpty
+                            ? l10n.folderNotSet
+                            : model.rootPath,
                         style: theme.textTheme.bodyMedium,
                       ),
                     ],
@@ -313,7 +424,7 @@ class _BackupFolderCard extends StatelessWidget {
                 OutlinedButton.icon(
                   onPressed: () => onChangeFolder(),
                   icon: const Icon(Icons.folder_open),
-                  label: const Text('Change'),
+                  label: Text(l10n.folderChange),
                 ),
               ],
             ),
@@ -322,11 +433,7 @@ class _BackupFolderCard extends StatelessWidget {
               _InfoBanner(
                 icon: Icons.error_outline,
                 color: theme.colorScheme.error,
-                message:
-                    'This folder is not available right now (an external drive '
-                    'may be disconnected). Backups are refused until it is back '
-                    'so the phone never mistakes an empty mirror for "nothing '
-                    'backed up yet" and re-uploads everything.',
+                message: l10n.folderMissingWarning,
               ),
             ],
             if (model.startupError != null) ...<Widget>[
@@ -352,31 +459,37 @@ class _DevicesCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            Text('Backed up devices', style: theme.textTheme.titleMedium),
+            Text(l10n.devicesTitle, style: theme.textTheme.titleMedium),
             const SizedBox(height: 8),
             if (model.devices.isEmpty)
-              const Text('Nothing backed up yet.')
+              Text(l10n.devicesEmpty)
             else
-              ...model.devices.map(
-                (device) => ListTile(
+              ...model.devices.map((device) {
+                final summary = l10n.devicesSubtitle(
+                  device.fileCount,
+                  formatBytes(device.totalBytes),
+                  device.dbSnapshotCount,
+                );
+                final lastSync = device.lastSyncAt;
+                return ListTile(
                   contentPadding: EdgeInsets.zero,
                   leading: const Icon(Icons.smartphone),
                   title: Text(device.deviceId),
                   subtitle: Text(
-                    '${device.fileCount} files · '
-                    '${_formatBytes(device.totalBytes)} · '
-                    '${device.dbSnapshotCount} database snapshot(s)'
-                    '${device.lastSyncAt == null ? '' : ' · last sync '
-                        '${_formatTimestamp(device.lastSyncAt!)}'}',
+                    lastSync == null
+                        ? summary
+                        : '$summary · '
+                              '${l10n.devicesLastSync(_formatTimestamp(lastSync))}',
                   ),
-                ),
-              ),
+                );
+              }),
           ],
         ),
       ),
@@ -392,16 +505,17 @@ class _ActivityCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            Text('Activity', style: theme.textTheme.titleMedium),
+            Text(l10n.activityTitle, style: theme.textTheme.titleMedium),
             const SizedBox(height: 8),
             if (model.activity.isEmpty)
-              const Text('Waiting for a device to connect…')
+              Text(l10n.activityEmpty)
             else
               ConstrainedBox(
                 constraints: const BoxConstraints(maxHeight: 220),
@@ -410,8 +524,10 @@ class _ActivityCard extends StatelessWidget {
                     shrinkWrap: true,
                     itemCount: model.activity.length,
                     itemBuilder: (context, index) {
+                      final event = model.activity[index];
                       return Text(
-                        model.activity[index],
+                        '${_formatClock(event.at)}  '
+                        '${describeActivity(l10n, event)}',
                         style: theme.textTheme.bodySmall,
                       );
                     },
@@ -451,10 +567,7 @@ class _InfoBanner extends StatelessWidget {
           Icon(icon, size: 18, color: color),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(
-              message,
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
+            child: Text(message, style: Theme.of(context).textTheme.bodySmall),
           ),
         ],
       ),
@@ -464,7 +577,33 @@ class _InfoBanner extends StatelessWidget {
 
 // ---------------------------------------------------------------------------
 
-String _formatBytes(int bytes) {
+/// Renders an [ActivityEvent] in the current language. Kept next to the widget
+/// that shows it so adding an event type surfaces here as a compile error.
+String describeActivity(AppLocalizations l10n, ActivityEvent event) {
+  return switch (event) {
+    FileReceivedEvent() => l10n.activityReceivedFile(
+      event.path,
+      event.deviceId,
+    ),
+    FileSentEvent() => l10n.activitySentFile(event.path, event.deviceId),
+    DatabaseStoredEvent() => l10n.activityStoredDatabase(event.deviceId),
+    DatabaseSentEvent() => l10n.activitySentDatabase(event.deviceId),
+    PinBlockedEvent() => l10n.activityBlockedPin(event.address),
+    PruneRequestedEvent() => l10n.activityPruneRequested(
+      event.deviceId,
+      event.count,
+    ),
+    StaleFilesDeletedEvent() => l10n.activityDeletedStaleFiles(
+      event.count,
+      event.deviceId,
+    ),
+    BackupFolderChangedEvent() => l10n.activityFolderChanged(event.path),
+    PinRegeneratedEvent() => l10n.activityPinRegenerated,
+    PartFilesCleanedEvent() => l10n.activityCleanedPartFiles(event.count),
+  };
+}
+
+String formatBytes(int bytes) {
   const units = <String>['B', 'KB', 'MB', 'GB', 'TB'];
   var value = bytes.toDouble();
   var unit = 0;
@@ -473,6 +612,12 @@ String _formatBytes(int bytes) {
     unit++;
   }
   return '${value.toStringAsFixed(unit == 0 ? 0 : 1)} ${units[unit]}';
+}
+
+String _formatClock(DateTime value) {
+  final local = value.toLocal();
+  String two(int v) => v.toString().padLeft(2, '0');
+  return '${two(local.hour)}:${two(local.minute)}:${two(local.second)}';
 }
 
 String _formatTimestamp(DateTime value) {

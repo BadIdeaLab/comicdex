@@ -1,0 +1,140 @@
+{
+  "@@locale": "en",
+
+  "appTitle": "Comicdex Backup Server",
+
+  "languageLabel": "Language",
+  "languageSystem": "System default",
+  "languageEnglish": "English",
+  "languageTraditionalChinese": "繁體中文",
+
+  "refreshDevices": "Refresh devices",
+
+  "connectTitle": "Connect from your phone",
+  "connectAddressLabel": "Address",
+  "connectPinLabel": "Pairing PIN",
+  "connectNewPin": "New PIN",
+  "connectPinChangesNote": "The PIN changes every time this app restarts.",
+  "connectNoNetwork": "No network connection found",
+  "connectServerStopped": "Server is not running.",
+  "connectVirtualAdapterTag": "virtual — probably not this one",
+  "connectCopyAddress": "Copy address",
+  "connectAddressCopied": "Copied {address}",
+  "@connectAddressCopied": {
+    "placeholders": {
+      "address": { "type": "String" }
+    }
+  },
+
+  "firewallHint": "No device has connected yet. If your phone cannot reach this machine, check that Windows Firewall is allowing this app on private networks — that prompt is the most common cause, and it looks the same as a wrong address.",
+  "lockedOutHint": "Temporarily blocked after repeated wrong PINs: {addresses}",
+  "@lockedOutHint": {
+    "placeholders": {
+      "addresses": { "type": "String" }
+    }
+  },
+
+  "folderTitle": "Backup folder",
+  "folderNotSet": "(not set)",
+  "folderChange": "Change",
+  "folderPickConfirm": "Use this folder",
+  "folderMissingWarning": "This folder is not available right now (an external drive may be disconnected). Backups are refused until it is back so the phone never mistakes an empty mirror for \"nothing backed up yet\" and re-uploads everything.",
+
+  "devicesTitle": "Backed up devices",
+  "devicesEmpty": "Nothing backed up yet.",
+  "devicesSubtitle": "{fileCount} files · {size} · {snapshotCount} database snapshot(s)",
+  "@devicesSubtitle": {
+    "placeholders": {
+      "fileCount": { "type": "int" },
+      "size": { "type": "String" },
+      "snapshotCount": { "type": "int" }
+    }
+  },
+  "devicesLastSync": "last sync {timestamp}",
+  "@devicesLastSync": {
+    "placeholders": {
+      "timestamp": { "type": "String" }
+    }
+  },
+
+  "activityTitle": "Activity",
+  "activityEmpty": "Waiting for a device to connect…",
+  "activityFolderChanged": "Backup folder changed to {path}",
+  "@activityFolderChanged": {
+    "placeholders": {
+      "path": { "type": "String" }
+    }
+  },
+  "activityPinRegenerated": "PIN regenerated",
+  "activityCleanedPartFiles": "Cleaned up {count} interrupted transfer(s)",
+  "@activityCleanedPartFiles": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "activityDeletedStaleFiles": "Deleted {count} stale file(s) for {deviceId}",
+  "@activityDeletedStaleFiles": {
+    "placeholders": {
+      "count": { "type": "int" },
+      "deviceId": { "type": "String" }
+    }
+  },
+  "activityReceivedFile": "Received {path} from {deviceId}",
+  "@activityReceivedFile": {
+    "placeholders": {
+      "path": { "type": "String" },
+      "deviceId": { "type": "String" }
+    }
+  },
+  "activitySentFile": "Sent {path} to {deviceId}",
+  "@activitySentFile": {
+    "placeholders": {
+      "path": { "type": "String" },
+      "deviceId": { "type": "String" }
+    }
+  },
+  "activityStoredDatabase": "Stored database snapshot for {deviceId}",
+  "@activityStoredDatabase": {
+    "placeholders": {
+      "deviceId": { "type": "String" }
+    }
+  },
+  "activitySentDatabase": "Sent database snapshot to {deviceId}",
+  "@activitySentDatabase": {
+    "placeholders": {
+      "deviceId": { "type": "String" }
+    }
+  },
+  "activityBlockedPin": "Blocked repeated wrong PIN from {address}",
+  "@activityBlockedPin": {
+    "placeholders": {
+      "address": { "type": "String" }
+    }
+  },
+  "activityPruneRequested": "Prune requested by {deviceId}: {count} stale files",
+  "@activityPruneRequested": {
+    "placeholders": {
+      "deviceId": { "type": "String" },
+      "count": { "type": "int" }
+    }
+  },
+
+  "pruneTitle": "Delete files the phone no longer has?",
+  "pruneSummary": "{deviceId} asked to clean up {count} file(s), freeing {size}.",
+  "@pruneSummary": {
+    "placeholders": {
+      "deviceId": { "type": "String" },
+      "count": { "type": "int" },
+      "size": { "type": "String" }
+    }
+  },
+  "pruneExplanation": "These exist in the backup but not on the phone. Deleting is permanent — if they were removed from the phone by mistake, keeping them here is the only remaining copy.",
+  "pruneKeep": "Keep everything",
+  "pruneDelete": "Delete",
+  "pruneDeletedToast": "Deleted {count} file(s)",
+  "@pruneDeletedToast": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  }
+}
