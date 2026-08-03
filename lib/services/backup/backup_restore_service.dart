@@ -87,10 +87,16 @@ class BackupRestoreService {
         sourceDeviceId: sourceDeviceId,
         target: staging,
       );
-    } on BackupServerException {
-      throw const RestoreBlockedException(
-        RestoreBlockedReason.noDatabaseSnapshot,
-      );
+    } on BackupServerException catch (error) {
+      // Only a 404 means "this device never uploaded one". Anything else is a
+      // real server fault and must not be reported as a missing snapshot, which
+      // would send the user looking at the wrong device.
+      if (error.statusCode == HttpStatus.notFound) {
+        throw const RestoreBlockedException(
+          RestoreBlockedReason.noDatabaseSnapshot,
+        );
+      }
+      rethrow;
     }
 
     if (backupSchemaVersion > appSchemaVersion) {
@@ -153,6 +159,11 @@ class BackupRestoreService {
       onProgress?.call(const RestoreProgress(stage: RestoreStage.applying));
       await _stageDatabase(staging);
       staged = true;
+    } else {
+      // Not committing this run, so the downloaded snapshot is dead weight —
+      // several MB that would otherwise sit there until the next restore
+      // happens to overwrite it.
+      await _deleteQuietly(staging);
     }
 
     onProgress?.call(

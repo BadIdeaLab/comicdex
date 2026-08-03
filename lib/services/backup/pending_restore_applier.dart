@@ -7,6 +7,14 @@ import 'package:path/path.dart' as p;
 /// apart.
 enum PendingRestoreOutcome { none, applied, failed }
 
+/// Suffix of the intermediate file that sits beside the database while the swap
+/// is in flight.
+///
+/// It exists so the operation can be split into two independently resumable
+/// halves: consume the staged snapshot, then replace the database. Whichever
+/// half is interrupted, the next launch finishes the job exactly once.
+const String kRestoreHandoverSuffix = '.restoring';
+
 /// Swaps in a database left behind by a completed restore.
 ///
 /// **Must run before `LocalDatabase` opens its connection.** drift creates the
@@ -28,18 +36,31 @@ Future<PendingRestoreOutcome> applyPendingRestore({
     final pending = File(
       p.join(support.path, kPendingRestoreDirName, kPendingRestoreDbName),
     );
-    if (!pending.existsSync()) {
+    final target = File(await databasePath());
+    final handover = File('${target.path}$kRestoreHandoverSuffix');
+
+    // Both halves are checked: a launch that finds only a handover file is
+    // resuming a swap interrupted after the staged snapshot was consumed.
+    if (!pending.existsSync() && !handover.existsSync()) {
       return PendingRestoreOutcome.none;
     }
-
-    final target = File(await databasePath());
     await target.parent.create(recursive: true);
 
-    // Copy-then-delete rather than rename: the pending file and the database
-    // can sit on different volumes (Android puts the database beside the app's
-    // support directory, not inside it), and rename fails across volumes.
-    await pending.copy(target.path);
-    await pending.delete();
+    if (pending.existsSync()) {
+      // Copy rather than rename: on Android the database lives beside the
+      // support directory rather than inside it, so the two can be on different
+      // volumes and rename would fail.
+      await pending.copy(handover.path);
+      // Consuming the pending file here — before the database is replaced — is
+      // what makes this safe to interrupt. If it were deleted afterwards and
+      // that delete failed, the next launch would apply the same snapshot a
+      // second time and silently roll back everything the user did in between.
+      await pending.delete();
+    }
+
+    if (!handover.existsSync()) {
+      return PendingRestoreOutcome.none;
+    }
 
     // sqlite side files describe the *old* database; leaving them next to a
     // freshly swapped-in file is how you get "database disk image is malformed".
@@ -49,6 +70,11 @@ Future<PendingRestoreOutcome> applyPendingRestore({
         await sideFile.delete();
       }
     }
+    if (target.existsSync()) {
+      await target.delete();
+    }
+    // Same volume by construction, so this is an atomic rename.
+    await handover.rename(target.path);
     return PendingRestoreOutcome.applied;
   } on FileSystemException {
     return PendingRestoreOutcome.failed;

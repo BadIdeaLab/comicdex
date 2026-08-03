@@ -255,6 +255,26 @@ void main() {
         },
       );
 
+      test(
+        'a run that does not commit leaves no multi-megabyte snapshot behind',
+        () async {
+          client.inventory = <String, int>{'broken/1.webp': 1};
+          client.remoteFiles = const <String, List<int>>{};
+          databasePaths = <String?>['broken/1.webp'];
+
+          final result = await buildService().run(
+            connection: connection,
+            sourceDeviceId: 'Old-Phone',
+          );
+
+          expect(result.databaseStaged, isFalse);
+          final staging = File(
+            p.join(support.path, kPendingRestoreDirName, 'incoming.db'),
+          );
+          expect(staging.existsSync(), isFalse);
+        },
+      );
+
       test('a pause leaves the database unstaged', () async {
         client.inventory = <String, int>{'a/1.webp': 1, 'a/2.webp': 1};
         client.remoteFiles = <String, List<int>>{
@@ -371,5 +391,40 @@ void main() {
       expect(await apply(), PendingRestoreOutcome.none);
       expect(await database.readAsBytes(), <int>[1, 2, 3]);
     });
+
+    test(
+      'finishes a swap interrupted after the staged snapshot was consumed',
+      () async {
+        // The state left by a crash between "pending consumed" and "database
+        // replaced": no pending file, but a handover file waiting.
+        await File(
+          '${database.path}$kRestoreHandoverSuffix',
+        ).writeAsBytes(<int>[4, 5, 6]);
+
+        expect(await apply(), PendingRestoreOutcome.applied);
+        expect(await database.readAsBytes(), <int>[4, 5, 6]);
+        expect(
+          File('${database.path}$kRestoreHandoverSuffix').existsSync(),
+          isFalse,
+        );
+      },
+    );
+
+    test(
+      'never applies the same snapshot twice — the staged file is consumed '
+      'before the database is touched, so a later failure cannot silently roll '
+      'the user back to the restore point',
+      () async {
+        final pending = await writePending(<int>[1, 2, 3]);
+        expect(await apply(), PendingRestoreOutcome.applied);
+        expect(pending.existsSync(), isFalse);
+
+        // Simulate the app being used after the restore.
+        await database.writeAsBytes(<int>[7, 7, 7]);
+
+        expect(await apply(), PendingRestoreOutcome.none);
+        expect(await database.readAsBytes(), <int>[7, 7, 7]);
+      },
+    );
   });
 }
