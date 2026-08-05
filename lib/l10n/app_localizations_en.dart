@@ -404,4 +404,18 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get backupErrorPairingRejected =>
       'The computer accepted the PIN but refused to pair. This usually means the device name contains characters it will not accept — try a simpler name using letters, digits, spaces, dots or hyphens.';
+
+  @override
+  String get restoreInterruptedTitle => 'Restore did not finish';
+
+  @override
+  String restoreInterruptedBody(String sourceDeviceId) {
+    return 'A restore from \"$sourceDeviceId\" was interrupted. Some downloaded comics were removed to make room and have not been fetched back yet, so parts of your library may not open. Run the restore again from the computer to finish it.';
+  }
+
+  @override
+  String get restoreInterruptedDismiss => 'Remind me again';
+
+  @override
+  String get restoreInterruptedAcknowledge => 'I understand';
 }

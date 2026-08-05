@@ -383,6 +383,20 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get backupErrorPairingRejected =>
       '電腦接受了配對碼，但拒絕建立連線。通常是裝置名稱含有它不接受的字元——請改用只有英數字、空格、點或連字號的簡單名稱。';
+
+  @override
+  String get restoreInterruptedTitle => '還原沒有完成';
+
+  @override
+  String restoreInterruptedBody(String sourceDeviceId) {
+    return '從「$sourceDeviceId」的還原被中斷了。部分已下載的漫畫為了騰出空間而被移除，但還沒補回來，所以書庫有些內容可能打不開。請到電腦端重新執行一次還原把它完成。';
+  }
+
+  @override
+  String get restoreInterruptedDismiss => '下次再提醒我';
+
+  @override
+  String get restoreInterruptedAcknowledge => '我知道了';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -762,4 +776,18 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   @override
   String get backupErrorPairingRejected =>
       '電腦接受了配對碼，但拒絕建立連線。通常是裝置名稱含有它不接受的字元——請改用只有英數字、空格、點或連字號的簡單名稱。';
+
+  @override
+  String get restoreInterruptedTitle => '還原沒有完成';
+
+  @override
+  String restoreInterruptedBody(String sourceDeviceId) {
+    return '從「$sourceDeviceId」的還原被中斷了。部分已下載的漫畫為了騰出空間而被移除，但還沒補回來，所以書庫有些內容可能打不開。請到電腦端重新執行一次還原把它完成。';
+  }
+
+  @override
+  String get restoreInterruptedDismiss => '下次再提醒我';
+
+  @override
+  String get restoreInterruptedAcknowledge => '我知道了';
 }

@@ -1,13 +1,16 @@
 import 'package:concept_nhv/app/app_router.dart';
 import 'package:concept_nhv/app/app_providers.dart';
 import 'package:concept_nhv/l10n/app_localizations.dart';
+import 'package:concept_nhv/services/backup/restore_progress_flag.dart';
 import 'package:concept_nhv/services/local_tag_catalog_service.dart';
 import 'package:concept_nhv/services/tag_display_service.dart';
 import 'package:concept_nhv/state/app_locale_model.dart';
 import 'package:concept_nhv/storage/local_database.dart';
 import 'package:concept_nhv/theme.dart';
+import 'package:concept_nhv/widgets/interrupted_restore_gate.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 
 class BootstrapApp extends StatelessWidget {
@@ -46,6 +49,17 @@ class BootstrapApp extends StatelessWidget {
               GlobalCupertinoLocalizations.delegate,
             ],
             routerConfig: createAppRouter(),
+            // Wrapped around the router rather than placed on a screen: an
+            // interrupted restore has to announce itself to someone who does
+            // not know it happened.
+            builder: (context, child) {
+              return InterruptedRestoreGate.fromFlag(
+                flag: RestoreProgressFlag(
+                  supportDirectory: getApplicationSupportDirectory,
+                ),
+                child: child ?? const SizedBox.shrink(),
+              );
+            },
           );
         },
       ),

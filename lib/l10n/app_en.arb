@@ -239,5 +239,16 @@
     }
   },
   "backupApiKeyNote": "Your nhentai API key is not included in backups. You will sign in again after restoring.",
-  "backupErrorPairingRejected": "The computer accepted the PIN but refused to pair. This usually means the device name contains characters it will not accept — try a simpler name using letters, digits, spaces, dots or hyphens."
+  "backupErrorPairingRejected": "The computer accepted the PIN but refused to pair. This usually means the device name contains characters it will not accept — try a simpler name using letters, digits, spaces, dots or hyphens.",
+  "restoreInterruptedTitle": "Restore did not finish",
+  "restoreInterruptedBody": "A restore from \"{sourceDeviceId}\" was interrupted. Some downloaded comics were removed to make room and have not been fetched back yet, so parts of your library may not open. Run the restore again from the computer to finish it.",
+  "@restoreInterruptedBody": {
+    "placeholders": {
+      "sourceDeviceId": {
+        "type": "String"
+      }
+    }
+  },
+  "restoreInterruptedDismiss": "Remind me again",
+  "restoreInterruptedAcknowledge": "I understand"
 }

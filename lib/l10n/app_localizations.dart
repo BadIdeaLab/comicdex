@@ -776,6 +776,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The computer accepted the PIN but refused to pair. This usually means the device name contains characters it will not accept — try a simpler name using letters, digits, spaces, dots or hyphens.'**
   String get backupErrorPairingRejected;
+
+  /// No description provided for @restoreInterruptedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore did not finish'**
+  String get restoreInterruptedTitle;
+
+  /// No description provided for @restoreInterruptedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'A restore from \"{sourceDeviceId}\" was interrupted. Some downloaded comics were removed to make room and have not been fetched back yet, so parts of your library may not open. Run the restore again from the computer to finish it.'**
+  String restoreInterruptedBody(String sourceDeviceId);
+
+  /// No description provided for @restoreInterruptedDismiss.
+  ///
+  /// In en, this message translates to:
+  /// **'Remind me again'**
+  String get restoreInterruptedDismiss;
+
+  /// No description provided for @restoreInterruptedAcknowledge.
+  ///
+  /// In en, this message translates to:
+  /// **'I understand'**
+  String get restoreInterruptedAcknowledge;
 }
 
 class _AppLocalizationsDelegate
