@@ -5,6 +5,7 @@ import 'package:concept_nhv/services/backup/backup_connection.dart';
 import 'package:concept_nhv/services/backup/backup_models.dart';
 import 'package:concept_nhv/services/backup/restore_models.dart';
 import 'package:concept_nhv/services/backup/restore_path_resolver.dart';
+import 'package:concept_nhv/services/backup/restore_progress_flag.dart';
 import 'package:concept_nhv/services/download_asset_store.dart';
 import 'package:path/path.dart' as p;
 
@@ -37,8 +38,14 @@ class BackupRestoreService {
     required this.appSchemaVersion,
     required RestoreDatabaseReader databaseReader,
     required Future<Directory> Function() supportDirectory,
+    RestoreProgressFlag? progressFlag,
   }) : _databaseReader = databaseReader,
-       _supportDirectory = supportDirectory;
+       _supportDirectory = supportDirectory,
+       progressFlag =
+           progressFlag ??
+           RestoreProgressFlag(supportDirectory: supportDirectory);
+
+  final RestoreProgressFlag progressFlag;
 
   final BackupClient client;
   final DownloadAssetStore downloadAssetStore;
@@ -118,6 +125,11 @@ class BackupRestoreService {
 
     // --- Past this line local data changes. Everything above can abort freely.
 
+    // Raised before the first deletion, so an interruption anywhere below is
+    // detectable on the next launch. From here until the database is staged,
+    // the on-disk library and the database the app would boot disagree.
+    await progressFlag.markStarted(sourceDeviceId);
+
     onProgress?.call(const RestoreProgress(stage: RestoreStage.clearing));
     final deleted = await _deleteUnreferenced(plan.toDelete);
 
@@ -159,6 +171,10 @@ class BackupRestoreService {
       onProgress?.call(const RestoreProgress(stage: RestoreStage.applying));
       await _stageDatabase(staging);
       staged = true;
+      // Cleared only here: the library and the staged database now agree again.
+      // A paused or failed run deliberately leaves it set so the next launch
+      // says so rather than presenting a half-restored library as normal.
+      await progressFlag.clear();
     } else {
       // Not committing this run, so the downloaded snapshot is dead weight —
       // several MB that would otherwise sit there until the next restore

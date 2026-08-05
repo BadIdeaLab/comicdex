@@ -5,6 +5,7 @@ import 'package:concept_nhv/services/backup/backup_models.dart';
 import 'package:concept_nhv/services/backup/backup_restore_service.dart';
 import 'package:concept_nhv/services/backup/pending_restore_applier.dart';
 import 'package:concept_nhv/services/backup/restore_models.dart';
+import 'package:concept_nhv/services/backup/restore_progress_flag.dart';
 import 'package:concept_nhv/services/download_asset_store.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
@@ -293,6 +294,74 @@ void main() {
         expect(result.isPaused, isTrue);
         expect(result.databaseStaged, isFalse);
         expect((await pendingFile()).existsSync(), isFalse);
+      });
+    });
+
+    group('interrupted-restore flag', () {
+      RestoreProgressFlag flag() =>
+          RestoreProgressFlag(supportDirectory: () async => support);
+
+      test('is not raised when the preflight refuses', () async {
+        client.inventory = <String, int>{'a/1.webp': 1};
+        client.remoteDatabaseSchemaVersion = 99;
+
+        await expectLater(
+          buildService().run(
+            connection: connection,
+            sourceDeviceId: 'Old-Phone',
+          ),
+          throwsA(isA<RestoreBlockedException>()),
+        );
+
+        expect(await flag().read(), isNull);
+      });
+
+      test('is cleared once the database is staged', () async {
+        client.inventory = <String, int>{'a/1.webp': 1};
+        client.remoteFiles = <String, List<int>>{'a/1.webp': <int>[1]};
+        databasePaths = <String?>['a/1.webp'];
+
+        final result = await buildService().run(
+          connection: connection,
+          sourceDeviceId: 'Old-Phone',
+        );
+
+        expect(result.databaseStaged, isTrue);
+        expect(await flag().read(), isNull);
+      });
+
+      test(
+        'survives a failed run, because the library on disk no longer matches '
+        'the database the app would boot',
+        () async {
+          client.inventory = <String, int>{'broken/1.webp': 1};
+          client.remoteFiles = const <String, List<int>>{};
+          databasePaths = <String?>['broken/1.webp'];
+
+          final result = await buildService().run(
+            connection: connection,
+            sourceDeviceId: 'Old-Phone',
+          );
+
+          expect(result.databaseStaged, isFalse);
+          final interrupted = await flag().read();
+          expect(interrupted, isNotNull);
+          expect(interrupted!.sourceDeviceId, 'Old-Phone');
+        },
+      );
+
+      test('survives a pause', () async {
+        client.inventory = <String, int>{'a/1.webp': 1};
+        client.remoteFiles = <String, List<int>>{'a/1.webp': <int>[1]};
+        databasePaths = <String?>['a/1.webp'];
+
+        await buildService().run(
+          connection: connection,
+          sourceDeviceId: 'Old-Phone',
+          pauseToken: BackupPauseToken()..requestPause(),
+        );
+
+        expect(await flag().read(), isNotNull);
       });
     });
 
