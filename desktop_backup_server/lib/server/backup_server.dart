@@ -65,7 +65,11 @@ class BackupServer {
     return devices;
   }
 
-  bool sendControlCommand(String deviceId, MobileControlAction action) {
+  bool sendControlCommand(
+    String deviceId,
+    MobileControlAction action, {
+    String? sourceDeviceId,
+  }) {
     final session = _controlSessions[deviceId];
     if (session == null) {
       return false;
@@ -76,6 +80,8 @@ class BackupServer {
         'type': 'command',
         'action': action.name,
         'commandId': commandId,
+        // Only meaningful for startRestore: which device's backup to pull.
+        'sourceDeviceId': ?sourceDeviceId,
       }),
     );
     if (action == MobileControlAction.pause) {

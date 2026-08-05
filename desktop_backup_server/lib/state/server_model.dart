@@ -219,6 +219,26 @@ class ServerModel extends ChangeNotifier {
         false;
   }
 
+  /// Tells [deviceId] to restore itself from [sourceDeviceId]'s backup.
+  ///
+  /// The two are often different: a replacement phone restores from the old
+  /// one's partition, which is the whole reason backups are device-scoped.
+  ///
+  /// Only ever called after the confirmation dialog — the phone will delete
+  /// local files it no longer needs, and that is not something to trigger from
+  /// a single click.
+  bool startRestore({
+    required String deviceId,
+    required String sourceDeviceId,
+  }) {
+    return _server?.sendControlCommand(
+          deviceId,
+          MobileControlAction.startRestore,
+          sourceDeviceId: sourceDeviceId,
+        ) ??
+        false;
+  }
+
   bool pauseBackup(String deviceId) {
     return _server?.sendControlCommand(deviceId, MobileControlAction.pause) ??
         false;

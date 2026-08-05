@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:concept_nhv/services/backup/backup_connection.dart';
 import 'package:concept_nhv/services/backup/backup_control_client.dart';
+import 'package:concept_nhv/services/backup/backup_restore_service.dart';
 import 'package:concept_nhv/services/backup/backup_sync_service.dart';
 import 'package:concept_nhv/services/download_asset_store.dart';
 import 'package:concept_nhv/state/backup_control_model.dart';
@@ -21,6 +22,7 @@ void main() {
     late FakeBackupClient backupClient;
     late FakeControlClient controlClient;
     late BackupControlModel model;
+    late List<String?> restoreDatabasePaths;
     var wakelockEnabled = 0;
     var wakelockDisabled = 0;
 
@@ -32,6 +34,7 @@ void main() {
       root = await Directory.systemTemp.createTemp('backup-control-test');
       backupClient = FakeBackupClient();
       controlClient = FakeControlClient();
+      restoreDatabasePaths = <String?>[];
       final syncService = BackupSyncService(
         client: backupClient,
         downloadAssetStore: DownloadAssetStore(
@@ -44,10 +47,21 @@ void main() {
             File(p.join(root.path, 'snapshot.db'))
               ..writeAsBytesSync(<int>[1, 2, 3]),
       );
+      final restoreService = BackupRestoreService(
+        client: backupClient,
+        downloadAssetStore: DownloadAssetStore(
+          directoryResolver: () async =>
+              Directory(p.join(root.path, 'downloads')),
+        ),
+        appSchemaVersion: 9,
+        databaseReader: (_) async => restoreDatabasePaths,
+        supportDirectory: () async => root,
+      );
       model = BackupControlModel(
         client: controlClient,
         healthClient: backupClient,
         syncService: syncService,
+        restoreService: restoreService,
         enableWakelock: () async => wakelockEnabled++,
         disableWakelock: () async => wakelockDisabled++,
       );
@@ -175,6 +189,76 @@ void main() {
         expect(controlClient.statuses.last.state, 'paused');
       },
     );
+
+    // ---------------------------------------------------------------------
+    // Restore, driven by the same command channel as backup.
+    // ---------------------------------------------------------------------
+
+    test('desktop restore command pulls from the named source device', () async {
+      backupClient.inventory = <String, int>{'177013/cover.webp': 3};
+      backupClient.remoteFiles = <String, List<int>>{
+        '177013/cover.webp': <int>[1, 2, 3],
+      };
+      restoreDatabasePaths = <String?>['177013/cover.webp'];
+      await model.connect(_connection);
+
+      controlClient.addCommand(
+        const BackupControlCommand(
+          action: 'startRestore',
+          commandId: 'r1',
+          sourceDeviceId: 'Old-Phone',
+        ),
+      );
+      await _waitUntil(() => model.state == BackupControlState.completed);
+
+      expect(backupClient.callLog, contains('inventoryOf:Old-Phone'));
+      expect(backupClient.downloadedPaths, <String>['177013/cover.webp']);
+    });
+
+    test(
+      'a restore command with no source device is refused rather than guessed — '
+      'only the desktop knows which partitions exist',
+      () async {
+        await model.connect(_connection);
+
+        controlClient.addCommand(
+          const BackupControlCommand(action: 'startRestore', commandId: 'bad'),
+        );
+        await _waitUntil(() => model.state == BackupControlState.error);
+
+        expect(backupClient.downloadedPaths, isEmpty);
+      },
+    );
+
+    test('a restore is refused while a backup is already running', () async {
+      final file = File(p.join(root.path, 'downloads', '177013', 'cover.webp'));
+      await file.parent.create(recursive: true);
+      await file.writeAsBytes(<int>[1, 2, 3]);
+      final gate = Completer<void>();
+      backupClient.uploadGate = gate;
+      await model.connect(_connection);
+      controlClient.addCommand(
+        const BackupControlCommand(action: 'startBackup', commandId: 'busy'),
+      );
+      await _waitUntil(
+        () => backupClient.callLog.contains('file:177013/cover.webp'),
+      );
+
+      controlClient.addCommand(
+        const BackupControlCommand(
+          action: 'startRestore',
+          commandId: 'r2',
+          sourceDeviceId: 'Old-Phone',
+        ),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 5));
+
+      // The two must never overlap: a backup running mid-restore would push the
+      // half-restored library back over the mirror being restored from.
+      expect(backupClient.callLog, isNot(contains('inventoryOf:Old-Phone')));
+      gate.complete();
+      await _waitUntil(() => model.state == BackupControlState.completed);
+    });
 
     // ---------------------------------------------------------------------
     // Snapshot policy: one logical backup uploads exactly one DB snapshot.

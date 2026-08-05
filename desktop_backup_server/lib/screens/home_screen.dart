@@ -496,6 +496,114 @@ class _DevicesCard extends StatelessWidget {
   }
 }
 
+/// Asks which backup to restore from, then confirms.
+///
+/// Two deliberate choices here. The source is picked on the desktop because
+/// that is where the list of backed-up devices lives, and because a replacement
+/// phone must be able to name a partition that is not its own. And the warning
+/// is spelled out rather than summarised: this deletes files on the phone and
+/// replaces its database, which is not recoverable by undoing anything.
+Future<void> _confirmRestore(
+  BuildContext context,
+  ServerModel model,
+  ConnectedMobileDevice device,
+) async {
+  final l10n = AppLocalizations.of(context)!;
+  final sources = model.devices;
+  if (sources.isEmpty) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(l10n.restoreDialogNoBackups)));
+    return;
+  }
+
+  // Defaults to the device's own backup when it has one, since restoring a
+  // phone onto itself is the common case.
+  var selected = sources
+      .firstWhere(
+        (candidate) => candidate.deviceId == device.deviceId,
+        orElse: () => sources.first,
+      )
+      .deviceId;
+
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) {
+      return StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            icon: const Icon(Icons.restore),
+            title: Text(l10n.restoreDialogTitle(device.deviceId)),
+            content: SizedBox(
+              width: 460,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(l10n.restoreDialogChooseSource),
+                  const SizedBox(height: 8),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxHeight: 220),
+                    child: Scrollbar(
+                      child: RadioGroup<String>(
+                        groupValue: selected,
+                        onChanged: (value) => setState(() => selected = value!),
+                        child: ListView(
+                        shrinkWrap: true,
+                        children: sources.map((source) {
+                          return RadioListTile<String>(
+                            value: source.deviceId,
+                            title: Text(source.deviceId),
+                            subtitle: Text(
+                              '${source.fileCount} · '
+                              '${formatBytes(source.totalBytes)}'
+                              '${source.lastSyncAt == null ? '' : ' · '
+                                  '${_formatTimestamp(source.lastSyncAt!)}'}',
+                            ),
+                          );
+                        }).toList(),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    l10n.restoreDialogWarning,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
+            ),
+            actions: <Widget>[
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: Text(l10n.restoreCancel),
+              ),
+              FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.error,
+                ),
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                child: Text(l10n.restoreConfirm),
+              ),
+            ],
+          );
+        },
+      );
+    },
+  );
+
+  if (confirmed != true || !context.mounted) {
+    return;
+  }
+  model.startRestore(deviceId: device.deviceId, sourceDeviceId: selected);
+  if (context.mounted) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(l10n.restoreStarted(device.deviceId))),
+    );
+  }
+}
+
 class _ConnectedDevicesCard extends StatelessWidget {
   const _ConnectedDevicesCard({required this.model});
 
@@ -559,6 +667,16 @@ class _ConnectedDevicesCard extends StatelessWidget {
                             : null,
                         icon: const Icon(Icons.backup),
                         label: Text(l10n.controlStartBackup),
+                      ),
+                      OutlinedButton.icon(
+                        // Same "not while a job is running" rule as backup: the
+                        // two must never overlap, or a backup would push the
+                        // half-restored library back over the mirror.
+                        onPressed: device.canStart
+                            ? () => _confirmRestore(context, model, device)
+                            : null,
+                        icon: const Icon(Icons.restore),
+                        label: Text(l10n.controlRestore),
                       ),
                       OutlinedButton.icon(
                         onPressed: device.canPause

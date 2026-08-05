@@ -428,6 +428,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Deleted {count} file(s)'**
   String pruneDeletedToast(int count);
+
+  /// No description provided for @controlRestore.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore…'**
+  String get controlRestore;
+
+  /// No description provided for @restoreDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore {deviceId} from a backup?'**
+  String restoreDialogTitle(String deviceId);
+
+  /// No description provided for @restoreDialogChooseSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Which backup should it be restored from?'**
+  String get restoreDialogChooseSource;
+
+  /// No description provided for @restoreDialogWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'The phone will delete downloaded comics that this backup does not contain, then fetch back everything it is missing. Its database is replaced too, and the app restarts when it finishes. The nhentai API key is not part of a backup, so it will need signing in again.'**
+  String get restoreDialogWarning;
+
+  /// No description provided for @restoreDialogNoBackups.
+  ///
+  /// In en, this message translates to:
+  /// **'There are no backups on this computer yet.'**
+  String get restoreDialogNoBackups;
+
+  /// No description provided for @restoreConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore'**
+  String get restoreConfirm;
+
+  /// No description provided for @restoreCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get restoreCancel;
+
+  /// No description provided for @restoreStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore started on {deviceId}'**
+  String restoreStarted(String deviceId);
+
+  /// No description provided for @controlStateRestoring.
+  ///
+  /// In en, this message translates to:
+  /// **'Restoring…'**
+  String get controlStateRestoring;
 }
 
 class _AppLocalizationsDelegate

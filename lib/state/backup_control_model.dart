@@ -4,7 +4,9 @@ import 'package:concept_nhv/services/backup/backup_connection.dart';
 import 'package:concept_nhv/services/backup/backup_client.dart';
 import 'package:concept_nhv/services/backup/backup_control_client.dart';
 import 'package:concept_nhv/services/backup/backup_models.dart';
+import 'package:concept_nhv/services/backup/backup_restore_service.dart';
 import 'package:concept_nhv/services/backup/backup_sync_service.dart';
+import 'package:concept_nhv/services/backup/restore_models.dart';
 import 'package:flutter/foundation.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
@@ -24,11 +26,13 @@ class BackupControlModel extends ChangeNotifier {
     required BackupControlClient client,
     required BackupClient healthClient,
     required BackupSyncService syncService,
+    BackupRestoreService? restoreService,
     Future<void> Function()? enableWakelock,
     Future<void> Function()? disableWakelock,
   }) : _client = client,
        _healthClient = healthClient,
        _syncService = syncService,
+       _restoreService = restoreService,
        _enableWakelock = enableWakelock ?? WakelockPlus.enable,
        _disableWakelock = disableWakelock ?? WakelockPlus.disable {
     _commandSubscription = _client.commands.listen(_handleCommand);
@@ -46,6 +50,7 @@ class BackupControlModel extends ChangeNotifier {
   final BackupControlClient _client;
   final BackupClient _healthClient;
   final BackupSyncService _syncService;
+  final BackupRestoreService? _restoreService;
   final Future<void> Function() _enableWakelock;
   final Future<void> Function() _disableWakelock;
   late final StreamSubscription<BackupControlCommand> _commandSubscription;
@@ -136,6 +141,21 @@ class BackupControlModel extends ChangeNotifier {
         } else {
           _sendState(commandId: command.commandId);
         }
+      case 'startRestore':
+        final source = command.sourceDeviceId;
+        if (source == null || source.isEmpty) {
+          // The desktop is the only place that knows which partitions exist, so
+          // a restore command without one is malformed rather than a default.
+          _error = 'Restore command did not name a source device';
+          _state = BackupControlState.error;
+          _sendState(commandId: command.commandId, message: _error);
+          notifyListeners();
+        } else if (_state != BackupControlState.running &&
+            _state != BackupControlState.pausing) {
+          unawaited(_runRestore(command.commandId, source));
+        } else {
+          _sendState(commandId: command.commandId);
+        }
       case 'pause':
         if (_state == BackupControlState.running) {
           _activeCommandId = command.commandId;
@@ -146,6 +166,99 @@ class BackupControlModel extends ChangeNotifier {
         } else {
           _sendState(commandId: command.commandId);
         }
+    }
+  }
+
+  /// Restores this device from [sourceDeviceId]'s partition.
+  ///
+  /// Reuses the backup job's state machine so the desktop sees one consistent
+  /// set of states, and so a restore is subject to the same "one job at a time"
+  /// rule — the two must never run together, since a backup would upload the
+  /// half-restored library back over the mirror it is being restored from.
+  Future<void> _runRestore(String commandId, String sourceDeviceId) async {
+    final connection = _connection;
+    final restoreService = _restoreService;
+    if (connection == null) {
+      return;
+    }
+    if (restoreService == null) {
+      _error = 'Restore is not available on this build';
+      _state = BackupControlState.error;
+      _sendState(commandId: commandId, message: _error);
+      notifyListeners();
+      return;
+    }
+
+    _activeCommandId = commandId;
+    _pauseToken = BackupPauseToken();
+    _progress = const BackupSyncProgress(stage: BackupSyncStage.connecting);
+    _result = null;
+    _error = null;
+    // A restore invalidates any resume checkpoint: the library it described is
+    // being replaced wholesale.
+    _canResumeWithoutSnapshot = false;
+    _state = BackupControlState.running;
+    _sendState();
+    notifyListeners();
+    await _enableWakelock();
+    try {
+      final result = await restoreService.run(
+        connection: connection,
+        sourceDeviceId: sourceDeviceId,
+        pauseToken: _pauseToken,
+        onProgress: (progress) {
+          // Mapped onto the backup progress shape so the desktop needs only one
+          // renderer; the wire protocol carries counts, not job kinds.
+          _progress = BackupSyncProgress(
+            stage: switch (progress.stage) {
+              RestoreStage.checking ||
+              RestoreStage.planning => BackupSyncStage.comparing,
+              RestoreStage.clearing ||
+              RestoreStage.downloading => BackupSyncStage.uploading,
+              RestoreStage.applying ||
+              RestoreStage.done => BackupSyncStage.done,
+            },
+            uploadedFiles: progress.downloadedFiles,
+            totalFiles: progress.totalFiles,
+            currentPath: progress.currentPath,
+          );
+          _sendState();
+          notifyListeners();
+        },
+      );
+      if (_connection == null || !_client.isConnected) {
+        _state = BackupControlState.disconnected;
+      } else if (result.databaseStaged) {
+        _state = BackupControlState.completed;
+        _sendState(message: 'restoreStaged');
+      } else {
+        _state = result.isPaused
+            ? BackupControlState.paused
+            : BackupControlState.error;
+        _error = result.failures.isEmpty ? null : result.failures.first;
+        _sendState(message: _error);
+      }
+    } on RestoreBlockedException catch (error) {
+      // These are refusals, not faults: nothing local was touched.
+      _error = switch (error.reason) {
+        RestoreBlockedReason.backupIsNewer =>
+          'That backup was made by a newer version of the app',
+        RestoreBlockedReason.noDatabaseSnapshot =>
+          'That device has no database snapshot to restore from',
+        RestoreBlockedReason.emptySource => 'That device has no backup yet',
+      };
+      _state = BackupControlState.error;
+      _sendState(message: _error);
+    } catch (error) {
+      _error = '$error';
+      _state = _client.isConnected
+          ? BackupControlState.error
+          : BackupControlState.disconnected;
+      _sendState(message: _error);
+    } finally {
+      _pauseToken = null;
+      await _disableWakelock();
+      notifyListeners();
     }
   }
 

@@ -46,4 +46,4 @@ class ConnectedMobileDevice {
   }
 }
 
-enum MobileControlAction { startBackup, pause }
+enum MobileControlAction { startBackup, startRestore, pause }

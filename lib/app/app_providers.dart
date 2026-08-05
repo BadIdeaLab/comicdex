@@ -26,7 +26,9 @@ import 'package:concept_nhv/services/image_url_resolver.dart';
 import 'package:concept_nhv/state/app_locale_model.dart';
 import 'package:concept_nhv/services/backup/backup_client.dart';
 import 'package:concept_nhv/services/backup/backup_control_client.dart';
+import 'package:concept_nhv/services/backup/backup_restore_service.dart';
 import 'package:concept_nhv/services/backup/backup_sync_service.dart';
+import 'package:concept_nhv/services/backup/snapshot_database_reader.dart';
 import 'package:concept_nhv/services/backup/device_name_service.dart';
 import 'package:concept_nhv/services/download_asset_store.dart';
 import 'package:concept_nhv/services/local_tag_catalog_service.dart';
@@ -175,6 +177,15 @@ List<SingleChildWidget> _buildServiceProviders() {
         );
       },
     ),
+    Provider<BackupRestoreService>(
+      create: (context) => BackupRestoreService(
+        client: context.read(),
+        downloadAssetStore: context.read(),
+        appSchemaVersion: context.read<LocalDatabase>().schemaVersion,
+        databaseReader: sqliteSnapshotReader,
+        supportDirectory: getApplicationSupportDirectory,
+      ),
+    ),
     Provider<BackupControlClient>(
       create: (_) => WebSocketBackupControlClient(),
     ),
@@ -184,6 +195,7 @@ List<SingleChildWidget> _buildServiceProviders() {
         client: context.read(),
         healthClient: context.read(),
         syncService: context.read(),
+        restoreService: context.read(),
       ),
     ),
     Provider(

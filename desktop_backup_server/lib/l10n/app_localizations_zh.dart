@@ -206,6 +206,38 @@ class AppLocalizationsZh extends AppLocalizations {
   String pruneDeletedToast(int count) {
     return '已刪除 $count 個檔案';
   }
+
+  @override
+  String get controlRestore => '還原…';
+
+  @override
+  String restoreDialogTitle(String deviceId) {
+    return '要把 $deviceId 從備份還原嗎？';
+  }
+
+  @override
+  String get restoreDialogChooseSource => '要從哪一份備份還原？';
+
+  @override
+  String get restoreDialogWarning =>
+      '手機會刪除這份備份裡沒有的已下載漫畫，再把缺少的補回來。資料庫也會被取代，完成後 App 會重新啟動。備份不含 nhentai API 金鑰，還原後需要重新登入。';
+
+  @override
+  String get restoreDialogNoBackups => '這台電腦上還沒有任何備份。';
+
+  @override
+  String get restoreConfirm => '開始還原';
+
+  @override
+  String get restoreCancel => '取消';
+
+  @override
+  String restoreStarted(String deviceId) {
+    return '已在 $deviceId 上開始還原';
+  }
+
+  @override
+  String get controlStateRestoring => '還原中…';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -409,4 +441,36 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String pruneDeletedToast(int count) {
     return '已刪除 $count 個檔案';
   }
+
+  @override
+  String get controlRestore => '還原…';
+
+  @override
+  String restoreDialogTitle(String deviceId) {
+    return '要把 $deviceId 從備份還原嗎？';
+  }
+
+  @override
+  String get restoreDialogChooseSource => '要從哪一份備份還原？';
+
+  @override
+  String get restoreDialogWarning =>
+      '手機會刪除這份備份裡沒有的已下載漫畫，再把缺少的補回來。資料庫也會被取代，完成後 App 會重新啟動。備份不含 nhentai API 金鑰，還原後需要重新登入。';
+
+  @override
+  String get restoreDialogNoBackups => '這台電腦上還沒有任何備份。';
+
+  @override
+  String get restoreConfirm => '開始還原';
+
+  @override
+  String get restoreCancel => '取消';
+
+  @override
+  String restoreStarted(String deviceId) {
+    return '已在 $deviceId 上開始還原';
+  }
+
+  @override
+  String get controlStateRestoring => '還原中…';
 }

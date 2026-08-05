@@ -1,15 +1,11 @@
 {
   "@@locale": "zh",
-
   "appTitle": "Comicdex 備份伺服器",
-
   "languageLabel": "語言",
   "languageSystem": "跟隨系統",
   "languageEnglish": "English",
   "languageTraditionalChinese": "繁體中文",
-
   "refreshDevices": "重新掃描網路位址與裝置清單",
-
   "connectTitle": "從手機連線",
   "connectAddressLabel": "位址",
   "connectPinLabel": "配對碼",
@@ -22,110 +18,149 @@
   "connectAddressCopied": "已複製 {address}",
   "@connectAddressCopied": {
     "placeholders": {
-      "address": { "type": "String" }
+      "address": {
+        "type": "String"
+      }
     }
   },
-
   "firewallHint": "還沒有任何裝置連線過。如果手機連不到這台電腦，先確認 Windows 防火牆有允許這個程式使用私人網路——這是最常見的原因，而且症狀看起來跟位址打錯一模一樣。",
   "lockedOutHint": "因為連續輸入錯誤配對碼而暫時封鎖：{addresses}",
   "@lockedOutHint": {
     "placeholders": {
-      "addresses": { "type": "String" }
+      "addresses": {
+        "type": "String"
+      }
     }
   },
-
   "folderTitle": "備份資料夾",
   "folderNotSet": "（尚未設定）",
   "folderChange": "變更",
   "folderPickConfirm": "使用這個資料夾",
   "folderMissingWarning": "目前找不到這個資料夾（可能是外接硬碟沒接上）。在它恢復之前一律拒絕備份，以免手機把空的鏡像誤判成「還沒備份過」而重傳整個圖庫。",
-
   "devicesTitle": "已備份的裝置",
   "devicesEmpty": "還沒有任何備份。",
   "devicesSubtitle": "{fileCount} 個檔案 · {size} · {snapshotCount} 份資料庫快照",
   "@devicesSubtitle": {
     "placeholders": {
-      "fileCount": { "type": "int" },
-      "size": { "type": "String" },
-      "snapshotCount": { "type": "int" }
+      "fileCount": {
+        "type": "int"
+      },
+      "size": {
+        "type": "String"
+      },
+      "snapshotCount": {
+        "type": "int"
+      }
     }
   },
   "devicesLastSync": "上次同步 {timestamp}",
   "@devicesLastSync": {
     "placeholders": {
-      "timestamp": { "type": "String" }
+      "timestamp": {
+        "type": "String"
+      }
     }
   },
-
   "activityTitle": "活動紀錄",
   "activityEmpty": "等待裝置連線…",
   "activityFolderChanged": "備份資料夾已改為 {path}",
   "@activityFolderChanged": {
     "placeholders": {
-      "path": { "type": "String" }
+      "path": {
+        "type": "String"
+      }
     }
   },
   "activityPinRegenerated": "已產生新的配對碼",
   "activityCleanedPartFiles": "已清除 {count} 個中斷的傳輸暫存檔",
   "@activityCleanedPartFiles": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "activityDeletedStaleFiles": "已刪除 {deviceId} 的 {count} 個過期檔案",
   "@activityDeletedStaleFiles": {
     "placeholders": {
-      "count": { "type": "int" },
-      "deviceId": { "type": "String" }
+      "count": {
+        "type": "int"
+      },
+      "deviceId": {
+        "type": "String"
+      }
     }
   },
   "activityReceivedFile": "已從 {deviceId} 收到 {path}",
   "@activityReceivedFile": {
     "placeholders": {
-      "path": { "type": "String" },
-      "deviceId": { "type": "String" }
+      "path": {
+        "type": "String"
+      },
+      "deviceId": {
+        "type": "String"
+      }
     }
   },
   "activitySentFile": "已傳送 {path} 給 {deviceId}",
   "@activitySentFile": {
     "placeholders": {
-      "path": { "type": "String" },
-      "deviceId": { "type": "String" }
+      "path": {
+        "type": "String"
+      },
+      "deviceId": {
+        "type": "String"
+      }
     }
   },
   "activityStoredDatabase": "已儲存 {deviceId} 的資料庫快照",
   "@activityStoredDatabase": {
     "placeholders": {
-      "deviceId": { "type": "String" }
+      "deviceId": {
+        "type": "String"
+      }
     }
   },
   "activitySentDatabase": "已傳送資料庫快照給 {deviceId}",
   "@activitySentDatabase": {
     "placeholders": {
-      "deviceId": { "type": "String" }
+      "deviceId": {
+        "type": "String"
+      }
     }
   },
   "activityBlockedPin": "已封鎖來自 {address} 的連續錯誤配對碼",
   "@activityBlockedPin": {
     "placeholders": {
-      "address": { "type": "String" }
+      "address": {
+        "type": "String"
+      }
     }
   },
   "activityPruneRequested": "{deviceId} 要求清理：{count} 個過期檔案",
   "@activityPruneRequested": {
     "placeholders": {
-      "deviceId": { "type": "String" },
-      "count": { "type": "int" }
+      "deviceId": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
     }
   },
-
   "pruneTitle": "刪除手機上已經沒有的檔案？",
   "pruneSummary": "{deviceId} 要求清理 {count} 個檔案，可釋出 {size}。",
   "@pruneSummary": {
     "placeholders": {
-      "deviceId": { "type": "String" },
-      "count": { "type": "int" },
-      "size": { "type": "String" }
+      "deviceId": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      },
+      "size": {
+        "type": "String"
+      }
     }
   },
   "pruneExplanation": "這些檔案存在於備份中，但手機上已經沒有了。刪除無法復原——如果是手機端誤刪，這裡就是僅存的一份。",
@@ -134,7 +169,32 @@
   "pruneDeletedToast": "已刪除 {count} 個檔案",
   "@pruneDeletedToast": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
-  }
+  },
+  "controlRestore": "還原…",
+  "restoreDialogTitle": "要把 {deviceId} 從備份還原嗎？",
+  "@restoreDialogTitle": {
+    "placeholders": {
+      "deviceId": {
+        "type": "String"
+      }
+    }
+  },
+  "restoreDialogChooseSource": "要從哪一份備份還原？",
+  "restoreDialogWarning": "手機會刪除這份備份裡沒有的已下載漫畫，再把缺少的補回來。資料庫也會被取代，完成後 App 會重新啟動。備份不含 nhentai API 金鑰，還原後需要重新登入。",
+  "restoreDialogNoBackups": "這台電腦上還沒有任何備份。",
+  "restoreConfirm": "開始還原",
+  "restoreCancel": "取消",
+  "restoreStarted": "已在 {deviceId} 上開始還原",
+  "@restoreStarted": {
+    "placeholders": {
+      "deviceId": {
+        "type": "String"
+      }
+    }
+  },
+  "controlStateRestoring": "還原中…"
 }

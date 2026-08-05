@@ -207,4 +207,38 @@ class AppLocalizationsEn extends AppLocalizations {
   String pruneDeletedToast(int count) {
     return 'Deleted $count file(s)';
   }
+
+  @override
+  String get controlRestore => 'Restore…';
+
+  @override
+  String restoreDialogTitle(String deviceId) {
+    return 'Restore $deviceId from a backup?';
+  }
+
+  @override
+  String get restoreDialogChooseSource =>
+      'Which backup should it be restored from?';
+
+  @override
+  String get restoreDialogWarning =>
+      'The phone will delete downloaded comics that this backup does not contain, then fetch back everything it is missing. Its database is replaced too, and the app restarts when it finishes. The nhentai API key is not part of a backup, so it will need signing in again.';
+
+  @override
+  String get restoreDialogNoBackups =>
+      'There are no backups on this computer yet.';
+
+  @override
+  String get restoreConfirm => 'Restore';
+
+  @override
+  String get restoreCancel => 'Cancel';
+
+  @override
+  String restoreStarted(String deviceId) {
+    return 'Restore started on $deviceId';
+  }
+
+  @override
+  String get controlStateRestoring => 'Restoring…';
 }

@@ -6,10 +6,21 @@ import 'package:concept_nhv/services/backup/backup_client.dart';
 import 'package:concept_nhv/services/backup/backup_connection.dart';
 
 class BackupControlCommand {
-  const BackupControlCommand({required this.action, required this.commandId});
+  const BackupControlCommand({
+    required this.action,
+    required this.commandId,
+    this.sourceDeviceId,
+  });
 
   final String action;
   final String commandId;
+
+  /// Which device's backup a  should pull from.
+  ///
+  /// Absent for every other action. It is chosen on the desktop because that is
+  /// where the list of backed-up devices lives — and a replacement phone needs
+  /// to name a partition that is not its own.
+  final String? sourceDeviceId;
 }
 
 abstract class BackupControlClient {
@@ -87,7 +98,13 @@ class WebSocketBackupControlClient implements BackupControlClient {
     final action = decoded['action'];
     final commandId = decoded['commandId'];
     if (action is String && commandId is String) {
-      _commands.add(BackupControlCommand(action: action, commandId: commandId));
+      _commands.add(
+        BackupControlCommand(
+          action: action,
+          commandId: commandId,
+          sourceDeviceId: decoded['sourceDeviceId'] as String?,
+        ),
+      );
     }
   }
 
