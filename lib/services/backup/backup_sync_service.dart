@@ -166,6 +166,14 @@ class BackupSyncService {
       if (entity is! File) {
         continue;
       }
+      // Half-written files an interrupted restore left behind. Uploading one
+      // would put a truncated image in the mirror that nothing references and
+      // that prune can never remove — the phone genuinely still has it, so it
+      // never looks stale. Skipped rather than deleted: a backup should only
+      // ever read. The next restore's planning pass sweeps them.
+      if (entity.path.endsWith('.part')) {
+        continue;
+      }
       final relative = p
           .relative(entity.path, from: root.path)
           .replaceAll(r'\', '/');

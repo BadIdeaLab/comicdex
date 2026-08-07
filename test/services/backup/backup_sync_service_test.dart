@@ -231,6 +231,26 @@ void main() {
       expect(File(p.join(tempRoot.path, 'snapshot.db')).existsSync(), isFalse);
     });
 
+    test(
+      'never uploads a .part left by an interrupted restore — the mirror would '
+      'gain a truncated file that prune can never remove, because the phone '
+      'really does still have it',
+      () async {
+        await writeDownload('177013/cover.webp', <int>[1, 2, 3]);
+        await writeDownload('177013/pages/5.webp.part', <int>[9]);
+
+        await buildService().run(connection: connection);
+
+        expect(client.uploadedPaths, <String>['177013/cover.webp']);
+        // And it is left alone: a backup only ever reads.
+        expect(
+          File(p.join(downloadsRoot.path, '177013/pages/5.webp.part'))
+              .existsSync(),
+          isTrue,
+        );
+      },
+    );
+
     test('handles an empty downloads folder', () async {
       final result = await buildService().run(connection: connection);
 
