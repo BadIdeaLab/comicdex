@@ -206,5 +206,7 @@
       }
     }
   },
-  "controlStateRestoring": "Restoring…"
+  "controlStateRestoring": "Restoring…",
+  "controlStateRestored": "Restore completed · restart the phone app",
+  "controlStateRestoreError": "Restore failed"
 }

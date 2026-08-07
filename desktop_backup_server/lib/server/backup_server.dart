@@ -505,6 +505,9 @@ class BackupServer {
     final totalFiles = decoded['totalFiles'];
     session.device = session.device.copyWith(
       state: state.first,
+      jobKind: decoded['jobKind'] is String
+          ? decoded['jobKind']! as String
+          : 'backup',
       commandId: decoded['commandId'] is String
           ? decoded['commandId']! as String
           : null,

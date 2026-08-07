@@ -31,6 +31,9 @@ abstract class BackupControlClient {
   Future<void> connect(BackupConnection connection);
   void sendStatus({
     required String state,
+    /// 'backup' or 'restore', so the desktop can label a finished job correctly
+    /// instead of calling every completion a backup.
+    String jobKind = 'backup',
     String? commandId,
     int uploadedFiles = 0,
     int totalFiles = 0,
@@ -111,6 +114,7 @@ class WebSocketBackupControlClient implements BackupControlClient {
   @override
   void sendStatus({
     required String state,
+    String jobKind = 'backup',
     String? commandId,
     int uploadedFiles = 0,
     int totalFiles = 0,
@@ -121,6 +125,7 @@ class WebSocketBackupControlClient implements BackupControlClient {
       jsonEncode(<String, Object?>{
         'type': 'status',
         'state': state,
+        'jobKind': jobKind,
         'commandId': ?commandId,
         'uploadedFiles': uploadedFiles,
         'totalFiles': totalFiles,

@@ -213,6 +213,19 @@ void main() {
 
       expect(backupClient.callLog, contains('inventoryOf:Old-Phone'));
       expect(backupClient.downloadedPaths, <String>['177013/cover.webp']);
+      // The desktop shares one state machine for both jobs, so it needs this to
+      // avoid announcing a finished restore as a completed backup.
+      expect(controlClient.statuses.last.jobKind, 'restore');
+    });
+
+    test('a backup reports itself as a backup', () async {
+      await model.connect(_connection);
+      controlClient.addCommand(
+        const BackupControlCommand(action: 'startBackup', commandId: 'b1'),
+      );
+      await _waitUntil(() => model.state == BackupControlState.completed);
+
+      expect(controlClient.statuses.last.jobKind, 'backup');
     });
 
     test(
@@ -420,8 +433,9 @@ Future<void> _waitUntil(bool Function() predicate) async {
 }
 
 class SentStatus {
-  const SentStatus(this.state);
+  const SentStatus(this.state, {this.jobKind = 'backup'});
   final String state;
+  final String jobKind;
 }
 
 class FakeControlClient implements BackupControlClient {
@@ -462,13 +476,14 @@ class FakeControlClient implements BackupControlClient {
   @override
   void sendStatus({
     required String state,
+    String jobKind = 'backup',
     String? commandId,
     int uploadedFiles = 0,
     int totalFiles = 0,
     String? currentPath,
     String? message,
   }) {
-    statuses.add(SentStatus(state));
+    statuses.add(SentStatus(state, jobKind: jobKind));
   }
 
   Future<void> dispose() async {

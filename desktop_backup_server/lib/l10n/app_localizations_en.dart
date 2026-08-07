@@ -241,4 +241,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get controlStateRestoring => 'Restoring…';
+
+  @override
+  String get controlStateRestored =>
+      'Restore completed · restart the phone app';
+
+  @override
+  String get controlStateRestoreError => 'Restore failed';
 }

@@ -196,5 +196,7 @@
       }
     }
   },
-  "controlStateRestoring": "還原中…"
+  "controlStateRestoring": "還原中…",
+  "controlStateRestored": "還原完成 · 請重新啟動手機 App",
+  "controlStateRestoreError": "還原失敗"
 }

@@ -76,6 +76,9 @@ class BackupControlModel extends ChangeNotifier {
   /// reset to "new backup" for free, with no expiry logic to get wrong.
   bool _canResumeWithoutSnapshot = false;
 
+  /// Which kind of job the reported state belongs to.
+  bool _activeJobIsRestore = false;
+
   BackupControlState get state => _state;
   BackupSyncProgress? get progress => _progress;
   BackupSyncResult? get result => _result;
@@ -190,6 +193,7 @@ class BackupControlModel extends ChangeNotifier {
     }
 
     _activeCommandId = commandId;
+    _activeJobIsRestore = true;
     _pauseToken = BackupPauseToken();
     _progress = const BackupSyncProgress(stage: BackupSyncStage.connecting);
     _result = null;
@@ -230,7 +234,7 @@ class BackupControlModel extends ChangeNotifier {
         _state = BackupControlState.disconnected;
       } else if (result.databaseStaged) {
         _state = BackupControlState.completed;
-        _sendState(message: 'restoreStaged');
+        _sendState();
       } else {
         _state = result.isPaused
             ? BackupControlState.paused
@@ -274,6 +278,7 @@ class BackupControlModel extends ChangeNotifier {
         : DatabaseSnapshotPolicy.capture;
 
     _activeCommandId = commandId;
+    _activeJobIsRestore = false;
     _pauseToken = BackupPauseToken();
     _progress = const BackupSyncProgress(stage: BackupSyncStage.connecting);
     _result = null;
@@ -329,9 +334,12 @@ class BackupControlModel extends ChangeNotifier {
   }
 
   void _sendState({String? commandId, String? message}) {
+    // The desktop otherwise labels a finished restore "backup completed".
+    final jobKind = _activeJobIsRestore ? 'restore' : 'backup';
     final progress = _progress;
     _client.sendStatus(
       state: _wireState,
+      jobKind: jobKind,
       commandId: commandId ?? _activeCommandId,
       uploadedFiles: progress?.uploadedFiles ?? 0,
       totalFiles: progress?.totalFiles ?? 0,

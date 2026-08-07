@@ -482,6 +482,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Restoring…'**
   String get controlStateRestoring;
+
+  /// No description provided for @controlStateRestored.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore completed · restart the phone app'**
+  String get controlStateRestored;
+
+  /// No description provided for @controlStateRestoreError.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore failed'**
+  String get controlStateRestoreError;
 }
 
 class _AppLocalizationsDelegate

@@ -238,6 +238,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get controlStateRestoring => '還原中…';
+
+  @override
+  String get controlStateRestored => '還原完成 · 請重新啟動手機 App';
+
+  @override
+  String get controlStateRestoreError => '還原失敗';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -473,4 +479,10 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get controlStateRestoring => '還原中…';
+
+  @override
+  String get controlStateRestored => '還原完成 · 請重新啟動手機 App';
+
+  @override
+  String get controlStateRestoreError => '還原失敗';
 }

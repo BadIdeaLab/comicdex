@@ -635,7 +635,7 @@ class _ConnectedDevicesCard extends StatelessWidget {
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
-                      Text(_controlStateLabel(l10n, device.state)),
+                      Text(_controlStateLabel(l10n, device)),
                       if (progress != null) ...<Widget>[
                         const SizedBox(height: 4),
                         LinearProgressIndicator(value: progress.clamp(0, 1)),
@@ -696,14 +696,21 @@ class _ConnectedDevicesCard extends StatelessWidget {
   }
 }
 
-String _controlStateLabel(AppLocalizations l10n, MobileJobState state) {
-  return switch (state) {
+/// Backup and restore share one state machine, so the label has to come from
+/// the job kind as well — otherwise a finished restore reads "backup completed",
+/// which is exactly the moment the user most needs to be told to relaunch.
+String _controlStateLabel(AppLocalizations l10n, ConnectedMobileDevice device) {
+  final restoring = device.isRestoring;
+  return switch (device.state) {
     MobileJobState.idle => l10n.controlStateIdle,
-    MobileJobState.running => l10n.controlStateRunning,
+    MobileJobState.running =>
+      restoring ? l10n.controlStateRestoring : l10n.controlStateRunning,
     MobileJobState.pausing => l10n.controlStatePausing,
     MobileJobState.paused => l10n.controlStatePaused,
-    MobileJobState.completed => l10n.controlStateCompleted,
-    MobileJobState.error => l10n.controlStateError,
+    MobileJobState.completed =>
+      restoring ? l10n.controlStateRestored : l10n.controlStateCompleted,
+    MobileJobState.error =>
+      restoring ? l10n.controlStateRestoreError : l10n.controlStateError,
   };
 }
 

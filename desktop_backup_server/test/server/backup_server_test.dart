@@ -353,6 +353,72 @@ void main() {
     });
 
     group('mobile control channel', () {
+      test(
+        'a restore command carries the source device, and the reported job kind '
+        'comes back so a finished restore is not labelled a finished backup',
+        () async {
+          final socket = await WebSocket.connect(
+            'ws://127.0.0.1:$port/control/connect',
+            headers: <String, String>{
+              kPinHeader: pinGuard.pin,
+              kDeviceHeader: 'New-Phone',
+            },
+          );
+          final messages = StreamIterator<Object?>(socket);
+          await messages.moveNext(); // 'connected'
+
+          expect(
+            server.sendControlCommand(
+              'New-Phone',
+              MobileControlAction.startRestore,
+              sourceDeviceId: 'Old-Phone',
+            ),
+            isTrue,
+          );
+          expect(await messages.moveNext(), isTrue);
+          final command =
+              jsonDecode(messages.current! as String) as Map<String, Object?>;
+          expect(command['action'], 'startRestore');
+          // Without this the phone cannot tell which partition to pull, and it
+          // must never guess.
+          expect(command['sourceDeviceId'], 'Old-Phone');
+
+          socket.add(
+            jsonEncode(<String, Object?>{
+              'type': 'status',
+              'state': 'completed',
+              'jobKind': 'restore',
+            }),
+          );
+          await Future<void>.delayed(const Duration(milliseconds: 20));
+          expect(server.connectedDevices.single.isRestoring, isTrue);
+
+          await messages.cancel();
+          await socket.close();
+        },
+      );
+
+      test('a status without a job kind is treated as a backup', () async {
+        final socket = await WebSocket.connect(
+          'ws://127.0.0.1:$port/control/connect',
+          headers: <String, String>{
+            kPinHeader: pinGuard.pin,
+            kDeviceHeader: 'Pixel-8',
+          },
+        );
+        final messages = StreamIterator<Object?>(socket);
+        await messages.moveNext();
+
+        socket.add(
+          jsonEncode(<String, Object?>{'type': 'status', 'state': 'running'}),
+        );
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+        expect(server.connectedDevices.single.isRestoring, isFalse);
+
+        await messages.cancel();
+        await socket.close();
+      });
+
       test('tracks status and sends desktop commands over WebSocket', () async {
         final socket = await WebSocket.connect(
           'ws://127.0.0.1:$port/control/connect',
