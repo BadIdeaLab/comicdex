@@ -19,7 +19,16 @@ class InterruptedRestoreGate extends StatefulWidget {
     required this.readInterrupted,
     required this.onAcknowledged,
     required this.child,
+    this.dialogContext,
   });
+
+  /// Where to show the dialog, when this widget sits above the Navigator.
+  ///
+  /// `MaterialApp.router`'s `builder` wraps the navigator, so this widget's own
+  /// context has no Navigator ancestor and `showDialog` would throw — inside an
+  /// async callback, where the failure is swallowed and the warning simply never
+  /// appears. Supplying the router's navigator key avoids that.
+  final BuildContext? Function()? dialogContext;
 
   /// Built from a [RestoreProgressFlag] in the app; supplied directly in tests.
   ///
@@ -36,11 +45,13 @@ class InterruptedRestoreGate extends StatefulWidget {
     Key? key,
     required RestoreProgressFlag flag,
     required Widget child,
+    BuildContext? Function()? dialogContext,
   }) {
     return InterruptedRestoreGate(
       key: key,
       readInterrupted: flag.read,
       onAcknowledged: flag.clear,
+      dialogContext: dialogContext,
       child: child,
     );
   }
@@ -71,9 +82,10 @@ class _InterruptedRestoreGateState extends State<InterruptedRestoreGate> {
   }
 
   Future<void> _showPrompt(InterruptedRestore interrupted) async {
-    final l10n = AppLocalizations.of(context)!;
+    final host = widget.dialogContext?.call() ?? context;
+    final l10n = AppLocalizations.of(host)!;
     final dismissed = await showDialog<bool>(
-      context: context,
+      context: host,
       barrierDismissible: false,
       builder: (dialogContext) {
         return AlertDialog(

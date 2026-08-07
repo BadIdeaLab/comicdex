@@ -83,6 +83,39 @@ void main() {
       expect(acknowledgements, 1);
     });
 
+    testWidgets(
+      'still warns when placed above the navigator, as MaterialApp.builder '
+      'does — that context has no Navigator, so showDialog needs the router key',
+      (tester) async {
+        markInterrupted();
+        final navigatorKey = GlobalKey<NavigatorState>();
+
+        await tester.pumpWidget(
+          MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            navigatorKey: navigatorKey,
+            // Reproduces the real placement. The earlier tests used `home:`,
+            // which puts the gate *below* the navigator and hid this failure
+            // entirely: in the app the dialog silently never appeared.
+            builder: (context, child) {
+              return InterruptedRestoreGate(
+                readInterrupted: () async => interrupted,
+                onAcknowledged: () async => acknowledgements++,
+                dialogContext: () => navigatorKey.currentContext,
+                child: child ?? const SizedBox.shrink(),
+              );
+            },
+            home: const Scaffold(body: Text('library')),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.byType(AlertDialog), findsOneWidget);
+        expect(find.textContaining('Old-Phone'), findsOneWidget);
+      },
+    );
+
     testWidgets('cannot be dismissed by tapping outside', (tester) async {
       markInterrupted();
       await pump(tester);

@@ -57,6 +57,7 @@ class BootstrapApp extends StatelessWidget {
                 flag: RestoreProgressFlag(
                   supportDirectory: getApplicationSupportDirectory,
                 ),
+                dialogContext: () => appNavigatorKey.currentContext,
                 child: child ?? const SizedBox.shrink(),
               );
             },
