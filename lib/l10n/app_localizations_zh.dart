@@ -397,6 +397,22 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get restoreInterruptedAcknowledge => '我知道了';
+
+  @override
+  String get restoreDoneTitle => '還原完成';
+
+  @override
+  String get restoreDoneBody =>
+      '圖庫已經還原完畢。必須重新啟動 App 才會載入還原後的資料庫——在那之前畫面上顯示的仍然是舊的。';
+
+  @override
+  String get restoreDoneCloseApp => '關閉 App';
+
+  @override
+  String get restoreDoneManualHint => '請完全關閉這個 App，然後重新開啟。';
+
+  @override
+  String get backupControlRestoreDone => '還原完成 · 需要重新啟動';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -790,4 +806,20 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get restoreInterruptedAcknowledge => '我知道了';
+
+  @override
+  String get restoreDoneTitle => '還原完成';
+
+  @override
+  String get restoreDoneBody =>
+      '圖庫已經還原完畢。必須重新啟動 App 才會載入還原後的資料庫——在那之前畫面上顯示的仍然是舊的。';
+
+  @override
+  String get restoreDoneCloseApp => '關閉 App';
+
+  @override
+  String get restoreDoneManualHint => '請完全關閉這個 App，然後重新開啟。';
+
+  @override
+  String get backupControlRestoreDone => '還原完成 · 需要重新啟動';
 }

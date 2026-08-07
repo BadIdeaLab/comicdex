@@ -800,6 +800,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'I understand'**
   String get restoreInterruptedAcknowledge;
+
+  /// No description provided for @restoreDoneTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore finished'**
+  String get restoreDoneTitle;
+
+  /// No description provided for @restoreDoneBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your library has been restored. The app must be restarted to load the restored database — until then it is still showing the old one.'**
+  String get restoreDoneBody;
+
+  /// No description provided for @restoreDoneCloseApp.
+  ///
+  /// In en, this message translates to:
+  /// **'Close the app'**
+  String get restoreDoneCloseApp;
+
+  /// No description provided for @restoreDoneManualHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Please close this app completely and open it again.'**
+  String get restoreDoneManualHint;
+
+  /// No description provided for @backupControlRestoreDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore finished · restart required'**
+  String get backupControlRestoreDone;
 }
 
 class _AppLocalizationsDelegate

@@ -79,6 +79,17 @@ class BackupControlModel extends ChangeNotifier {
   /// Which kind of job the reported state belongs to.
   bool _activeJobIsRestore = false;
 
+  /// A restore finished and its database is waiting in the pending slot.
+  ///
+  /// Nothing the user does in the app now survives: the next launch replaces
+  /// the database wholesale. Until they relaunch, what they are looking at is
+  /// the old library over the new files, so the UI has to say so plainly rather
+  /// than report a cheerful "completed".
+  bool _restoreAwaitingRestart = false;
+
+  bool get restoreAwaitingRestart => _restoreAwaitingRestart;
+  bool get lastJobWasRestore => _activeJobIsRestore;
+
   BackupControlState get state => _state;
   BackupSyncProgress? get progress => _progress;
   BackupSyncResult? get result => _result;
@@ -194,6 +205,7 @@ class BackupControlModel extends ChangeNotifier {
 
     _activeCommandId = commandId;
     _activeJobIsRestore = true;
+    _restoreAwaitingRestart = false;
     _pauseToken = BackupPauseToken();
     _progress = const BackupSyncProgress(stage: BackupSyncStage.connecting);
     _result = null;
@@ -233,6 +245,7 @@ class BackupControlModel extends ChangeNotifier {
       if (_connection == null || !_client.isConnected) {
         _state = BackupControlState.disconnected;
       } else if (result.databaseStaged) {
+        _restoreAwaitingRestart = true;
         _state = BackupControlState.completed;
         _sendState();
       } else {

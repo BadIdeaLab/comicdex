@@ -418,4 +418,21 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get restoreInterruptedAcknowledge => 'I understand';
+
+  @override
+  String get restoreDoneTitle => 'Restore finished';
+
+  @override
+  String get restoreDoneBody =>
+      'Your library has been restored. The app must be restarted to load the restored database — until then it is still showing the old one.';
+
+  @override
+  String get restoreDoneCloseApp => 'Close the app';
+
+  @override
+  String get restoreDoneManualHint =>
+      'Please close this app completely and open it again.';
+
+  @override
+  String get backupControlRestoreDone => 'Restore finished · restart required';
 }

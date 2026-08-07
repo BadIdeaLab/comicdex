@@ -250,5 +250,10 @@
     }
   },
   "restoreInterruptedDismiss": "Remind me again",
-  "restoreInterruptedAcknowledge": "I understand"
+  "restoreInterruptedAcknowledge": "I understand",
+  "restoreDoneTitle": "Restore finished",
+  "restoreDoneBody": "Your library has been restored. The app must be restarted to load the restored database — until then it is still showing the old one.",
+  "restoreDoneCloseApp": "Close the app",
+  "restoreDoneManualHint": "Please close this app completely and open it again.",
+  "backupControlRestoreDone": "Restore finished · restart required"
 }

@@ -1,9 +1,12 @@
+import 'dart:io';
+
 import 'package:concept_nhv/l10n/app_localizations.dart';
 import 'package:concept_nhv/services/backup/backup_connection.dart';
 import 'package:concept_nhv/services/backup/backup_client.dart';
 import 'package:concept_nhv/services/backup/device_name_service.dart';
 import 'package:concept_nhv/state/backup_control_model.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 class BackupScreen extends StatefulWidget {
@@ -18,11 +21,55 @@ class _BackupScreenState extends State<BackupScreen> {
   final TextEditingController _pinController = TextEditingController();
   final TextEditingController _deviceNameController = TextEditingController();
   String? _validationError;
+  bool _restartPromptShown = false;
 
   @override
   void initState() {
     super.initState();
     _loadSuggestedDeviceName();
+  }
+
+  /// Blocks until the user relaunches, because carrying on now is misleading:
+  /// every change they make will be discarded by the pending database.
+  ///
+  /// Android can close itself; iOS cannot be terminated programmatically in any
+  /// supported way, so there it can only instruct. Both end up in the same
+  /// place — the swap happens on the next launch either way.
+  Future<void> _showRestartRequired() async {
+    final l10n = AppLocalizations.of(context)!;
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return PopScope(
+          canPop: false,
+          child: AlertDialog(
+            icon: const Icon(Icons.restart_alt),
+            title: Text(l10n.restoreDoneTitle),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(l10n.restoreDoneBody),
+                const SizedBox(height: 12),
+                Text(
+                  l10n.restoreDoneManualHint,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+            ),
+            actions: <Widget>[
+              if (!Platform.isIOS)
+                FilledButton.icon(
+                  onPressed: () => SystemNavigator.pop(),
+                  icon: const Icon(Icons.close),
+                  label: Text(l10n.restoreDoneCloseApp),
+                ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _loadSuggestedDeviceName() async {
@@ -45,6 +92,17 @@ class _BackupScreenState extends State<BackupScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final model = context.watch<BackupControlModel>();
+    // A finished restore has staged a database that only takes effect on the
+    // next launch; until then the screen is showing the old library over the
+    // new files, so this must interrupt rather than sit in a status line.
+    if (model.restoreAwaitingRestart && !_restartPromptShown) {
+      _restartPromptShown = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _showRestartRequired();
+        }
+      });
+    }
     final fieldsEnabled =
         !model.isConnected && model.state != BackupControlState.connecting;
     return Scaffold(
@@ -185,7 +243,10 @@ class _StatusCard extends StatelessWidget {
       BackupControlState.running => l10n.backupControlRunning,
       BackupControlState.pausing => l10n.backupControlPausing,
       BackupControlState.paused => l10n.backupControlPaused,
-      BackupControlState.completed => l10n.backupControlCompleted,
+      BackupControlState.completed =>
+        model.lastJobWasRestore
+            ? l10n.backupControlRestoreDone
+            : l10n.backupControlCompleted,
       BackupControlState.error => l10n.backupControlError,
     };
     return Card(
