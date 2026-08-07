@@ -176,6 +176,39 @@ void main() {
       );
 
       test(
+        'restoring from another device removes comics that backup does not '
+        'have, and leaves no empty folders behind',
+        () async {
+          // The cross-device case: this phone has 999999, the source backup
+          // does not, so it goes — folder and all.
+          await writeLocal('999999/cover.webp', <int>[7]);
+          await writeLocal('999999/pages/1.webp', <int>[7, 7]);
+          await writeLocal('177013/cover.webp', <int>[1, 2, 3]);
+          client.inventory = <String, int>{'177013/cover.webp': 3};
+          client.remoteFiles = <String, List<int>>{
+            '177013/cover.webp': <int>[1, 2, 3],
+          };
+          databasePaths = <String?>['177013/cover.webp'];
+
+          final result = await buildService().run(
+            connection: connection,
+            sourceDeviceId: 'Old-Phone',
+          );
+
+          expect(result.deletedCount, 2);
+          expect(localExists('999999/cover.webp'), isFalse);
+          expect(
+            Directory(p.join(downloads.path, '999999')).existsSync(),
+            isFalse,
+            reason: 'an emptied comic folder should not linger',
+          );
+          // What the source does have is untouched, and the root survives.
+          expect(localExists('177013/cover.webp'), isTrue);
+          expect(downloads.existsSync(), isTrue);
+        },
+      );
+
+      test(
         'restores legacy absolute paths recorded by older app versions',
         () async {
           client.inventory = <String, int>{'287290/cover.webp': 3};

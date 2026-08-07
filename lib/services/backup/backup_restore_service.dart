@@ -276,7 +276,35 @@ class BackupRestoreService {
         deleted++;
       }
     }
+    // Restoring from another device can drop hundreds of comics at once, and
+    // each leaves an empty `<comicId>/pages/` tree behind. Harmless to the
+    // database, but it makes the downloads folder look full of comics that are
+    // no longer there.
+    await _removeEmptyDirectories(root, keep: root.path);
     return deleted;
+  }
+
+  /// Prunes directories emptied by the deletion pass, never removing [keep]
+  /// itself — later syncs still need somewhere to write.
+  Future<void> _removeEmptyDirectories(
+    Directory directory, {
+    required String keep,
+  }) async {
+    if (!directory.existsSync()) {
+      return;
+    }
+    for (final entity in directory.listSync()) {
+      if (entity is Directory) {
+        await _removeEmptyDirectories(entity, keep: keep);
+      }
+    }
+    if (directory.listSync().isEmpty && !p.equals(directory.path, keep)) {
+      try {
+        await directory.delete();
+      } on FileSystemException {
+        // Best effort; an empty folder costs nothing but tidiness.
+      }
+    }
   }
 
   /// The commit: moves the downloaded database into the slot the next launch
