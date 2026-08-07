@@ -295,7 +295,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get backupDesktopControlsNote =>
-      'Once connected, start or pause backup from the computer. This phone performs the transfer and reports its progress there.';
+      '連線後請在電腦端開始或暫停備份與還原；手機會執行傳輸，並把進度回報到電腦。';
 
   @override
   String get backupKeepForegroundNote => '備份期間請保持這個畫面開著。書庫較大時會需要一段時間。';
@@ -413,6 +413,15 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get backupControlRestoreDone => '還原完成 · 需要重新啟動';
+
+  @override
+  String get backupControlRestoreRunning => '電腦端已開始還原';
+
+  @override
+  String get backupControlRestorePaused => '還原已暫停';
+
+  @override
+  String get backupControlRestoreError => '連線或還原失敗';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -705,7 +714,8 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get backupDisconnectButton => '中斷連線';
 
   @override
-  String get backupDesktopControlsNote => '連線後請在電腦端開始或暫停備份；手機會執行傳輸，並把進度回報到電腦。';
+  String get backupDesktopControlsNote =>
+      '連線後請在電腦端開始或暫停備份與還原；手機會執行傳輸，並把進度回報到電腦。';
 
   @override
   String get backupKeepForegroundNote => '連線或傳輸期間請保持 App 在前景；行動作業系統可能暫停背景 App。';
@@ -822,4 +832,13 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get backupControlRestoreDone => '還原完成 · 需要重新啟動';
+
+  @override
+  String get backupControlRestoreRunning => '電腦端已開始還原';
+
+  @override
+  String get backupControlRestorePaused => '還原已暫停';
+
+  @override
+  String get backupControlRestoreError => '連線或還原失敗';
 }

@@ -163,5 +163,9 @@
   "restoreDoneBody": "圖庫已經還原完畢。必須重新啟動 App 才會載入還原後的資料庫——在那之前畫面上顯示的仍然是舊的。",
   "restoreDoneCloseApp": "關閉 App",
   "restoreDoneManualHint": "請完全關閉這個 App，然後重新開啟。",
-  "backupControlRestoreDone": "還原完成 · 需要重新啟動"
+  "backupControlRestoreDone": "還原完成 · 需要重新啟動",
+  "backupControlRestoreRunning": "電腦端已開始還原",
+  "backupControlRestorePaused": "還原已暫停",
+  "backupControlRestoreError": "連線或還原失敗",
+  "backupDesktopControlsNote": "連線後請在電腦端開始或暫停備份與還原；手機會執行傳輸，並把進度回報到電腦。"
 }

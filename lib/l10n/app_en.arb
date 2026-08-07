@@ -170,7 +170,7 @@
   "backupStartButton": "Start backup",
   "backupConnectButton": "Connect",
   "backupDisconnectButton": "Disconnect",
-  "backupDesktopControlsNote": "Once connected, start or pause backup from the computer. This phone performs the transfer and reports its progress there.",
+  "backupDesktopControlsNote": "Once connected, start or pause backups and restores from the computer; this phone runs the transfer and reports progress back.",
   "backupKeepForegroundNote": "Keep the app in the foreground while connected or transferring. Mobile operating systems may suspend a background app.",
   "backupControlDisconnected": "Not connected",
   "backupControlReady": "Connected · waiting for a command from the computer",
@@ -255,5 +255,8 @@
   "restoreDoneBody": "Your library has been restored. The app must be restarted to load the restored database — until then it is still showing the old one.",
   "restoreDoneCloseApp": "Close the app",
   "restoreDoneManualHint": "Please close this app completely and open it again.",
-  "backupControlRestoreDone": "Restore finished · restart required"
+  "backupControlRestoreDone": "Restore finished · restart required",
+  "backupControlRestoreRunning": "The computer started a restore",
+  "backupControlRestorePaused": "Restore paused",
+  "backupControlRestoreError": "Connection or restore failed"
 }

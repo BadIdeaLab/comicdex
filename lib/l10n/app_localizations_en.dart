@@ -310,7 +310,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get backupDesktopControlsNote =>
-      'Once connected, start or pause backup from the computer. This phone performs the transfer and reports its progress there.';
+      'Once connected, start or pause backups and restores from the computer; this phone runs the transfer and reports progress back.';
 
   @override
   String get backupKeepForegroundNote =>
@@ -435,4 +435,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get backupControlRestoreDone => 'Restore finished · restart required';
+
+  @override
+  String get backupControlRestoreRunning => 'The computer started a restore';
+
+  @override
+  String get backupControlRestorePaused => 'Restore paused';
+
+  @override
+  String get backupControlRestoreError => 'Connection or restore failed';
 }

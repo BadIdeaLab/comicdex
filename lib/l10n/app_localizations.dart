@@ -630,7 +630,7 @@ abstract class AppLocalizations {
   /// No description provided for @backupDesktopControlsNote.
   ///
   /// In en, this message translates to:
-  /// **'Once connected, start or pause backup from the computer. This phone performs the transfer and reports its progress there.'**
+  /// **'Once connected, start or pause backups and restores from the computer; this phone runs the transfer and reports progress back.'**
   String get backupDesktopControlsNote;
 
   /// No description provided for @backupKeepForegroundNote.
@@ -830,6 +830,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Restore finished · restart required'**
   String get backupControlRestoreDone;
+
+  /// No description provided for @backupControlRestoreRunning.
+  ///
+  /// In en, this message translates to:
+  /// **'The computer started a restore'**
+  String get backupControlRestoreRunning;
+
+  /// No description provided for @backupControlRestorePaused.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore paused'**
+  String get backupControlRestorePaused;
+
+  /// No description provided for @backupControlRestoreError.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection or restore failed'**
+  String get backupControlRestoreError;
 }
 
 class _AppLocalizationsDelegate

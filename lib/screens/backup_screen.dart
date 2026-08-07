@@ -4,6 +4,7 @@ import 'package:concept_nhv/l10n/app_localizations.dart';
 import 'package:concept_nhv/services/backup/backup_connection.dart';
 import 'package:concept_nhv/services/backup/backup_client.dart';
 import 'package:concept_nhv/services/backup/device_name_service.dart';
+import 'package:concept_nhv/services/backup/pairing_memory.dart';
 import 'package:concept_nhv/state/backup_control_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -72,7 +73,22 @@ class _BackupScreenState extends State<BackupScreen> {
     );
   }
 
+  /// Prefills from the last successful pairing, falling back to the device's
+  /// own model name. The PIN is never restored — see [PairingMemory].
   Future<void> _loadSuggestedDeviceName() async {
+    final remembered = await context.read<PairingMemory>().read();
+    if (mounted && remembered != null) {
+      if (_addressController.text.trim().isEmpty) {
+        _addressController.text = remembered.address;
+      }
+      if (_deviceNameController.text.trim().isEmpty &&
+          remembered.deviceName.isNotEmpty) {
+        _deviceNameController.text = remembered.deviceName;
+      }
+    }
+    if (!mounted || _deviceNameController.text.trim().isNotEmpty) {
+      return;
+    }
     final service = context.read<DeviceNameService>();
     final name = await service.suggestedName();
     if (mounted && _deviceNameController.text.trim().isEmpty) {
@@ -206,10 +222,14 @@ class _BackupScreenState extends State<BackupScreen> {
       return;
     }
     setState(() => _validationError = null);
+    final pairingMemory = context.read<PairingMemory>();
     try {
       await context.read<BackupControlModel>().connect(
         BackupConnection(baseUri: baseUri, pin: pin, deviceId: deviceId),
       );
+      // Saved only on success, so a mistyped address is never what gets offered
+      // next time. The PIN is deliberately excluded.
+      await pairingMemory.remember(address: rawAddress, deviceName: deviceId);
     } on BackupServerException catch (error) {
       setState(() {
         _validationError = error.isUnauthorized
@@ -236,18 +256,27 @@ class _StatusCard extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final progress = model.progress;
     final fraction = progress?.fraction;
+    final restoring = model.lastJobWasRestore;
     final label = switch (model.state) {
       BackupControlState.disconnected => l10n.backupControlDisconnected,
       BackupControlState.connecting => l10n.backupStageConnecting,
       BackupControlState.idle => l10n.backupControlReady,
-      BackupControlState.running => l10n.backupControlRunning,
+      // Backup and restore share one state machine, so every label has to look
+      // at the job kind — otherwise a restore in progress reports itself as a
+      // backup, which is alarming when the user knows files are being deleted.
+      BackupControlState.running => restoring
+          ? l10n.backupControlRestoreRunning
+          : l10n.backupControlRunning,
       BackupControlState.pausing => l10n.backupControlPausing,
-      BackupControlState.paused => l10n.backupControlPaused,
-      BackupControlState.completed =>
-        model.lastJobWasRestore
-            ? l10n.backupControlRestoreDone
-            : l10n.backupControlCompleted,
-      BackupControlState.error => l10n.backupControlError,
+      BackupControlState.paused => restoring
+          ? l10n.backupControlRestorePaused
+          : l10n.backupControlPaused,
+      BackupControlState.completed => restoring
+          ? l10n.backupControlRestoreDone
+          : l10n.backupControlCompleted,
+      BackupControlState.error => restoring
+          ? l10n.backupControlRestoreError
+          : l10n.backupControlError,
     };
     return Card(
       child: Padding(
