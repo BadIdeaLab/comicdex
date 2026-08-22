@@ -2,7 +2,6 @@ import 'dart:ui';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:concept_nhv/services/image_url_resolver.dart';
-import 'package:concept_nhv/state/comic_reader_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -98,7 +97,6 @@ class _FallbackCachedNetworkImageState
 
   @override
   Widget build(BuildContext context) {
-    final headers = context.watch<ComicReaderModel?>()?.currentHeaders;
     final imageBuilder = widget.imageBuilder ?? _defaultCachedImageBuilder;
 
     return Stack(
@@ -106,7 +104,7 @@ class _FallbackCachedNetworkImageState
         imageBuilder(
           context,
           _currentUrl,
-          headers,
+          null,
           _buildLoadingState,
           _buildErrorState,
         ),

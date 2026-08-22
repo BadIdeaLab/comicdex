@@ -8,9 +8,6 @@ import 'package:concept_nhv/application/feed/search_comics_use_case.dart';
 import 'package:concept_nhv/application/library/comic_card_action_coordinator.dart';
 import 'package:concept_nhv/application/library/remove_comic_from_collection_use_case.dart';
 import 'package:concept_nhv/application/library/save_comic_to_collection_use_case.dart';
-import 'package:concept_nhv/application/reader/load_comic_detail_use_case.dart';
-import 'package:concept_nhv/application/reader/load_offline_comic_use_case.dart';
-import 'package:concept_nhv/application/reader/open_comic_use_case.dart';
 import 'package:concept_nhv/application/tags/load_comic_meta_use_case.dart';
 import 'package:concept_nhv/models/collection_type.dart';
 import 'package:concept_nhv/models/comic_card_data.dart';
@@ -20,13 +17,10 @@ import 'package:concept_nhv/services/download_asset_store.dart';
 import 'package:concept_nhv/services/nhentai_cdn_config_service.dart';
 import 'package:concept_nhv/services/search_query_builder.dart';
 import 'package:concept_nhv/state/comic_feed_model.dart';
-import 'package:concept_nhv/state/comic_reader_model.dart';
 import 'package:concept_nhv/state/download_manager_model.dart';
 import 'package:concept_nhv/state/favorite_sync_model.dart';
 import 'package:concept_nhv/storage/download_settings_store.dart';
 import 'package:concept_nhv/storage/options_store.dart';
-import 'package:concept_nhv/storage/reader_progress_store.dart';
-import '../test_support/fakes/fake_reader_settings_repository.dart';
 import '../test_support/fakes/fake_image_compression_service.dart';
 import 'package:concept_nhv/storage/nhentai_api_key_store.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -47,7 +41,6 @@ void main() {
     late FakeRemoteFavoriteGateway remoteFavoriteGateway;
     late FakeNhentaiAuthService authService;
     late ComicFeedModel feedModel;
-    late ComicReaderModel readerModel;
     late _FakeDownloadManagerModel downloadManagerModel;
     late ComicCardActionCoordinator coordinator;
 
@@ -88,27 +81,6 @@ void main() {
         ),
         blockedTagsRepository: FakeBlockedTagsRepository(),
       );
-      readerModel = ComicReaderModel(
-        loadComicDetailUseCase: LoadComicDetailUseCase(
-          nhentaiGateway: FakeNhentaiGateway(detailComic: sampleComic(id: '77')),
-        ),
-        loadOfflineComicUseCase: LoadOfflineComicUseCase(
-          downloadQueueRepository: harness.downloadQueueRepository,
-          downloadedLibraryRepository: harness.downloadedLibraryRepository,
-          downloadAssetStore: DownloadAssetStore(
-            directoryResolver: () async => throw UnimplementedError(),
-          ),
-        ),
-        openComicUseCase: OpenComicUseCase(
-          comicRepository: harness.comicRepository,
-          collectionRepository: harness.collectionRepository,
-        ),
-        readerProgressRepository: ReaderProgressStore(
-          optionsStore: OptionsStore(localDatabase: harness.localDatabase),
-        ),
-        readerSettingsRepository: FakeReaderSettingsRepository(),
-        downloadedLibraryRepository: harness.downloadedLibraryRepository,
-      );
       downloadManagerModel = _FakeDownloadManagerModel(harness: harness);
       coordinator = ComicCardActionCoordinator(
         saveComicToCollectionUseCase: SaveComicToCollectionUseCase(
@@ -120,7 +92,6 @@ void main() {
         ),
         favoriteSyncModel: favoriteSyncModel,
         feedModel: feedModel,
-        readerModel: readerModel,
         downloadManagerModel: downloadManagerModel,
         loadComicMetaUseCase: LoadComicMetaUseCase(
           nhentaiGateway: FakeNhentaiGateway(),
@@ -129,7 +100,6 @@ void main() {
     });
 
     tearDown(() async {
-      readerModel.dispose();
       favoriteSyncModel.dispose();
       feedModel.dispose();
       await harness.dispose();

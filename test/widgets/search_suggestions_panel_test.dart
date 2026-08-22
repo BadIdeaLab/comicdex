@@ -1,22 +1,15 @@
 import 'package:concept_nhv/application/feed/load_collection_summaries_use_case.dart';
 import 'package:concept_nhv/application/feed/search_comics_use_case.dart';
 import 'package:concept_nhv/application/home/home_shell_controller.dart';
-import 'package:concept_nhv/application/reader/load_comic_detail_use_case.dart';
-import 'package:concept_nhv/application/reader/load_offline_comic_use_case.dart';
-import 'package:concept_nhv/application/reader/open_comic_use_case.dart';
 import 'package:concept_nhv/models/local_tag_catalog_entry.dart';
 import 'package:concept_nhv/models/tag_catalog_type.dart';
-import 'package:concept_nhv/services/download_asset_store.dart';
 import 'package:concept_nhv/services/local_tag_catalog_service.dart';
 import 'package:concept_nhv/services/search_query_builder.dart';
 import 'package:concept_nhv/services/tag_display_service.dart';
 import 'package:concept_nhv/services/tag_search_query_builder.dart';
 import 'package:concept_nhv/state/comic_feed_model.dart';
-import 'package:concept_nhv/state/comic_reader_model.dart';
 import 'package:concept_nhv/state/home_ui_model.dart';
 import 'package:concept_nhv/state/tag_catalog_browser_model.dart';
-import 'package:concept_nhv/storage/options_store.dart';
-import 'package:concept_nhv/storage/reader_progress_store.dart';
 import 'package:concept_nhv/widgets/search_suggestions_panel.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -25,8 +18,6 @@ import 'package:provider/single_child_widget.dart';
 
 import '../test_support/fakes/fake_blocked_tags_repository.dart';
 import '../test_support/fakes/fake_nhentai_gateway.dart';
-import '../test_support/fakes/fake_reader_settings_repository.dart';
-import '../test_support/fixtures/sample_comic.dart';
 import '../test_support/storage/sqlite_test_harness.dart';
 
 void main() {
@@ -140,28 +131,6 @@ _pumpSearchSuggestionsPanel(
   );
   addTearDown(feedModel.dispose);
 
-  final readerModel = ComicReaderModel(
-    loadComicDetailUseCase: LoadComicDetailUseCase(
-      nhentaiGateway: FakeNhentaiGateway(detailComic: sampleComic()),
-    ),
-    loadOfflineComicUseCase: LoadOfflineComicUseCase(
-      downloadQueueRepository: harness.downloadQueueRepository,
-      downloadedLibraryRepository: harness.downloadedLibraryRepository,
-      downloadAssetStore: DownloadAssetStore(
-        directoryResolver: () async => throw UnimplementedError(),
-      ),
-    ),
-    openComicUseCase: OpenComicUseCase(
-      comicRepository: harness.comicRepository,
-      collectionRepository: harness.collectionRepository,
-    ),
-    readerProgressRepository: ReaderProgressStore(
-      optionsStore: OptionsStore(localDatabase: harness.localDatabase),
-    ),
-    readerSettingsRepository: FakeReaderSettingsRepository(),
-    downloadedLibraryRepository: harness.downloadedLibraryRepository,
-  );
-  addTearDown(readerModel.dispose);
 
   final tagDisplayService = TagDisplayService.fromMap({});
   final localTagCatalogService = LocalTagCatalogService.fromEntries(
@@ -185,7 +154,6 @@ _pumpSearchSuggestionsPanel(
         searchHistoryRepository: harness.searchHistoryRepository,
         homeUiModel: homeUiModel,
         feedModel: feedModel,
-        readerModel: readerModel,
         tagSearchQueryBuilder: const TagSearchQueryBuilder(),
       ),
     ),

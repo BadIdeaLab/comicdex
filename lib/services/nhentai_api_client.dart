@@ -13,9 +13,7 @@ abstract class NhentaiGateway {
 
   Future<ComicSearchResponse> searchComics(Uri uri);
 
-  Future<({Comic comic, Map<String, String>? headers})> loadComicDetail(
-    String comicId,
-  );
+  Future<Comic> loadComicDetail(String comicId);
 
   Future<({List<ComicTag> tags, int? numFavorites, int? uploadDate})> loadComicMeta(
     String comicId,
@@ -51,19 +49,14 @@ class NhentaiApiClient implements NhentaiGateway {
   }
 
   @override
-  Future<({Comic comic, Map<String, String>? headers})> loadComicDetail(
-    String comicId,
-  ) async {
+  Future<Comic> loadComicDetail(String comicId) async {
     try {
       await cdnConfigService.load();
     } catch (_) {}
     final result = await _get(
       Uri.https('nhentai.net', '/api/v2/galleries/$comicId'),
     );
-    return (
-      comic: _mapComicDetail(result.data as Map<String, dynamic>),
-      headers: null,
-    );
+    return _mapComicDetail(result.data as Map<String, dynamic>);
   }
 
   @override

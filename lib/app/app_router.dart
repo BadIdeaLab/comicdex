@@ -56,7 +56,10 @@ GoRouter createAppRouter() {
         path: '/third',
         builder: (context, state) {
           final comicId = state.uri.queryParameters['id'] ?? '';
-          return ComicReaderScreen(comicId: comicId);
+          // The Downloads tab sets this so the reader reads local files
+          // instead of hitting the network.
+          final offline = state.uri.queryParameters['offline'] == 'true';
+          return ComicReaderScreen(comicId: comicId, offline: offline);
         },
       ),
       GoRoute(

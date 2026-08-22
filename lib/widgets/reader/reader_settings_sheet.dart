@@ -1,5 +1,5 @@
 import 'package:concept_nhv/application/reader/reader_settings_repository.dart';
-import 'package:concept_nhv/state/comic_reader_model.dart';
+import 'package:concept_nhv/state/reader_settings_model.dart';
 import 'package:flutter/material.dart';
 
 /// Bottom sheet content for adjusting reader preferences: reading
@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 class ReaderSettingsSheet extends StatefulWidget {
   const ReaderSettingsSheet({super.key, required this.model});
 
-  final ComicReaderModel model;
+  final ReaderSettingsModel model;
 
   @override
   State<ReaderSettingsSheet> createState() => _ReaderSettingsSheetState();

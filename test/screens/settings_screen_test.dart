@@ -9,16 +9,12 @@ import 'package:concept_nhv/application/favorites/sync_remote_favorites_use_case
 import 'package:concept_nhv/application/favorites/toggle_favorite_use_case.dart';
 import 'package:concept_nhv/application/feed/load_collection_summaries_use_case.dart';
 import 'package:concept_nhv/application/feed/search_comics_use_case.dart';
-import 'package:concept_nhv/application/reader/load_comic_detail_use_case.dart';
-import 'package:concept_nhv/application/reader/load_offline_comic_use_case.dart';
-import 'package:concept_nhv/application/reader/open_comic_use_case.dart';
 import 'package:concept_nhv/application/tags/check_tag_catalog_update_use_case.dart';
 import 'package:concept_nhv/application/tags/tag_catalog_update_urls.dart';
 import 'package:concept_nhv/application/tags/update_local_tag_catalog_use_case.dart';
 import 'package:concept_nhv/l10n/app_localizations.dart';
 import 'package:concept_nhv/models/local_tag_catalog_entry.dart';
 import 'package:concept_nhv/screens/settings_screen.dart';
-import 'package:concept_nhv/services/download_asset_store.dart';
 import 'package:concept_nhv/services/library_import_service.dart';
 import 'package:concept_nhv/services/local_tag_catalog_service.dart';
 import 'package:concept_nhv/services/remote_asset_fetcher.dart';
@@ -26,12 +22,11 @@ import 'package:concept_nhv/services/search_query_builder.dart';
 import 'package:concept_nhv/state/app_locale_model.dart';
 import 'package:concept_nhv/state/blocked_tags_model.dart';
 import 'package:concept_nhv/state/comic_feed_model.dart';
-import 'package:concept_nhv/state/comic_reader_model.dart';
+import 'package:concept_nhv/state/reader_settings_model.dart';
 import 'package:concept_nhv/state/favorite_sync_model.dart';
 import 'package:concept_nhv/storage/download_settings_store.dart';
 import 'package:concept_nhv/storage/nhentai_api_key_store.dart';
 import 'package:concept_nhv/storage/options_store.dart';
-import 'package:concept_nhv/storage/reader_progress_store.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
@@ -44,7 +39,6 @@ import '../test_support/fakes/fake_reader_settings_repository.dart';
 import '../test_support/fakes/fake_remote_asset_fetcher.dart';
 import '../test_support/fakes/fake_remote_favorite_gateway.dart';
 import '../test_support/fakes/memory_secure_store.dart';
-import '../test_support/fixtures/sample_comic.dart';
 import '../test_support/helpers/tag_catalog_encoding.dart';
 import '../test_support/storage/sqlite_test_harness.dart';
 
@@ -54,7 +48,7 @@ void main() {
     late DownloadSettingsStore downloadSettingsStore;
     late FavoriteSyncModel favoriteSyncModel;
     late ComicFeedModel comicFeedModel;
-    late ComicReaderModel comicReaderModel;
+    late ReaderSettingsModel comicReaderModel;
 
     setUp(() async {
       harness = SqliteTestHarness();
@@ -100,26 +94,8 @@ void main() {
         blockedTagsRepository: FakeBlockedTagsRepository(),
       );
 
-      comicReaderModel = ComicReaderModel(
-        loadComicDetailUseCase: LoadComicDetailUseCase(
-          nhentaiGateway: FakeNhentaiGateway(detailComic: sampleComic(id: '77')),
-        ),
-        loadOfflineComicUseCase: LoadOfflineComicUseCase(
-          downloadQueueRepository: harness.downloadQueueRepository,
-          downloadedLibraryRepository: harness.downloadedLibraryRepository,
-          downloadAssetStore: DownloadAssetStore(
-            directoryResolver: () async => throw UnimplementedError(),
-          ),
-        ),
-        openComicUseCase: OpenComicUseCase(
-          comicRepository: harness.comicRepository,
-          collectionRepository: harness.collectionRepository,
-        ),
-        readerProgressRepository: ReaderProgressStore(
-          optionsStore: OptionsStore(localDatabase: harness.localDatabase),
-        ),
+      comicReaderModel = ReaderSettingsModel(
         readerSettingsRepository: FakeReaderSettingsRepository(),
-        downloadedLibraryRepository: harness.downloadedLibraryRepository,
       );
     });
 
@@ -390,7 +366,7 @@ Widget _buildSettingsScreen({
   required DownloadSettingsRepository downloadSettingsRepository,
   required FavoriteSyncModel favoriteSyncModel,
   required ComicFeedModel comicFeedModel,
-  required ComicReaderModel comicReaderModel,
+  required ReaderSettingsModel comicReaderModel,
   required LibraryImportService libraryImportService,
   LocalTagCatalogService? localTagCatalogService,
   RemoteAssetFetcher? remoteAssetFetcher,
@@ -410,7 +386,7 @@ Widget _buildSettingsScreen({
       ),
       ChangeNotifierProvider<FavoriteSyncModel>.value(value: favoriteSyncModel),
       ChangeNotifierProvider<ComicFeedModel>.value(value: comicFeedModel),
-      ChangeNotifierProvider<ComicReaderModel>.value(value: comicReaderModel),
+      ChangeNotifierProvider<ReaderSettingsModel>.value(value: comicReaderModel),
       Provider<LibraryImportService>.value(value: libraryImportService),
       ChangeNotifierProvider<BlockedTagsModel>(
         create: (_) => BlockedTagsModel(

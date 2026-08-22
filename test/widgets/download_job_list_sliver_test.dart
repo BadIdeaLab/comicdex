@@ -3,9 +3,6 @@ import 'package:concept_nhv/application/feed/load_collection_summaries_use_case.
 import 'package:concept_nhv/application/feed/search_comics_use_case.dart';
 import 'package:concept_nhv/application/tags/load_comic_meta_use_case.dart';
 import 'package:concept_nhv/application/home/home_shell_controller.dart';
-import 'package:concept_nhv/application/reader/load_comic_detail_use_case.dart';
-import 'package:concept_nhv/application/reader/load_offline_comic_use_case.dart';
-import 'package:concept_nhv/application/reader/open_comic_use_case.dart';
 import 'package:concept_nhv/models/comic_tag.dart';
 import 'package:concept_nhv/models/download_job_snapshot.dart';
 import 'package:concept_nhv/models/download_job_status.dart';
@@ -19,11 +16,8 @@ import 'package:concept_nhv/services/download_asset_store.dart';
 import 'package:concept_nhv/services/nhentai_cdn_config_service.dart';
 import 'package:concept_nhv/state/blocked_tags_model.dart';
 import 'package:concept_nhv/state/comic_feed_model.dart';
-import 'package:concept_nhv/state/comic_reader_model.dart';
 import 'package:concept_nhv/state/download_manager_model.dart';
 import 'package:concept_nhv/state/home_ui_model.dart';
-import 'package:concept_nhv/storage/options_store.dart';
-import 'package:concept_nhv/storage/reader_progress_store.dart';
 import 'package:concept_nhv/widgets/download_job_list_sliver.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -34,7 +28,6 @@ import 'package:provider/single_child_widget.dart';
 import '../test_support/fakes/fake_blocked_tags_repository.dart';
 import '../test_support/fakes/fake_image_compression_service.dart';
 import '../test_support/fakes/fake_nhentai_gateway.dart';
-import '../test_support/fakes/fake_reader_settings_repository.dart';
 import '../test_support/fixtures/sample_comic.dart';
 import '../test_support/fakes/fake_remote_asset_fetcher.dart';
 import '../test_support/storage/sqlite_test_harness.dart';
@@ -666,27 +659,6 @@ class _FakeHomeShellController extends HomeShellController {
             collectionRepository: harness.collectionRepository,
           ),
           blockedTagsRepository: FakeBlockedTagsRepository(),
-        ),
-        readerModel: ComicReaderModel(
-          loadComicDetailUseCase: LoadComicDetailUseCase(
-            nhentaiGateway: FakeNhentaiGateway(detailComic: sampleComic()),
-          ),
-          loadOfflineComicUseCase: LoadOfflineComicUseCase(
-            downloadQueueRepository: harness.downloadQueueRepository,
-            downloadedLibraryRepository: harness.downloadedLibraryRepository,
-            downloadAssetStore: DownloadAssetStore(
-              directoryResolver: () async => throw UnimplementedError(),
-            ),
-          ),
-          openComicUseCase: OpenComicUseCase(
-            comicRepository: harness.comicRepository,
-            collectionRepository: harness.collectionRepository,
-          ),
-          readerProgressRepository: ReaderProgressStore(
-            optionsStore: OptionsStore(localDatabase: harness.localDatabase),
-          ),
-          readerSettingsRepository: FakeReaderSettingsRepository(),
-          downloadedLibraryRepository: harness.downloadedLibraryRepository,
         ),
         tagSearchQueryBuilder: const TagSearchQueryBuilder(),
       );

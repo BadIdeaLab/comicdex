@@ -130,17 +130,16 @@ void main() {
 
       final result = await client.loadComicDetail('123');
 
-      expect(result.headers, isNull);
-      expect(result.comic.id, '123');
-      expect(result.comic.mediaId, '456');
-      expect(result.comic.title.english, 'Detail Comic');
-      expect(result.comic.images.cover?.path, 'galleries/456/cover.png');
-      expect(result.comic.images.cover?.t, 'p');
-      expect(result.comic.images.thumbnail?.t, 'w');
-      expect(result.comic.images.pages.single.thumbnailPath, 'galleries/456/thumb1.webp');
-      expect(result.comic.images.pages.single.t, 'w');
-      expect(result.comic.tags.single.name, 'sample');
-      expect(result.comic.numFavorites, 10);
+      expect(result.id, '123');
+      expect(result.mediaId, '456');
+      expect(result.title.english, 'Detail Comic');
+      expect(result.images.cover?.path, 'galleries/456/cover.png');
+      expect(result.images.cover?.t, 'p');
+      expect(result.images.thumbnail?.t, 'w');
+      expect(result.images.pages.single.thumbnailPath, 'galleries/456/thumb1.webp');
+      expect(result.images.pages.single.t, 'w');
+      expect(result.tags.single.name, 'sample');
+      expect(result.numFavorites, 10);
     });
 
     test('loadComicMeta returns tags and numFavorites, reuses cache on repeated requests', () async {

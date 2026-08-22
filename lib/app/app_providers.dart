@@ -17,6 +17,7 @@ import 'package:concept_nhv/application/library/save_comic_to_collection_use_cas
 import 'package:concept_nhv/application/reader/load_comic_detail_use_case.dart';
 import 'package:concept_nhv/application/reader/load_offline_comic_use_case.dart';
 import 'package:concept_nhv/application/reader/open_comic_use_case.dart';
+import 'package:concept_nhv/application/reader/reader_launcher.dart';
 import 'package:concept_nhv/application/reader/reader_progress_repository.dart';
 import 'package:concept_nhv/application/reader/reader_settings_repository.dart';
 import 'package:concept_nhv/application/tags/check_tag_catalog_update_use_case.dart';
@@ -47,7 +48,7 @@ import 'package:concept_nhv/services/tag_search_query_builder.dart';
 import 'package:concept_nhv/state/blocked_tags_model.dart';
 import 'package:concept_nhv/state/backup_control_model.dart';
 import 'package:concept_nhv/state/comic_feed_model.dart';
-import 'package:concept_nhv/state/comic_reader_model.dart';
+import 'package:concept_nhv/state/reader_settings_model.dart';
 import 'package:concept_nhv/state/download_manager_model.dart';
 import 'package:concept_nhv/state/favorite_sync_model.dart';
 import 'package:concept_nhv/state/home_ui_model.dart';
@@ -377,16 +378,12 @@ List<SingleChildWidget> _buildStateProviders() {
         return model;
       },
     ),
+    // Only the *preferences* are app-scoped. The state of an open comic lives
+    // on the reader screen that shows it (ReaderSessionModel), so nothing
+    // outside the reader can be woken by a page turn.
     ChangeNotifierProvider(
       create: (context) {
-        final model = ComicReaderModel(
-          loadComicDetailUseCase: context.read(),
-          loadOfflineComicUseCase: context.read(),
-          openComicUseCase: context.read(),
-          readerProgressRepository: context.read(),
-          readerSettingsRepository: context.read(),
-          downloadedLibraryRepository: context.read(),
-        );
+        final model = ReaderSettingsModel(readerSettingsRepository: context.read());
         model.loadSettings();
         return model;
       },
@@ -407,7 +404,6 @@ List<SingleChildWidget> _buildCoordinatorProviders() {
         searchHistoryRepository: context.read(),
         homeUiModel: context.read(),
         feedModel: context.read(),
-        readerModel: context.read(),
         tagSearchQueryBuilder: context.read(),
       ),
     ),
@@ -419,12 +415,16 @@ List<SingleChildWidget> _buildCoordinatorProviders() {
       ),
     ),
     Provider(
+      create: (context) => ReaderLauncher(
+        downloadManagerModel: context.read(),
+      ),
+    ),
+    Provider(
       create: (context) => ComicCardActionCoordinator(
         saveComicToCollectionUseCase: context.read(),
         removeComicFromCollectionUseCase: context.read(),
         favoriteSyncModel: context.read(),
         feedModel: context.read(),
-        readerModel: context.read(),
         downloadManagerModel: context.read(),
         loadComicMetaUseCase: context.read(),
       ),

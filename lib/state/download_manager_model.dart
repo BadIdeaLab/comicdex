@@ -373,7 +373,7 @@ class DownloadManagerModel extends ChangeNotifier with WidgetsBindingObserver {
 
       final result = await nhentaiGateway.loadComicDetail(request.comicId);
       await downloadQueueRepository.upsertJobManifest(
-        comic: result.comic,
+        comic: result,
         title: request.title,
       );
       await refresh();
@@ -470,7 +470,7 @@ class DownloadManagerModel extends ChangeNotifier with WidgetsBindingObserver {
 
       final detail = await _loadComicDetailWithRetry(comic.id);
       await downloadQueueRepository.upsertJobManifest(
-        comic: detail.comic,
+        comic: detail,
         title: comic.title,
       );
       await refresh();
@@ -510,7 +510,7 @@ class DownloadManagerModel extends ChangeNotifier with WidgetsBindingObserver {
     );
   }
 
-  Future<({Comic comic, Map<String, String>? headers})>
+  Future<Comic>
   _loadComicDetailWithRetry(String comicId) {
     return withRateLimitRetry(() => nhentaiGateway.loadComicDetail(comicId));
   }
@@ -561,7 +561,7 @@ class DownloadManagerModel extends ChangeNotifier with WidgetsBindingObserver {
       await downloadAssetStore.deleteComicAssets(comicId);
 
       final detail = await nhentaiGateway.loadComicDetail(comicId);
-      final comic = detail.comic;
+      final comic = detail;
       final title = _libraryTitle(comicId) ??
           comic.title.pretty ??
           comic.title.english ??
@@ -650,7 +650,7 @@ class DownloadManagerModel extends ChangeNotifier with WidgetsBindingObserver {
       final thumbnailHosts = await _loadThumbnailHosts();
       final newCoverPath = await _downloadCover(
         comicId: comicId,
-        comic: detail.comic,
+        comic: detail,
         thumbnailHosts: thumbnailHosts,
       );
       if (newCoverPath == null) {
@@ -778,7 +778,7 @@ class DownloadManagerModel extends ChangeNotifier with WidgetsBindingObserver {
 
   Future<void> _processJob(DownloadJobSnapshot job) async {
     final detail = await nhentaiGateway.loadComicDetail(job.comicId);
-    final comic = detail.comic;
+    final comic = detail;
     final imageHosts = await _loadImageHosts();
     final pageIntervalMs = await downloadSettingsRepository.loadPageIntervalMs();
 

@@ -20,6 +20,27 @@ class ComicRepository {
     );
   }
 
+  /// Stores [comic] only if that id is not already known.
+  ///
+  /// Exists for the offline reading path: a comic reconstructed from a local
+  /// download carries *less* metadata than one fetched from the API — no cover,
+  /// no thumbnail, local file paths for pages. Letting that overwrite a stored
+  /// row would strip the cover off the card in Favorites and History, and the
+  /// original data would be gone for good. Inserting when nothing is stored is
+  /// still needed, or History would list an id with no comic behind it.
+  Future<void> insertComicIfAbsent(StoredComic comic) async {
+    await localDatabase.into(localDatabase.comics).insert(
+      ComicsCompanion.insert(
+        id: comic.id,
+        mid: comic.mediaId,
+        title: comic.title,
+        images: comic.serializedImages,
+        pages: comic.pages,
+      ),
+      mode: drift.InsertMode.insertOrIgnore,
+    );
+  }
+
   Future<void> upsertComics(Iterable<StoredComic> comics) async {
     await localDatabase.batch((batch) {
       for (final comic in comics) {

@@ -1,8 +1,8 @@
 import 'package:concept_nhv/models/collection_summary.dart';
 import 'package:concept_nhv/models/comic_card_data.dart';
 import 'package:concept_nhv/application/home/home_shell_controller.dart';
+import 'package:concept_nhv/application/reader/reader_launcher.dart';
 import 'package:concept_nhv/state/comic_feed_model.dart';
-import 'package:concept_nhv/state/comic_reader_model.dart';
 import 'package:concept_nhv/state/download_manager_model.dart';
 import 'package:concept_nhv/state/home_ui_model.dart';
 import 'package:concept_nhv/widgets/collection_grid_sliver.dart';
@@ -225,22 +225,24 @@ class _HomeShellState extends State<HomeShell> {
 
   Future<void> _handleSearchSubmit(BuildContext context, String value) async {
     final controller = context.read<HomeShellController>();
-    final readerModel = context.read<ComicReaderModel>();
-    final downloadManagerModel = context.read<DownloadManagerModel>();
+    final launcher = context.read<ReaderLauncher>();
     final navigator = GoRouter.of(context);
 
+    // Deliberately outside the launcher: submitSearch handles ordinary text
+    // searches too, and those must never be blocked just because a reader
+    // happens to be open.
     final result = await controller.submitSearch(value);
     if (!mounted || !result.openComicReader || result.comicId == null) return;
 
-    await navigator.push(
-      Uri(
-        path: '/third',
-        queryParameters: <String, String>{'id': result.comicId!},
-      ).toString(),
+    // submitSearch already loaded the comic, so there is nothing left to load.
+    await launcher.open(
+      show: () => navigator.push(
+        Uri(
+          path: '/third',
+          queryParameters: <String, String>{'id': result.comicId!},
+        ).toString(),
+      ),
     );
-    if (!mounted) return;
-    readerModel.clearComic();
-    await downloadManagerModel.refresh();
   }
 
   Future<void> _handleTagSelected(
@@ -257,23 +259,19 @@ class _HomeShellState extends State<HomeShell> {
   Future<void> _handleOpenOfflineReader(
     BuildContext context,
     String comicId,
-  ) async {
-    final readerModel = context.read<ComicReaderModel>();
-    final downloadManagerModel = context.read<DownloadManagerModel>();
+  ) {
     final navigator = GoRouter.of(context);
 
-    final opened = await readerModel.loadOfflineComic(comicId);
-    if (!mounted || !opened) return;
-
-    await navigator.push(
-      Uri(
-        path: '/third',
-        queryParameters: <String, String>{'id': comicId, 'offline': 'true'},
-      ).toString(),
+    return context.read<ReaderLauncher>().open(
+      // The reader loads from local files and reports "not downloaded" itself;
+      // there is nothing to check before navigating.
+      show: () => navigator.push(
+        Uri(
+          path: '/third',
+          queryParameters: <String, String>{'id': comicId, 'offline': 'true'},
+        ).toString(),
+      ),
     );
-    if (!mounted) return;
-    readerModel.clearComic();
-    await downloadManagerModel.refresh();
   }
 }
 

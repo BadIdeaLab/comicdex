@@ -5,7 +5,6 @@ import 'package:concept_nhv/models/download_job_status.dart';
 import 'package:concept_nhv/models/download_request.dart';
 import 'package:concept_nhv/models/comic_tag.dart';
 import 'package:concept_nhv/state/comic_feed_model.dart';
-import 'package:concept_nhv/state/comic_reader_model.dart';
 import 'package:concept_nhv/state/download_manager_model.dart';
 import 'package:concept_nhv/state/favorite_sync_model.dart';
 
@@ -19,7 +18,6 @@ class ComicCardActionCoordinator {
     required this.removeComicFromCollectionUseCase,
     required this.favoriteSyncModel,
     required this.feedModel,
-    required this.readerModel,
     required this.downloadManagerModel,
     required this.loadComicMetaUseCase,
   });
@@ -28,13 +26,8 @@ class ComicCardActionCoordinator {
   final RemoveComicFromCollectionUseCase removeComicFromCollectionUseCase;
   final FavoriteSyncModel favoriteSyncModel;
   final ComicFeedModel feedModel;
-  final ComicReaderModel readerModel;
   final DownloadManagerModel downloadManagerModel;
   final LoadComicMetaUseCase loadComicMetaUseCase;
-
-  Future<void> openComic(ComicCardData comic) {
-    return readerModel.loadComicDetail(comic.id);
-  }
 
   Future<({List<ComicTag> tags, int? numFavorites, int? uploadDate})> loadComicMeta(
     ComicCardData comic,

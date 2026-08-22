@@ -1,5 +1,4 @@
 import 'package:concept_nhv/state/comic_feed_model.dart';
-import 'package:concept_nhv/state/comic_reader_model.dart';
 import 'package:concept_nhv/state/home_ui_model.dart';
 import 'package:concept_nhv/storage/search_history_repository.dart';
 import 'package:concept_nhv/services/tag_search_query_builder.dart';
@@ -11,21 +10,21 @@ class HomeShellController {
     required this.searchHistoryRepository,
     required this.homeUiModel,
     required this.feedModel,
-    required this.readerModel,
     required this.tagSearchQueryBuilder,
   });
 
   final SearchHistoryRepository searchHistoryRepository;
   final HomeUiModel homeUiModel;
   final ComicFeedModel feedModel;
-  final ComicReaderModel readerModel;
   final TagSearchQueryBuilder tagSearchQueryBuilder;
 
   Future<HomeSearchActionResult> submitSearch(String value) async {
     await searchHistoryRepository.save(value);
 
+    // A bare number is a gallery id: open it in the reader instead of
+    // searching. The reader loads it itself, so nothing is fetched here — an
+    // id that turns out not to exist surfaces as the reader's error state.
     if (int.tryParse(value) != null) {
-      await readerModel.loadComicDetail(value);
       return HomeSearchActionResult(openComicReader: true, comicId: value);
     }
 

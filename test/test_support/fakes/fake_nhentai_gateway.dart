@@ -11,14 +11,12 @@ class FakeNhentaiGateway implements NhentaiGateway {
     this.pingError,
     this.searchResponse,
     this.detailComic,
-    this.detailHeaders,
     this.comicTags,
   });
 
   final DioException? pingError;
   final ComicSearchResponse? searchResponse;
   final Comic? detailComic;
-  final Map<String, String>? detailHeaders;
   final List<ComicTag>? comicTags;
   final List<Uri> searchedUris = <Uri>[];
   final List<String> loadedComicDetailIds = <String>[];
@@ -46,14 +44,9 @@ class FakeNhentaiGateway implements NhentaiGateway {
   }
 
   @override
-  Future<({Comic comic, Map<String, String>? headers})> loadComicDetail(
-    String comicId,
-  ) async {
+  Future<Comic> loadComicDetail(String comicId) async {
     loadedComicDetailIds.add(comicId);
-    return (
-      comic: detailComic ?? sampleComic(id: comicId),
-      headers: detailHeaders,
-    );
+    return detailComic ?? sampleComic(id: comicId);
   }
 
   @override

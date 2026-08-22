@@ -1804,11 +1804,9 @@ class _MultiComicNhentaiGateway extends FakeNhentaiGateway {
   final Map<String, Comic> _comics;
 
   @override
-  Future<({Comic comic, Map<String, String>? headers})> loadComicDetail(
-    String comicId,
-  ) async {
+  Future<Comic> loadComicDetail(String comicId) async {
     loadedComicDetailIds.add(comicId);
-    return (comic: _comics[comicId] ?? sampleComic(id: comicId), headers: null);
+    return _comics[comicId] ?? sampleComic(id: comicId);
   }
 }
 
@@ -1822,9 +1820,7 @@ class _DelayedNhentaiGateway extends FakeNhentaiGateway {
   final Duration delay;
 
   @override
-  Future<({Comic comic, Map<String, String>? headers})> loadComicDetail(
-    String comicId,
-  ) async {
+  Future<Comic> loadComicDetail(String comicId) async {
     await Future<void>.delayed(delay);
     return super.loadComicDetail(comicId);
   }
@@ -1839,9 +1835,7 @@ class _RateLimitedOnceGateway extends FakeNhentaiGateway {
   final Set<String> _rateLimitedOnceIds = <String>{};
 
   @override
-  Future<({Comic comic, Map<String, String>? headers})> loadComicDetail(
-    String comicId,
-  ) async {
+  Future<Comic> loadComicDetail(String comicId) async {
     loadedComicDetailIds.add(comicId);
     if (_rateLimitedOnceIds.add(comicId)) {
       throw DioException(
@@ -1855,7 +1849,7 @@ class _RateLimitedOnceGateway extends FakeNhentaiGateway {
         ),
       );
     }
-    return (comic: _comics[comicId] ?? sampleComic(id: comicId), headers: null);
+    return _comics[comicId] ?? sampleComic(id: comicId);
   }
 }
 
@@ -1896,14 +1890,12 @@ class _SelectiveFailureGateway extends FakeNhentaiGateway {
   final Set<String> throwingComicIds = <String>{};
 
   @override
-  Future<({Comic comic, Map<String, String>? headers})> loadComicDetail(
-    String comicId,
-  ) async {
+  Future<Comic> loadComicDetail(String comicId) async {
     loadedComicDetailIds.add(comicId);
     if (throwingComicIds.contains(comicId)) {
       throw Exception('simulated API failure for $comicId');
     }
-    return (comic: _comics[comicId] ?? sampleComic(id: comicId), headers: null);
+    return _comics[comicId] ?? sampleComic(id: comicId);
   }
 }
 

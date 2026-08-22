@@ -94,9 +94,7 @@ class _SequenceNhentaiGateway implements NhentaiGateway {
   var _index = 0;
 
   @override
-  Future<({Comic comic, Map<String, String>? headers})> loadComicDetail(
-    String comicId,
-  ) {
+  Future<Comic> loadComicDetail(String comicId) {
     throw UnimplementedError();
   }
 

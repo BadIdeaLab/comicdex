@@ -7,12 +7,27 @@ import 'package:concept_nhv/models/comic.dart';
 import 'package:concept_nhv/storage/downloaded_library_repository.dart';
 import 'package:flutter/material.dart';
 
-/// State model for the comic reader.
+/// Why a reading session could not start.
+enum ReaderLoadFailure {
+  /// The offline entry point was used for a comic with no completed download.
+  notDownloaded,
+
+  /// The detail request failed — no network, rate limited, unknown id.
+  loadFailed,
+}
+
+enum ReaderLoadState { loading, ready, failed }
+
+/// State for **one** open comic, owned by the reader screen that shows it.
 ///
-/// Manages the currently open comic, page-level navigation, pre-fetch settings,
-/// and the visibility of the reader controls overlay.
-class ComicReaderModel extends ChangeNotifier {
-  ComicReaderModel({
+/// Screen-scoped rather than app-scoped, and that is the whole point: the
+/// [PageController] below can only ever be attached to one `PageView`, so an
+/// app-scoped instance broke outright the moment two reader routes existed
+/// (see P65). Tying its lifetime to the screen makes that structurally
+/// impossible, and means nothing outside the reader can be woken by a page
+/// turn.
+class ReaderSessionModel extends ChangeNotifier {
+  ReaderSessionModel({
     required this.loadComicDetailUseCase,
     required this.loadOfflineComicUseCase,
     required this.openComicUseCase,
@@ -31,19 +46,22 @@ class ComicReaderModel extends ChangeNotifier {
   final PageController pageController = PageController();
 
   Comic? _currentComic;
-  Map<String, String>? _currentHeaders;
   int _currentPage = 1;
   bool _showControls = false;
-  int _prefetchPageCount = ReaderSettingsRepository.defaultPrefetchPageCount;
-  ReadingDirection _readingDirection = ReaderSettingsRepository.defaultReadingDirection;
-  double _tapZoneRatio = ReaderSettingsRepository.defaultTapZoneRatio;
+  ReaderLoadState _loadState = ReaderLoadState.loading;
+  ReaderLoadFailure? _failure;
 
   // ---------------------------------------------------------------------------
   // Getters
   // ---------------------------------------------------------------------------
 
   Comic? get currentComic => _currentComic;
-  Map<String, String>? get currentHeaders => _currentHeaders;
+
+  ReaderLoadState get loadState => _loadState;
+  bool get isReady => _loadState == ReaderLoadState.ready;
+
+  /// Set only while [loadState] is [ReaderLoadState.failed].
+  ReaderLoadFailure? get failure => _failure;
 
   /// 1-indexed current page number.
   int get currentPage => _currentPage;
@@ -56,51 +74,57 @@ class ComicReaderModel extends ChangeNotifier {
   /// Whether the bottom controls overlay should be visible.
   bool get showControls => _showControls;
 
-  /// How many pages before and after the current page to pre-cache.
-  int get prefetchPageCount => _prefetchPageCount;
-
-  ReadingDirection get readingDirection => _readingDirection;
-  double get tapZoneRatio => _tapZoneRatio;
-
-  // ---------------------------------------------------------------------------
-  // Settings
-  // ---------------------------------------------------------------------------
-
-  /// Loads persisted reader preferences. Call once after construction.
-  Future<void> loadSettings() async {
-    _prefetchPageCount = await readerSettingsRepository.loadPrefetchPageCount();
-    _readingDirection = await readerSettingsRepository.loadReadingDirection();
-    _tapZoneRatio = await readerSettingsRepository.loadTapZoneRatio();
-    notifyListeners();
-  }
-
-  /// Updates and persists [count] as the new prefetch page count.
-  Future<void> savePrefetchPageCount(int count) async {
-    _prefetchPageCount = count;
-    await readerSettingsRepository.savePrefetchPageCount(count);
-    notifyListeners();
-  }
-
-  Future<void> saveReadingDirection(ReadingDirection direction) async {
-    _readingDirection = direction;
-    await readerSettingsRepository.saveReadingDirection(direction);
-    notifyListeners();
-  }
-
-  Future<void> saveTapZoneRatio(double ratio) async {
-    _tapZoneRatio = ratio;
-    await readerSettingsRepository.saveTapZoneRatio(ratio);
-    notifyListeners();
-  }
-
   // ---------------------------------------------------------------------------
   // Comic loading
   // ---------------------------------------------------------------------------
 
+  /// Loads [comicId] and moves to [ReaderLoadState.ready] or
+  /// [ReaderLoadState.failed].
+  ///
+  /// **Local first**: a comic that is already downloaded is read from disk, so
+  /// opening it costs no request and works with no connection at all. Only a
+  /// comic with no completed download falls through to the API.
+  ///
+  /// [offline] makes that strict — local or nothing. The Downloads tab uses it
+  /// because that list promises an on-device library: quietly pulling a whole
+  /// comic over a metered connection from there would be a surprise, and a
+  /// download that cannot be read locally is a broken download, not a cue to
+  /// re-fetch it.
+  ///
+  /// Never throws: the screen has nowhere to hand an exception, and an
+  /// unhandled one would leave it spinning forever with no way out.
+  Future<void> open({required String comicId, bool offline = false}) async {
+    _loadState = ReaderLoadState.loading;
+    _failure = null;
+    notifyListeners();
+
+    try {
+      if (await loadOfflineComic(comicId)) {
+        _loadState = ReaderLoadState.ready;
+        notifyListeners();
+        return;
+      }
+      if (offline) {
+        _fail(ReaderLoadFailure.notDownloaded);
+        return;
+      }
+      await loadComicDetail(comicId);
+      _loadState = ReaderLoadState.ready;
+      notifyListeners();
+    } catch (_) {
+      _fail(ReaderLoadFailure.loadFailed);
+    }
+  }
+
+  void _fail(ReaderLoadFailure failure) {
+    _currentComic = null;
+    _failure = failure;
+    _loadState = ReaderLoadState.failed;
+    notifyListeners();
+  }
+
   Future<void> loadComicDetail(String comicId) async {
-    final result = await loadComicDetailUseCase.execute(comicId);
-    _currentHeaders = result.headers;
-    await openComic(result.comic);
+    await openComic(await loadComicDetailUseCase.execute(comicId));
   }
 
   /// Opens a completed download in the reader using locally stored page files.
@@ -110,15 +134,18 @@ class ComicReaderModel extends ChangeNotifier {
   Future<bool> loadOfflineComic(String comicId) async {
     final comic = await loadOfflineComicUseCase.execute(comicId);
     if (comic == null) return false;
-    await openComic(comic);
+    await openComic(comic, isDegradedMetadata: true);
     return true;
   }
 
-  Future<void> openComic(Comic comic) async {
+  Future<void> openComic(Comic comic, {bool isDegradedMetadata = false}) async {
     _currentComic = comic;
     _currentPage = 1;
     _showControls = false;
-    await openComicUseCase.execute(comic);
+    await openComicUseCase.execute(
+      comic,
+      isDegradedMetadata: isDegradedMetadata,
+    );
     await downloadedLibraryRepository.saveLastReadAt(comic.id, DateTime.now());
     notifyListeners();
   }
@@ -136,7 +163,7 @@ class ComicReaderModel extends ChangeNotifier {
     downloadedLibraryRepository.saveLastReadAt(comicId, DateTime.now());
   }
 
-  /// Animates [pageController] to the given 1-indexed [page].
+  /// Jumps [pageController] to the given 1-indexed [page].
   void goToPage(int page) {
     if (_currentComic == null) return;
     final target = page.clamp(1, totalPages);
@@ -183,18 +210,6 @@ class ComicReaderModel extends ChangeNotifier {
 
   Future<int?> loadLastSeenPage(String comicId) {
     return readerSettingsRepository.loadLastSeenPage(comicId);
-  }
-
-  // ---------------------------------------------------------------------------
-  // Lifecycle
-  // ---------------------------------------------------------------------------
-
-  void clearComic() {
-    _currentComic = null;
-    _currentHeaders = null;
-    _currentPage = 1;
-    _showControls = false;
-    notifyListeners();
   }
 
   @override

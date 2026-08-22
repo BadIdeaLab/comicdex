@@ -1,8 +1,8 @@
 import 'package:concept_nhv/application/library/comic_card_action_coordinator.dart';
+import 'package:concept_nhv/application/reader/reader_launcher.dart';
 import 'package:concept_nhv/models/collection_type.dart';
 import 'package:concept_nhv/models/comic_card_data.dart';
 import 'package:concept_nhv/models/download_job_status.dart';
-import 'package:concept_nhv/state/comic_reader_model.dart';
 import 'package:concept_nhv/state/download_manager_model.dart';
 import 'package:concept_nhv/state/favorite_sync_model.dart';
 import 'package:flutter/material.dart';
@@ -52,21 +52,7 @@ class ComicCard extends StatelessWidget {
                   splashColor: Colors.blue.withAlpha(30),
                   onTap: inSelectionMode
                       ? onSelectionToggle
-                      : () async {
-                          await context
-                              .read<ComicCardActionCoordinator>()
-                              .openComic(comic);
-                          if (!context.mounted) return;
-                          await context.push(
-                            Uri(
-                              path: '/third',
-                              queryParameters: <String, String>{'id': comic.id},
-                            ).toString(),
-                          );
-                          if (!context.mounted) return;
-                          context.read<ComicReaderModel>().clearComic();
-                          await context.read<DownloadManagerModel>().refresh();
-                        },
+                      : () => _openReader(context),
                   onLongPress: inSelectionMode ? null : () => _showTagSheet(context),
                   child: FallbackCachedNetworkImage(
                     url: comic.thumbnailUrl,
@@ -146,6 +132,24 @@ class ComicCard extends StatelessWidget {
           ],
         ),
       ],
+    );
+  }
+
+  /// Opens this comic in the reader.
+  ///
+  /// The router is read from [context] up front because [show] runs after an
+  /// await — and the card itself may well be gone by then, since the reader
+  /// covers the list that built it.
+  Future<void> _openReader(BuildContext context) {
+    final router = GoRouter.of(context);
+
+    return context.read<ReaderLauncher>().open(
+      show: () => router.push(
+        Uri(
+          path: '/third',
+          queryParameters: <String, String>{'id': comic.id},
+        ).toString(),
+      ),
     );
   }
 

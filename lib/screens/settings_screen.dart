@@ -11,7 +11,7 @@ import 'package:concept_nhv/services/nhentai_auth_service.dart';
 import 'package:concept_nhv/state/app_locale_model.dart';
 import 'package:concept_nhv/state/blocked_tags_model.dart';
 import 'package:concept_nhv/state/comic_feed_model.dart';
-import 'package:concept_nhv/state/comic_reader_model.dart';
+import 'package:concept_nhv/state/reader_settings_model.dart';
 import 'package:concept_nhv/state/favorite_sync_model.dart';
 import 'package:concept_nhv/widgets/glass_container.dart';
 import 'package:flutter/material.dart';
@@ -378,7 +378,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   /// Shows the current prefetch page count and allows changing it via a slider.
   Widget _buildPrefetchCountTile(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final readerModel = context.watch<ComicReaderModel>();
+    final readerModel = context.watch<ReaderSettingsModel>();
     final count = readerModel.prefetchPageCount;
     return ListTile(
       title: Text(l10n.prefetchPagesTitle),
@@ -395,7 +395,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _showPrefetchDialog(
     BuildContext context,
-    ComicReaderModel model,
+    ReaderSettingsModel model,
   ) async {
     await showDialog<void>(
       context: context,
@@ -666,7 +666,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 class _PrefetchCountDialog extends StatefulWidget {
   const _PrefetchCountDialog({required this.model});
 
-  final ComicReaderModel model;
+  final ReaderSettingsModel model;
 
   @override
   State<_PrefetchCountDialog> createState() => _PrefetchCountDialogState();
