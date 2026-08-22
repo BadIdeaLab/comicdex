@@ -61,6 +61,16 @@
       }
     }
   },
+  "controlTitle": "已連線手機",
+  "controlEmpty": "目前沒有手機連線。請先在手機 App 的備份頁面完成配對。",
+  "controlStartBackup": "開始備份",
+  "controlPause": "暫停",
+  "controlStateIdle": "已連線，可開始",
+  "controlStateRunning": "備份中…",
+  "controlStatePausing": "目前檔案完成後暫停…",
+  "controlStatePaused": "已暫停",
+  "controlStateCompleted": "備份完成",
+  "controlStateError": "備份失敗",
   "activityTitle": "活動紀錄",
   "activityEmpty": "等待裝置連線…",
   "activityFolderChanged": "備份資料夾已改為 {path}",

@@ -100,35 +100,34 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get controlTitle => 'Connected phones';
+  String get controlTitle => '已連線手機';
 
   @override
-  String get controlEmpty =>
-      'No phone is connected. Open Backup in the mobile app and pair it first.';
+  String get controlEmpty => '目前沒有手機連線。請先在手機 App 的備份頁面完成配對。';
 
   @override
-  String get controlStartBackup => 'Start backup';
+  String get controlStartBackup => '開始備份';
 
   @override
-  String get controlPause => 'Pause';
+  String get controlPause => '暫停';
 
   @override
-  String get controlStateIdle => 'Connected · ready';
+  String get controlStateIdle => '已連線，可開始';
 
   @override
-  String get controlStateRunning => 'Backing up…';
+  String get controlStateRunning => '備份中…';
 
   @override
-  String get controlStatePausing => 'Pausing after the current file…';
+  String get controlStatePausing => '目前檔案完成後暫停…';
 
   @override
-  String get controlStatePaused => 'Paused';
+  String get controlStatePaused => '已暫停';
 
   @override
-  String get controlStateCompleted => 'Backup completed';
+  String get controlStateCompleted => '備份完成';
 
   @override
-  String get controlStateError => 'Backup failed';
+  String get controlStateError => '備份失敗';
 
   @override
   String get activityTitle => '活動紀錄';
