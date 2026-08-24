@@ -18,7 +18,6 @@ import 'package:concept_nhv/application/reader/load_comic_detail_use_case.dart';
 import 'package:concept_nhv/application/reader/load_offline_comic_use_case.dart';
 import 'package:concept_nhv/application/reader/open_comic_use_case.dart';
 import 'package:concept_nhv/application/reader/reader_launcher.dart';
-import 'package:concept_nhv/application/reader/reader_progress_repository.dart';
 import 'package:concept_nhv/application/reader/reader_settings_repository.dart';
 import 'package:concept_nhv/application/tags/check_tag_catalog_update_use_case.dart';
 import 'package:concept_nhv/application/tags/load_comic_meta_use_case.dart';
@@ -62,7 +61,6 @@ import 'package:concept_nhv/storage/downloaded_library_repository.dart';
 import 'package:concept_nhv/storage/local_database.dart';
 import 'package:concept_nhv/storage/nhentai_api_key_store.dart';
 import 'package:concept_nhv/storage/options_store.dart';
-import 'package:concept_nhv/storage/reader_progress_store.dart';
 import 'package:concept_nhv/storage/reader_settings_store.dart';
 import 'package:concept_nhv/storage/search_history_repository.dart';
 import 'package:concept_nhv/storage/secure_key_value_store.dart';
@@ -129,9 +127,6 @@ List<SingleChildWidget> _buildStorageProviders() {
     Provider(
       create: (context) =>
           SearchHistoryRepository(localDatabase: context.read()),
-    ),
-    Provider<ReaderProgressRepository>(
-      create: (context) => ReaderProgressStore(optionsStore: context.read()),
     ),
     Provider<ReaderSettingsRepository>(
       create: (context) => ReaderSettingsStore(optionsStore: context.read()),

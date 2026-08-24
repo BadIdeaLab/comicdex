@@ -1,7 +1,6 @@
 import 'package:concept_nhv/application/reader/load_comic_detail_use_case.dart';
 import 'package:concept_nhv/application/reader/load_offline_comic_use_case.dart';
 import 'package:concept_nhv/application/reader/open_comic_use_case.dart';
-import 'package:concept_nhv/application/reader/reader_progress_repository.dart';
 import 'package:concept_nhv/application/reader/reader_settings_repository.dart';
 import 'package:concept_nhv/models/comic.dart';
 import 'package:concept_nhv/storage/downloaded_library_repository.dart';
@@ -31,7 +30,6 @@ class ReaderSessionModel extends ChangeNotifier {
     required this.loadComicDetailUseCase,
     required this.loadOfflineComicUseCase,
     required this.openComicUseCase,
-    required this.readerProgressRepository,
     required this.readerSettingsRepository,
     required this.downloadedLibraryRepository,
   });
@@ -39,7 +37,6 @@ class ReaderSessionModel extends ChangeNotifier {
   final LoadComicDetailUseCase loadComicDetailUseCase;
   final LoadOfflineComicUseCase loadOfflineComicUseCase;
   final OpenComicUseCase openComicUseCase;
-  final ReaderProgressRepository readerProgressRepository;
   final ReaderSettingsRepository readerSettingsRepository;
   final DownloadedLibraryRepository downloadedLibraryRepository;
 
@@ -192,20 +189,7 @@ class ReaderSessionModel extends ChangeNotifier {
   }
 
   // ---------------------------------------------------------------------------
-  // Progress persistence (legacy offset-based, kept for backward compat)
-  // ---------------------------------------------------------------------------
-
-  Future<void> persistLastSeenOffset(String comicId, double offset) async {
-    if (offset == 0) return;
-    await readerProgressRepository.saveLastSeenOffset(comicId, offset);
-  }
-
-  Future<double?> loadLastSeenOffset(String comicId) {
-    return readerProgressRepository.loadLastSeenOffset(comicId);
-  }
-
-  // ---------------------------------------------------------------------------
-  // Progress persistence (page-based)
+  // Progress persistence
   // ---------------------------------------------------------------------------
 
   Future<int?> loadLastSeenPage(String comicId) {

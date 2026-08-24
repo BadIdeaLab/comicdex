@@ -52,7 +52,6 @@ class _ComicReaderScreenState extends State<ComicReaderScreen> {
       loadComicDetailUseCase: context.read(),
       loadOfflineComicUseCase: context.read(),
       openComicUseCase: context.read(),
-      readerProgressRepository: context.read(),
       readerSettingsRepository: context.read(),
       downloadedLibraryRepository: context.read(),
     );

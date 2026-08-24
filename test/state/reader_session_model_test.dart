@@ -10,8 +10,6 @@ import 'package:concept_nhv/models/comic.dart';
 import 'package:concept_nhv/models/stored_comic.dart';
 import 'package:concept_nhv/services/download_asset_store.dart';
 import 'package:concept_nhv/state/reader_session_model.dart';
-import 'package:concept_nhv/storage/options_store.dart';
-import 'package:concept_nhv/storage/reader_progress_store.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
@@ -71,9 +69,6 @@ void main() {
         comicRepository: harness.comicRepository,
         collectionRepository: harness.collectionRepository,
       ),
-      readerProgressRepository: ReaderProgressStore(
-        optionsStore: OptionsStore(localDatabase: harness.localDatabase),
-      ),
       readerSettingsRepository: FakeReaderSettingsRepository(),
       downloadedLibraryRepository: harness.downloadedLibraryRepository,
     );
@@ -115,7 +110,6 @@ void main() {
         ),
         loadOfflineComicUseCase: model.loadOfflineComicUseCase,
         openComicUseCase: model.openComicUseCase,
-        readerProgressRepository: model.readerProgressRepository,
         readerSettingsRepository: model.readerSettingsRepository,
         downloadedLibraryRepository: model.downloadedLibraryRepository,
       );
@@ -210,7 +204,6 @@ void main() {
         ),
         loadOfflineComicUseCase: model.loadOfflineComicUseCase,
         openComicUseCase: model.openComicUseCase,
-        readerProgressRepository: model.readerProgressRepository,
         readerSettingsRepository: model.readerSettingsRepository,
         downloadedLibraryRepository: model.downloadedLibraryRepository,
       );
@@ -245,12 +238,14 @@ void main() {
     });
   });
 
-  test('loadLastSeenOffset returns stored progress', () async {
-    await model.readerProgressRepository.saveLastSeenOffset('88', 123.5);
+  test('a page turn is persisted and read back on the next open', () async {
+    // The surviving progress mechanism, after the offset-based one was removed
+    // in P68. Nothing covered this before, so a careless deletion could have
+    // rewired it to the wrong repository without a single test noticing.
+    await model.open(comicId: '77');
+    model.onPageChanged(4, '77');
 
-    final offset = await model.loadLastSeenOffset('88');
-
-    expect(offset, 123.5);
+    expect(await model.loadLastSeenPage('77'), 5, reason: '0-indexed to 1-indexed');
   });
 }
 

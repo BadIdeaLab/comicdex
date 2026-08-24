@@ -34,7 +34,6 @@ import 'package:concept_nhv/state/reader_session_model.dart';
 import 'package:concept_nhv/storage/download_settings_store.dart';
 import 'package:concept_nhv/storage/nhentai_api_key_store.dart';
 import 'package:concept_nhv/storage/options_store.dart';
-import 'package:concept_nhv/storage/reader_progress_store.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -89,9 +88,6 @@ void main() {
         openComicUseCase: OpenComicUseCase(
           comicRepository: harness.comicRepository,
           collectionRepository: harness.collectionRepository,
-        ),
-        readerProgressRepository: ReaderProgressStore(
-          optionsStore: OptionsStore(localDatabase: harness.localDatabase),
         ),
         readerSettingsRepository: FakeReaderSettingsRepository(),
         downloadedLibraryRepository: harness.downloadedLibraryRepository,
