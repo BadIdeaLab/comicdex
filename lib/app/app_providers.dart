@@ -28,6 +28,7 @@ import 'package:concept_nhv/services/backup/backup_client.dart';
 import 'package:concept_nhv/services/backup/backup_control_client.dart';
 import 'package:concept_nhv/services/backup/backup_restore_service.dart';
 import 'package:concept_nhv/services/backup/pairing_memory.dart';
+import 'package:concept_nhv/services/backup/restore_progress_flag.dart';
 import 'package:concept_nhv/services/backup/backup_sync_service.dart';
 import 'package:concept_nhv/services/backup/snapshot_database_reader.dart';
 import 'package:concept_nhv/services/backup/device_name_service.dart';
@@ -174,6 +175,12 @@ List<SingleChildWidget> _buildServiceProviders() {
         );
       },
     ),
+    // Registered separately so the bootstrap screen can read the flag without
+    // building the whole restore service, and so both see the same instance.
+    Provider<RestoreProgressFlag>(
+      create: (_) =>
+          RestoreProgressFlag(supportDirectory: getApplicationSupportDirectory),
+    ),
     Provider<BackupRestoreService>(
       create: (context) => BackupRestoreService(
         client: context.read(),
@@ -181,6 +188,7 @@ List<SingleChildWidget> _buildServiceProviders() {
         appSchemaVersion: context.read<LocalDatabase>().schemaVersion,
         databaseReader: sqliteSnapshotReader,
         supportDirectory: getApplicationSupportDirectory,
+        progressFlag: context.read(),
       ),
     ),
     Provider<BackupControlClient>(

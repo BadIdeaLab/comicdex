@@ -17,17 +17,8 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
-/// Key for the router's root navigator.
-///
-/// Needed because `MaterialApp.router`'s `builder` receives this navigator as
-/// its child, so the builder's own context sits *above* it — code wrapped there
-/// cannot call `showDialog`, which needs a Navigator ancestor. The
-/// interrupted-restore warning is exactly that case.
-final GlobalKey<NavigatorState> appNavigatorKey = GlobalKey<NavigatorState>();
-
 GoRouter createAppRouter() {
   return GoRouter(
-    navigatorKey: appNavigatorKey,
     routes: <RouteBase>[
       GoRoute(path: '/', builder: (context, state) => const BootstrapScreen()),
       ShellRoute(
