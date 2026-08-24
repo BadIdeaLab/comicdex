@@ -194,6 +194,52 @@ void main() {
     // Restore, driven by the same command channel as backup.
     // ---------------------------------------------------------------------
 
+    group('isRestoreInProgress', () {
+      // Drives whether the backup screen may be left. A restore rewrites the
+      // library under a database that has not been swapped yet, so walking back
+      // into the library mid-restore shows comics whose files are in flux.
+      test('a backup never engages the lock — it only reads this device', () async {
+        await model.connect(_connection);
+
+        controlClient.addCommand(
+          const BackupControlCommand(action: 'startBackup', commandId: 'b1'),
+        );
+        await _waitUntil(() => model.state == BackupControlState.completed);
+
+        // Asserting the flag as well as the getter: the flag is what makes the
+        // lock unreachable for backups, and only the restore path ever sets it.
+        // (A running backup is not sampled directly because the fake finishes
+        // faster than the poll interval.)
+        expect(model.lastJobWasRestore, isFalse);
+        expect(model.isRestoreInProgress, isFalse);
+      });
+
+      test('is true while a restore runs, and false once it finishes', () async {
+        backupClient.inventory = <String, int>{'177013/cover.webp': 3};
+        backupClient.remoteFiles = <String, List<int>>{
+          '177013/cover.webp': <int>[1, 2, 3],
+        };
+        restoreDatabasePaths = <String?>['177013/cover.webp'];
+        await model.connect(_connection);
+
+        controlClient.addCommand(
+          const BackupControlCommand(
+            action: 'startRestore',
+            commandId: 'r-lock',
+            sourceDeviceId: 'Old-Phone',
+          ),
+        );
+        await _waitUntil(() => model.isRestoreInProgress);
+
+        await _waitUntil(() => model.state == BackupControlState.completed);
+        expect(
+          model.isRestoreInProgress,
+          isFalse,
+          reason: 'the screen must be escapable again once the restore ends',
+        );
+      });
+    });
+
     test('desktop restore command pulls from the named source device', () async {
       backupClient.inventory = <String, int>{'177013/cover.webp': 3};
       backupClient.remoteFiles = <String, List<int>>{

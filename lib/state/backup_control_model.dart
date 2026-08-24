@@ -90,6 +90,18 @@ class BackupControlModel extends ChangeNotifier {
   bool get restoreAwaitingRestart => _restoreAwaitingRestart;
   bool get lastJobWasRestore => _activeJobIsRestore;
 
+  /// True while a *restore* is actually in flight.
+  ///
+  /// Deliberately not "any job in flight": a backup only reads this device, so
+  /// walking away from it costs nothing. A restore is deleting and re-fetching
+  /// files while the database describing them has not been swapped yet, so the
+  /// library is inconsistent for as long as it runs — which is why the screen
+  /// refuses to be left until it finishes.
+  bool get isRestoreInProgress =>
+      _activeJobIsRestore &&
+      (_state == BackupControlState.running ||
+          _state == BackupControlState.pausing);
+
   BackupControlState get state => _state;
   BackupSyncProgress? get progress => _progress;
   BackupSyncResult? get result => _result;

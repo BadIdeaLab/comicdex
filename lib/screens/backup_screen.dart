@@ -121,8 +121,40 @@ class _BackupScreenState extends State<BackupScreen> {
     }
     final fieldsEnabled =
         !model.isConnected && model.state != BackupControlState.connecting;
+    // Leaving mid-restore is not merely untidy: the restore is deleting and
+    // re-fetching files while the *old* database is still the one on screen, so
+    // the library the user would walk back into lists comics whose files are
+    // in flux. Local-first opening (P66) makes them likelier to hit exactly
+    // those files. Backups are read-only on this device and stay escapable.
+    final restoreInProgress = model.isRestoreInProgress;
+    // No explanation on refusal: the screen itself is showing the restore
+    // running, so a message would only repeat what is already on it.
+    return PopScope(
+      canPop: !restoreInProgress,
+      child: _buildScaffold(
+        context,
+        l10n,
+        model,
+        fieldsEnabled,
+        restoreInProgress,
+      ),
+    );
+  }
+
+  Widget _buildScaffold(
+    BuildContext context,
+    AppLocalizations l10n,
+    BackupControlModel model,
+    bool fieldsEnabled,
+    bool restoreInProgress,
+  ) {
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.backupScreenTitle)),
+      appBar: AppBar(
+        title: Text(l10n.backupScreenTitle),
+        // A back button that silently does nothing is worse than no back
+        // button; PopScope already refuses the pop, so remove the affordance.
+        automaticallyImplyLeading: !restoreInProgress,
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: <Widget>[
