@@ -288,10 +288,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get backupStartButton => '開始備份';
 
   @override
-  String get backupConnectButton => 'Connect';
+  String get backupConnectButton => '連線';
 
   @override
-  String get backupDisconnectButton => 'Disconnect';
+  String get backupDisconnectButton => '中斷連線';
 
   @override
   String get backupDesktopControlsNote =>
@@ -301,26 +301,25 @@ class AppLocalizationsZh extends AppLocalizations {
   String get backupKeepForegroundNote => '備份期間請保持這個畫面開著。書庫較大時會需要一段時間。';
 
   @override
-  String get backupControlDisconnected => 'Not connected';
+  String get backupControlDisconnected => '尚未連線';
 
   @override
-  String get backupControlReady =>
-      'Connected · waiting for a command from the computer';
+  String get backupControlReady => '已連線，等待電腦端命令';
 
   @override
-  String get backupControlRunning => 'Backup started by the computer';
+  String get backupControlRunning => '電腦端已開始備份';
 
   @override
-  String get backupControlPausing => 'Pausing after the current file…';
+  String get backupControlPausing => '目前檔案完成後暫停…';
 
   @override
-  String get backupControlPaused => 'Backup paused';
+  String get backupControlPaused => '備份已暫停';
 
   @override
-  String get backupControlCompleted => 'Backup completed';
+  String get backupControlCompleted => '備份完成';
 
   @override
-  String get backupControlError => 'Connection or backup failed';
+  String get backupControlError => '連線或備份失敗';
 
   @override
   String get backupStageConnecting => '連線中…';
