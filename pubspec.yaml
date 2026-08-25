@@ -59,6 +59,8 @@ dependencies:
   crypto: ^3.0.7
   wakelock_plus: ^1.5.2
   device_info_plus: ^12.4.0
+  mobile_scanner: ^7.4.0
+  image_picker: ^1.2.3
 
 dev_dependencies:
   flutter_test:

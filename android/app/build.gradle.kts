@@ -9,7 +9,11 @@ android {
     namespace = "com.ttdyce.concept_nhv"
     compileSdk = flutter.compileSdkVersion
     // ndkVersion = flutter.ndkVersion
-    ndkVersion = "27.0.12077973"
+    // Pinned to the highest any plugin asks for — `jni` needs 28.2, and NDK
+    // releases are backward compatible, so the highest requirement wins. Left
+    // explicit rather than tracking flutter.ndkVersion so a Flutter upgrade
+    // cannot silently move it underneath a plugin that needs more.
+    ndkVersion = "28.2.13676358"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
