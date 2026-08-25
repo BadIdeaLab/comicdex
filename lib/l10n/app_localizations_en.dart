@@ -362,7 +362,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get backupErrorWrongPin =>
-      'Wrong PIN. Check the number shown on the computer — it changes every time that app restarts.';
+      'Wrong or expired pairing code. The computer refreshes it every 60 seconds, so scan the code again rather than reusing an old screenshot.';
 
   @override
   String get backupErrorLockedOut =>
@@ -400,6 +400,51 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get backupApiKeyNote =>
       'Your nhentai API key is not included in backups. You will sign in again after restoring.';
+
+  @override
+  String get backupScanWithCamera => 'Scan pairing code';
+
+  @override
+  String get backupScanTitle => 'Scan pairing code';
+
+  @override
+  String get backupScanAimHint =>
+      'Point the camera at the QR code shown by the backup server on your computer.';
+
+  @override
+  String get backupScanCameraDenied =>
+      'Camera access is off, so the code cannot be scanned. You can still import a screenshot from your photos, or type the address and PIN.';
+
+  @override
+  String get backupScanCameraUnavailable =>
+      'The camera is unavailable on this device. You can still import a screenshot from your photos, or type the address and PIN.';
+
+  @override
+  String get backupScanUseAnotherWay => 'Pair another way';
+
+  @override
+  String get backupImportPairingCode => 'Import pairing code from photos';
+
+  @override
+  String backupTryingAddress(String address, int attempt, int total) {
+    return 'Trying $address ($attempt of $total)…';
+  }
+
+  @override
+  String get backupScanNoCodeFound =>
+      'No QR code in that image. Pick a screenshot of the Comicdex backup server window.';
+
+  @override
+  String get backupScanNotOurCode =>
+      'That is not a Comicdex pairing code. Scan the code shown by the backup server on your computer.';
+
+  @override
+  String get backupScanNeedsAppUpdate =>
+      'That pairing code comes from a newer version of the desktop server. Update this app, then try again.';
+
+  @override
+  String get backupScanNoAddresses =>
+      'That pairing code contains no address. The computer may have no usable network connection — check it and generate a new code.';
 
   @override
   String get backupErrorPairingRejected =>

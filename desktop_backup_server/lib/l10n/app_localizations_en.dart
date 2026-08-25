@@ -36,11 +36,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get connectPinLabel => 'Pairing PIN';
 
   @override
+  String connectPinRotatesIn(int seconds) {
+    return 'Refreshes in ${seconds}s';
+  }
+
+  @override
+  String get connectScanLabel => 'Scan to pair';
+
+  @override
   String get connectNewPin => 'New PIN';
 
   @override
   String get connectPinChangesNote =>
-      'The PIN changes every time this app restarts.';
+      'The PIN and QR code refresh every 60 seconds, and whenever this app restarts. A phone that has already paired keeps working — refreshing only affects new pairings.';
 
   @override
   String get connectNoNetwork => 'No network connection found';

@@ -36,10 +36,19 @@ class AppLocalizationsZh extends AppLocalizations {
   String get connectPinLabel => '配對碼';
 
   @override
+  String connectPinRotatesIn(int seconds) {
+    return '$seconds 秒後刷新';
+  }
+
+  @override
+  String get connectScanLabel => '掃描配對';
+
+  @override
   String get connectNewPin => '換一組';
 
   @override
-  String get connectPinChangesNote => '每次重新啟動這個程式，配對碼都會更換。';
+  String get connectPinChangesNote =>
+      '配對碼與 QR code 每 60 秒刷新一次，重新啟動這個程式時也會刷新。已經配對成功的手機不受影響——刷新只影響新的配對。';
 
   @override
   String get connectNoNetwork => '找不到網路連線';
@@ -277,10 +286,19 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get connectPinLabel => '配對碼';
 
   @override
+  String connectPinRotatesIn(int seconds) {
+    return '$seconds 秒後刷新';
+  }
+
+  @override
+  String get connectScanLabel => '掃描配對';
+
+  @override
   String get connectNewPin => '換一組';
 
   @override
-  String get connectPinChangesNote => '每次重新啟動這個程式，配對碼都會更換。';
+  String get connectPinChangesNote =>
+      '配對碼與 QR code 每 60 秒刷新一次，重新啟動這個程式時也會刷新。已經配對成功的手機不受影響——刷新只影響新的配對。';
 
   @override
   String get connectNoNetwork => '找不到網路連線';

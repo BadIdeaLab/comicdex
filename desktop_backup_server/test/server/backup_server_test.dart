@@ -68,11 +68,15 @@ void main() {
       List<int>? body,
       Map<String, String> headers = const <String, String>{},
       bool omitPin = false,
+      String? sessionToken,
     }) async {
       final request = await client.openUrl(
         method,
         Uri.parse('http://127.0.0.1:$port$path'),
       );
+      if (sessionToken != null) {
+        request.headers.set(kSessionHeader, sessionToken);
+      }
       if (!omitPin) {
         request.headers.set(kPinHeader, pin ?? pinGuard.pin);
       }
@@ -172,9 +176,44 @@ void main() {
       test('health reports the protocol version once authenticated', () async {
         final response = await send('GET', '/health', deviceId: null);
         expect(response.statusCode, HttpStatus.ok);
-        expect(jsonDecode(await textOf(response)), <String, Object?>{
-          'protocolVersion': kProtocolVersion,
-        });
+        final body = jsonDecode(await textOf(response)) as Map<String, Object?>;
+        expect(body['protocolVersion'], kProtocolVersion);
+      });
+
+      test('health hands out a session token that outlives a PIN rotation', () async {
+        // The whole point of the token: the PIN rotates on a timer, but a
+        // transfer already under way keeps authenticating for tens of minutes.
+        final body =
+            jsonDecode(
+                  await textOf(await send('GET', '/health', deviceId: null)),
+                )
+                as Map<String, Object?>;
+        final token = body['sessionToken'] as String?;
+        expect(token, isNotNull);
+
+        pinGuard.regenerate();
+
+        final afterRotation = await send(
+          'GET',
+          '/health',
+          deviceId: null,
+          pin: 'now-wrong',
+          sessionToken: token,
+        );
+        expect(afterRotation.statusCode, HttpStatus.ok);
+      });
+
+      test('a rotated-away PIN alone is refused', () async {
+        // The other half: a photographed QR has to go stale quickly.
+        pinGuard.regenerate();
+
+        final response = await send(
+          'GET',
+          '/health',
+          deviceId: null,
+          pin: 'now-wrong',
+        );
+        expect(response.statusCode, HttpStatus.unauthorized);
       });
     });
 

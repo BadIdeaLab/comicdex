@@ -7,6 +7,14 @@ import 'package:dio/dio.dart';
 
 /// Protocol constants shared with the desktop server (`desktop_backup_server`).
 const String kBackupPinHeader = 'X-Backup-Pin';
+
+/// Credentials the server hands out at pairing.
+///
+/// Sent alongside the PIN once we have one, because the desktop rotates its PIN
+/// on a timer so a photographed QR goes stale fast. A backup is dozens of
+/// requests over tens of minutes; without this, rotation would cut off a
+/// transfer that paired perfectly well.
+const String kBackupSessionHeader = 'X-Backup-Session';
 const String kBackupDeviceHeader = 'X-Device-Id';
 const String kBackupSha256Header = 'X-Content-Sha256';
 const String kBackupSchemaVersionHeader = 'X-Db-Schema-Version';
@@ -129,6 +137,13 @@ class DioBackupClient implements BackupClient {
 
   final Dio _dio;
 
+  /// Credentials from the current pairing, or null before one exists.
+  ///
+  /// Deliberately not persisted anywhere: a token outliving the app would let a
+  /// stale pairing look live after a restart, which is exactly what the
+  /// in-memory PIN on the desktop already rules out.
+  String? _sessionToken;
+
   /// Timeouts are set explicitly because the defaults are tuned for small API
   /// calls: a multi-megabyte page over slow Wi-Fi would be cut off mid-transfer.
   /// Connect still fails fast — "cannot reach the machine" should not hang — but
@@ -153,6 +168,7 @@ class DioBackupClient implements BackupClient {
       responseType: responseType,
       headers: <String, String>{
         kBackupPinHeader: connection.pin,
+        kBackupSessionHeader: ?_sessionToken,
         // Restores read another device's partition, so the scoping header is
         // not always this device's own name.
         kBackupDeviceHeader: deviceIdOverride ?? connection.deviceId,
@@ -177,12 +193,26 @@ class DioBackupClient implements BackupClient {
 
   @override
   Future<void> checkHealth(BackupConnection connection) async {
+    // The existing token is deliberately still sent. A backup re-checks health
+    // before it starts, and by then the PIN it paired with has usually rotated
+    // away — dropping the token here would 401 exactly when it is needed most.
+    //
+    // Carrying a stale token costs nothing: the server tries the token, and on
+    // failure falls through to the PIN, so a token from a different machine is
+    // simply ignored rather than fatal.
     final response = await _dio.getUri<Object?>(
       connection.baseUri.replace(path: '/health'),
       options: _options(connection),
     );
     if (response.statusCode != HttpStatus.ok) {
       _fail(response);
+    }
+    // Pairing succeeds here, so this is where the server hands one over. Held
+    // in memory only — restarting either side ends the pairing, which is what
+    // the PIN already implied.
+    final body = response.data;
+    if (body is Map && body['sessionToken'] is String) {
+      _sessionToken = body['sessionToken'] as String;
     }
   }
 

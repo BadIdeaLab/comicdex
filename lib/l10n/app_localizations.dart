@@ -720,7 +720,7 @@ abstract class AppLocalizations {
   /// No description provided for @backupErrorWrongPin.
   ///
   /// In en, this message translates to:
-  /// **'Wrong PIN. Check the number shown on the computer — it changes every time that app restarts.'**
+  /// **'Wrong or expired pairing code. The computer refreshes it every 60 seconds, so scan the code again rather than reusing an old screenshot.'**
   String get backupErrorWrongPin;
 
   /// No description provided for @backupErrorLockedOut.
@@ -770,6 +770,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Your nhentai API key is not included in backups. You will sign in again after restoring.'**
   String get backupApiKeyNote;
+
+  /// No description provided for @backupScanWithCamera.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan pairing code'**
+  String get backupScanWithCamera;
+
+  /// No description provided for @backupScanTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan pairing code'**
+  String get backupScanTitle;
+
+  /// No description provided for @backupScanAimHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Point the camera at the QR code shown by the backup server on your computer.'**
+  String get backupScanAimHint;
+
+  /// No description provided for @backupScanCameraDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera access is off, so the code cannot be scanned. You can still import a screenshot from your photos, or type the address and PIN.'**
+  String get backupScanCameraDenied;
+
+  /// No description provided for @backupScanCameraUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'The camera is unavailable on this device. You can still import a screenshot from your photos, or type the address and PIN.'**
+  String get backupScanCameraUnavailable;
+
+  /// No description provided for @backupScanUseAnotherWay.
+  ///
+  /// In en, this message translates to:
+  /// **'Pair another way'**
+  String get backupScanUseAnotherWay;
+
+  /// No description provided for @backupImportPairingCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Import pairing code from photos'**
+  String get backupImportPairingCode;
+
+  /// No description provided for @backupTryingAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Trying {address} ({attempt} of {total})…'**
+  String backupTryingAddress(String address, int attempt, int total);
+
+  /// No description provided for @backupScanNoCodeFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No QR code in that image. Pick a screenshot of the Comicdex backup server window.'**
+  String get backupScanNoCodeFound;
+
+  /// No description provided for @backupScanNotOurCode.
+  ///
+  /// In en, this message translates to:
+  /// **'That is not a Comicdex pairing code. Scan the code shown by the backup server on your computer.'**
+  String get backupScanNotOurCode;
+
+  /// No description provided for @backupScanNeedsAppUpdate.
+  ///
+  /// In en, this message translates to:
+  /// **'That pairing code comes from a newer version of the desktop server. Update this app, then try again.'**
+  String get backupScanNeedsAppUpdate;
+
+  /// No description provided for @backupScanNoAddresses.
+  ///
+  /// In en, this message translates to:
+  /// **'That pairing code contains no address. The computer may have no usable network connection — check it and generate a new code.'**
+  String get backupScanNoAddresses;
 
   /// No description provided for @backupErrorPairingRejected.
   ///

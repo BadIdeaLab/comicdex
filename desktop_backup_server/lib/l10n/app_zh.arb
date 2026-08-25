@@ -9,8 +9,15 @@
   "connectTitle": "從手機連線",
   "connectAddressLabel": "位址",
   "connectPinLabel": "配對碼",
+  "connectPinRotatesIn": "{seconds} 秒後刷新",
+  "@connectPinRotatesIn": {
+    "placeholders": {
+      "seconds": { "type": "int" }
+    }
+  },
+  "connectScanLabel": "掃描配對",
   "connectNewPin": "換一組",
-  "connectPinChangesNote": "每次重新啟動這個程式，配對碼都會更換。",
+  "connectPinChangesNote": "配對碼與 QR code 每 60 秒刷新一次，重新啟動這個程式時也會刷新。已經配對成功的手機不受影響——刷新只影響新的配對。",
   "connectNoNetwork": "找不到網路連線",
   "connectServerStopped": "伺服器未執行。",
   "connectVirtualAdapterTag": "虛擬網卡，手機多半連不到",

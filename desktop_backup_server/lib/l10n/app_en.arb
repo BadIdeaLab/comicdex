@@ -9,8 +9,15 @@
   "connectTitle": "Connect from your phone",
   "connectAddressLabel": "Address",
   "connectPinLabel": "Pairing PIN",
+  "connectPinRotatesIn": "Refreshes in {seconds}s",
+  "@connectPinRotatesIn": {
+    "placeholders": {
+      "seconds": { "type": "int" }
+    }
+  },
+  "connectScanLabel": "Scan to pair",
   "connectNewPin": "New PIN",
-  "connectPinChangesNote": "The PIN changes every time this app restarts.",
+  "connectPinChangesNote": "The PIN and QR code refresh every 60 seconds, and whenever this app restarts. A phone that has already paired keeps working — refreshing only affects new pairings.",
   "connectNoNetwork": "No network connection found",
   "connectServerStopped": "Server is not running.",
   "connectVirtualAdapterTag": "virtual — probably not this one",

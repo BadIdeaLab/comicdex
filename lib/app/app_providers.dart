@@ -27,6 +27,7 @@ import 'package:concept_nhv/state/app_locale_model.dart';
 import 'package:concept_nhv/services/backup/backup_client.dart';
 import 'package:concept_nhv/services/backup/backup_control_client.dart';
 import 'package:concept_nhv/services/backup/backup_restore_service.dart';
+import 'package:concept_nhv/services/backup/pairing_code_reader.dart';
 import 'package:concept_nhv/services/backup/pairing_memory.dart';
 import 'package:concept_nhv/services/backup/restore_progress_flag.dart';
 import 'package:concept_nhv/services/backup/backup_sync_service.dart';
@@ -195,6 +196,9 @@ List<SingleChildWidget> _buildServiceProviders() {
       create: (_) => WebSocketBackupControlClient(),
     ),
     Provider(create: (_) => DeviceNameService()),
+    // Built lazily: constructing it touches the camera and photo-library
+    // plugins, which no other screen needs.
+    Provider(create: (_) => PairingCodeReader.platform()),
     Provider(
       create: (_) =>
           PairingMemory(supportDirectory: getApplicationSupportDirectory),

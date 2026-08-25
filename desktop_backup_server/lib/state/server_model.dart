@@ -11,6 +11,7 @@ import '../models/mobile_control.dart';
 import '../server/backup_server.dart';
 import '../server/pin_guard.dart';
 import '../services/network_addresses.dart';
+import '../services/pairing_payload.dart';
 import '../storage/backup_library.dart';
 import '../storage/server_config.dart';
 
@@ -60,6 +61,27 @@ class ServerModel extends ChangeNotifier {
   bool get isRunning => _server?.isRunning ?? false;
   int? get port => _server?.port;
   String get pin => _pinGuard?.pin ?? '------';
+
+  /// What the pairing QR encodes, or null when there is nothing to pair with.
+  ///
+  /// Carries *every* address rather than a chosen one: this machine cannot tell
+  /// which of its interfaces a given phone can reach — a VPN endpoint and a
+  /// Hyper-V switch look much like a real LAN card, while the mobile-hotspot
+  /// adapter is "virtual" yet is exactly where a phone connects. The phone
+  /// tries them in turn, which replaces guessing with finding out.
+  String? get pairingUri {
+    final activePort = port;
+    if (activePort == null || _addresses.isEmpty || _pinGuard == null) {
+      return null;
+    }
+    return buildPairingUri(
+      pin: pin,
+      addresses: <String>[
+        for (final address in _addresses) '${address.address}:$activePort',
+      ],
+    );
+  }
+
   List<String> get lockedOutAddresses =>
       _pinGuard?.lockedOutAddresses ?? const <String>[];
 
@@ -103,6 +125,7 @@ class ServerModel extends ChangeNotifier {
       await server.start(preferredPort: config.port);
 
       _addresses = await listLanAddresses();
+      _startPinRotation();
       _startupError = null;
       await refreshDevices();
     } catch (error) {
@@ -204,7 +227,45 @@ class ServerModel extends ChangeNotifier {
     await refreshDevices();
   }
 
+  /// How long a displayed PIN and QR stay valid.
+  static const Duration pinRotationInterval = Duration(seconds: 60);
+
+  Timer? _pinRotationTimer;
+  DateTime? _pinRotatesAt;
+
+  /// Seconds until the PIN and QR change, or null when nothing is rotating.
+  ///
+  /// Surfaced so the countdown is visible: without it the code silently becomes
+  /// a different code, and someone who photographed the screen has no way to
+  /// know their picture just stopped working.
+  int? get secondsUntilPinRotation {
+    final rotatesAt = _pinRotatesAt;
+    if (rotatesAt == null) return null;
+    final remaining = rotatesAt.difference(DateTime.now()).inSeconds;
+    return remaining < 0 ? 0 : remaining;
+  }
+
+  /// Rotates the PIN on a timer so a photographed QR stops working quickly.
+  ///
+  /// Safe for devices already paired: they authenticate with the session token
+  /// issued at pairing, which [PinGuard.regenerate] deliberately leaves alone.
+  /// Without that, this timer would guarantee a mid-transfer failure — a backup
+  /// is dozens of requests spread over tens of minutes.
+  void _startPinRotation() {
+    _pinRotationTimer?.cancel();
+    _pinRotatesAt = DateTime.now().add(pinRotationInterval);
+    _pinRotationTimer = Timer.periodic(pinRotationInterval, (_) {
+      _pinGuard?.regenerate();
+      _pinRotatesAt = DateTime.now().add(pinRotationInterval);
+      notifyListeners();
+    });
+    notifyListeners();
+  }
+
   String regeneratePin() {
+    // Restarts the clock: a code the user just replaced by hand should get the
+    // full window, not whatever was left of the previous one.
+    _startPinRotation();
     final replacement = _pinGuard?.regenerate() ?? '------';
     _log(PinRegeneratedEvent());
     notifyListeners();
@@ -330,6 +391,7 @@ class ServerModel extends ChangeNotifier {
   @override
   void dispose() {
     _activityNotifyTimer?.cancel();
+    _pinRotationTimer?.cancel();
     final server = _server;
     if (server != null) {
       unawaited(server.stop());

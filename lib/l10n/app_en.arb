@@ -195,7 +195,7 @@
   },
   "backupErrorInvalidAddress": "Enter the address exactly as shown on the computer, for example 192.168.1.20:8787",
   "backupErrorMissingFields": "Fill in the address, PIN, and device name",
-  "backupErrorWrongPin": "Wrong PIN. Check the number shown on the computer — it changes every time that app restarts.",
+  "backupErrorWrongPin": "Wrong or expired pairing code. The computer refreshes it every 60 seconds, so scan the code again rather than reusing an old screenshot.",
   "backupErrorLockedOut": "Too many wrong PINs. Wait a few minutes, then try again.",
   "backupErrorUnreachable": "Could not reach that computer. Check you are on the same Wi-Fi, that the address is right, and that Windows Firewall is allowing the server app.",
   "backupErrorGeneric": "Backup failed: {message}",
@@ -239,6 +239,25 @@
     }
   },
   "backupApiKeyNote": "Your nhentai API key is not included in backups. You will sign in again after restoring.",
+  "backupScanWithCamera": "Scan pairing code",
+  "backupScanTitle": "Scan pairing code",
+  "backupScanAimHint": "Point the camera at the QR code shown by the backup server on your computer.",
+  "backupScanCameraDenied": "Camera access is off, so the code cannot be scanned. You can still import a screenshot from your photos, or type the address and PIN.",
+  "backupScanCameraUnavailable": "The camera is unavailable on this device. You can still import a screenshot from your photos, or type the address and PIN.",
+  "backupScanUseAnotherWay": "Pair another way",
+  "backupImportPairingCode": "Import pairing code from photos",
+  "backupTryingAddress": "Trying {address} ({attempt} of {total})…",
+  "@backupTryingAddress": {
+    "placeholders": {
+      "address": { "type": "String" },
+      "attempt": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "backupScanNoCodeFound": "No QR code in that image. Pick a screenshot of the Comicdex backup server window.",
+  "backupScanNotOurCode": "That is not a Comicdex pairing code. Scan the code shown by the backup server on your computer.",
+  "backupScanNeedsAppUpdate": "That pairing code comes from a newer version of the desktop server. Update this app, then try again.",
+  "backupScanNoAddresses": "That pairing code contains no address. The computer may have no usable network connection — check it and generate a new code.",
   "backupErrorPairingRejected": "The computer accepted the PIN but refused to pair. This usually means the device name contains characters it will not accept — try a simpler name using letters, digits, spaces, dots or hyphens.",
   "restoreInterruptedTitle": "Restore did not finish",
   "restoreInterruptedBody": "A restore from \"{sourceDeviceId}\" was interrupted. Some downloaded comics were removed to make room and have not been fetched back yet, so parts of your library may not open. Run the restore again from the computer to finish it.",

@@ -14,6 +14,11 @@ import 'pin_guard.dart';
 const int kProtocolVersion = 1;
 
 const String kPinHeader = 'X-Backup-Pin';
+
+/// Credentials issued at pairing, sent instead of the PIN once a device is
+/// paired. Exists so the PIN can rotate on a timer without cutting off a
+/// transfer that is already running — see [PinGuard.regenerate].
+const String kSessionHeader = 'X-Backup-Session';
 const String kDeviceHeader = 'X-Device-Id';
 const String kSha256Header = 'X-Content-Sha256';
 const String kSchemaVersionHeader = 'X-Db-Schema-Version';
@@ -187,6 +192,7 @@ class BackupServer {
     final address = request.connectionInfo?.remoteAddress.address ?? 'unknown';
     final pinResult = pinGuard.check(
       providedPin: request.headers.value(kPinHeader),
+      providedToken: request.headers.value(kSessionHeader),
       address: address,
     );
     if (pinResult == PinCheckResult.lockedOut) {
@@ -215,8 +221,13 @@ class BackupServer {
 
     // --- Endpoints that are not device-scoped ---
     if (segments.length == 1 && segments.first == 'health' && method == 'GET') {
+      // Pairing succeeds here, so this is where the device is handed a token.
+      // Re-issued on every health check rather than only the first: a device
+      // that reconnects after a drop is still paired, and should not have to
+      // send the user back to a QR that has since rotated.
       _writeJson(response, HttpStatus.ok, <String, Object?>{
         'protocolVersion': kProtocolVersion,
+        'sessionToken': pinGuard.issueSessionToken(),
       });
       return;
     }

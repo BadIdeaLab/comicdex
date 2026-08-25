@@ -153,6 +153,18 @@ abstract class AppLocalizations {
   /// **'Pairing PIN'**
   String get connectPinLabel;
 
+  /// No description provided for @connectPinRotatesIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Refreshes in {seconds}s'**
+  String connectPinRotatesIn(int seconds);
+
+  /// No description provided for @connectScanLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan to pair'**
+  String get connectScanLabel;
+
   /// No description provided for @connectNewPin.
   ///
   /// In en, this message translates to:
@@ -162,7 +174,7 @@ abstract class AppLocalizations {
   /// No description provided for @connectPinChangesNote.
   ///
   /// In en, this message translates to:
-  /// **'The PIN changes every time this app restarts.'**
+  /// **'The PIN and QR code refresh every 60 seconds, and whenever this app restarts. A phone that has already paired keeps working — refreshing only affects new pairings.'**
   String get connectPinChangesNote;
 
   /// No description provided for @connectNoNetwork.

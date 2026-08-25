@@ -113,7 +113,7 @@
   },
   "backupErrorInvalidAddress": "請照電腦畫面上顯示的格式輸入，例如 192.168.1.20:8787",
   "backupErrorMissingFields": "請填寫位址、配對碼與裝置名稱",
-  "backupErrorWrongPin": "配對碼錯誤。請對照電腦畫面上的數字——每次重新啟動那個程式都會更換。",
+  "backupErrorWrongPin": "配對碼錯誤或已過期。電腦每 60 秒會刷新一次，請重新掃描，不要沿用舊的截圖。",
   "backupErrorLockedOut": "配對碼錯誤太多次，請等幾分鐘後再試。",
   "backupErrorUnreachable": "連不到那台電腦。請確認手機和電腦在同一個 Wi-Fi、位址正確，以及 Windows 防火牆有允許那個伺服器程式。",
   "backupErrorGeneric": "備份失敗：{message}",
@@ -157,6 +157,25 @@
     }
   },
   "backupApiKeyNote": "備份不包含 nhentai API 金鑰，還原後需要重新登入。",
+  "backupScanWithCamera": "掃描配對碼",
+  "backupScanTitle": "掃描配對碼",
+  "backupScanAimHint": "把鏡頭對準電腦上備份伺服器顯示的 QR code。",
+  "backupScanCameraDenied": "相機權限未開啟，無法掃描。你仍然可以從相簿匯入截圖，或手動輸入位址與配對碼。",
+  "backupScanCameraUnavailable": "這台裝置的相機無法使用。你仍然可以從相簿匯入截圖，或手動輸入位址與配對碼。",
+  "backupScanUseAnotherWay": "改用其他方式配對",
+  "backupImportPairingCode": "從相簿匯入配對碼",
+  "backupTryingAddress": "正在嘗試 {address}（第 {attempt} 個，共 {total} 個）…",
+  "@backupTryingAddress": {
+    "placeholders": {
+      "address": { "type": "String" },
+      "attempt": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "backupScanNoCodeFound": "這張圖片裡沒有 QR code。請選擇 Comicdex 備份伺服器視窗的截圖。",
+  "backupScanNotOurCode": "這不是 Comicdex 的配對碼。請掃描電腦上備份伺服器顯示的那個碼。",
+  "backupScanNeedsAppUpdate": "這個配對碼來自較新版的電腦端伺服器。請先更新這個 App 再試一次。",
+  "backupScanNoAddresses": "這個配對碼裡沒有位址。那台電腦可能沒有可用的網路連線——請確認後重新產生一組。",
   "backupErrorPairingRejected": "電腦接受了配對碼，但拒絕建立連線。通常是裝置名稱含有它不接受的字元——請改用只有英數字、空格、點或連字號的簡單名稱。",
   "restoreInterruptedTitle": "還原沒有完成",
   "restoreInterruptedBody": "從「{sourceDeviceId}」的還原被中斷了。部分已下載的漫畫為了騰出空間而被移除，但還沒補回來，所以書庫有些內容可能打不開。請到電腦端重新執行一次還原把它完成。",

@@ -23,6 +23,16 @@
 	     like the machine is unreachable. -->
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Used to connect to the Comicdex backup server running on your own computer, so your library can be backed up over your local network.</string>
+	<!-- Both of these exist only for reading the pairing QR code shown by the
+	     desktop server. Nothing is photographed, uploaded, or kept: the camera
+	     frame and the picked image are decoded on-device and discarded. The
+	     photo-library entry is what lets someone pair from a screenshot of the
+	     desktop window instead of pointing the camera at it — which is also the
+	     only way to exercise pairing on a simulator, where there is no camera. -->
+	<key>NSCameraUsageDescription</key>
+	<string>Used to scan the pairing code shown by the Comicdex backup server on your computer. No photos are taken or stored.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Used to read a pairing code from a screenshot of the Comicdex backup server. Only the image you pick is read, and nothing is stored or uploaded.</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>

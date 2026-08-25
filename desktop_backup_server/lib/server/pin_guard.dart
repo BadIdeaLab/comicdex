@@ -24,6 +24,7 @@ class PinGuard {
     Random? random,
     this.maxFailedAttempts = 5,
     this.lockoutDuration = const Duration(minutes: 5),
+    this.sessionLifetime = const Duration(hours: 1),
     DateTime Function()? clock,
   }) : _random = random ?? Random.secure(),
        _clock = clock ?? DateTime.now {
@@ -33,12 +34,33 @@ class PinGuard {
   final Random _random;
   final int maxFailedAttempts;
   final Duration lockoutDuration;
+
+  /// How long a paired device stays authenticated without re-pairing.
+  final Duration sessionLifetime;
   final DateTime Function() _clock;
 
   late String _pin;
   final Map<String, _FailureRecord> _failures = <String, _FailureRecord>{};
 
+  /// Issued tokens and when each stops being accepted.
+  final Map<String, DateTime> _sessions = <String, DateTime>{};
+
   String get pin => _pin;
+
+  /// Number of session tokens still valid. Exposed for tests and diagnostics.
+  int get activeSessionCount {
+    _pruneExpiredSessions(_clock());
+    return _sessions.length;
+  }
+
+  bool _isSessionValid(String token, DateTime now) {
+    _pruneExpiredSessions(now);
+    return _sessions.containsKey(token);
+  }
+
+  void _pruneExpiredSessions(DateTime now) {
+    _sessions.removeWhere((_, expiry) => !now.isBefore(expiry));
+  }
 
   /// Addresses currently locked out, for the desktop UI to surface. Seeing this
   /// tells the user either that they mistyped, or that something on the network
@@ -51,17 +73,47 @@ class PinGuard {
         .toList(growable: false);
   }
 
+  /// Replaces the PIN. **Deliberately leaves issued session tokens alone.**
+  ///
+  /// The PIN is rotated on a timer so a photographed QR stops working almost
+  /// immediately. Devices that already paired must not be caught by that: a
+  /// backup is dozens of HTTP requests over tens of minutes, and every one of
+  /// them carries credentials, so invalidating them on rotation would guarantee
+  /// a mid-transfer failure. Rotation is about *new* pairings only.
   String regenerate() {
     _pin = _generatePin();
     _failures.clear();
     return _pin;
   }
 
-  PinCheckResult check({required String? providedPin, required String address}) {
+  /// Grants a device credentials that survive PIN rotation.
+  ///
+  /// In memory only, like the PIN: restarting the desktop app invalidates every
+  /// pairing, which is the behaviour the phone side already assumes.
+  String issueSessionToken() {
+    final token = List<int>.generate(24, (_) => _random.nextInt(16))
+        .map((digit) => digit.toRadixString(16))
+        .join();
+    _sessions[token] = _clock().add(sessionLifetime);
+    return token;
+  }
+
+  PinCheckResult check({
+    required String? providedPin,
+    required String address,
+    String? providedToken,
+  }) {
     final now = _clock();
     final record = _failures[address];
     if (record != null && record.isLockedAt(now)) {
       return PinCheckResult.lockedOut;
+    }
+
+    // Checked before the PIN: a paired device sends a token on every request,
+    // and the PIN it originally used may well have rotated away by now.
+    if (providedToken != null && _isSessionValid(providedToken, now)) {
+      _failures.remove(address);
+      return PinCheckResult.ok;
     }
 
     if (providedPin != null && providedPin == _pin) {

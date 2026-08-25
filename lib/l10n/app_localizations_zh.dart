@@ -342,7 +342,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get backupErrorMissingFields => '請填寫位址、配對碼與裝置名稱';
 
   @override
-  String get backupErrorWrongPin => '配對碼錯誤。請對照電腦畫面上的數字——每次重新啟動那個程式都會更換。';
+  String get backupErrorWrongPin => '配對碼錯誤或已過期。電腦每 60 秒會刷新一次，請重新掃描，不要沿用舊的截圖。';
 
   @override
   String get backupErrorLockedOut => '配對碼錯誤太多次，請等幾分鐘後再試。';
@@ -378,6 +378,46 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get backupApiKeyNote => '備份不包含 nhentai API 金鑰，還原後需要重新登入。';
+
+  @override
+  String get backupScanWithCamera => '掃描配對碼';
+
+  @override
+  String get backupScanTitle => '掃描配對碼';
+
+  @override
+  String get backupScanAimHint => '把鏡頭對準電腦上備份伺服器顯示的 QR code。';
+
+  @override
+  String get backupScanCameraDenied => '相機權限未開啟，無法掃描。你仍然可以從相簿匯入截圖，或手動輸入位址與配對碼。';
+
+  @override
+  String get backupScanCameraUnavailable =>
+      '這台裝置的相機無法使用。你仍然可以從相簿匯入截圖，或手動輸入位址與配對碼。';
+
+  @override
+  String get backupScanUseAnotherWay => '改用其他方式配對';
+
+  @override
+  String get backupImportPairingCode => '從相簿匯入配對碼';
+
+  @override
+  String backupTryingAddress(String address, int attempt, int total) {
+    return '正在嘗試 $address（第 $attempt 個，共 $total 個）…';
+  }
+
+  @override
+  String get backupScanNoCodeFound =>
+      '這張圖片裡沒有 QR code。請選擇 Comicdex 備份伺服器視窗的截圖。';
+
+  @override
+  String get backupScanNotOurCode => '這不是 Comicdex 的配對碼。請掃描電腦上備份伺服器顯示的那個碼。';
+
+  @override
+  String get backupScanNeedsAppUpdate => '這個配對碼來自較新版的電腦端伺服器。請先更新這個 App 再試一次。';
+
+  @override
+  String get backupScanNoAddresses => '這個配對碼裡沒有位址。那台電腦可能沒有可用的網路連線——請確認後重新產生一組。';
 
   @override
   String get backupErrorPairingRejected =>
@@ -761,7 +801,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get backupErrorMissingFields => '請填寫位址、配對碼與裝置名稱';
 
   @override
-  String get backupErrorWrongPin => '配對碼錯誤。請對照電腦畫面上的數字——每次重新啟動那個程式都會更換。';
+  String get backupErrorWrongPin => '配對碼錯誤或已過期。電腦每 60 秒會刷新一次，請重新掃描，不要沿用舊的截圖。';
 
   @override
   String get backupErrorLockedOut => '配對碼錯誤太多次，請等幾分鐘後再試。';
@@ -797,6 +837,46 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get backupApiKeyNote => '備份不包含 nhentai API 金鑰，還原後需要重新登入。';
+
+  @override
+  String get backupScanWithCamera => '掃描配對碼';
+
+  @override
+  String get backupScanTitle => '掃描配對碼';
+
+  @override
+  String get backupScanAimHint => '把鏡頭對準電腦上備份伺服器顯示的 QR code。';
+
+  @override
+  String get backupScanCameraDenied => '相機權限未開啟，無法掃描。你仍然可以從相簿匯入截圖，或手動輸入位址與配對碼。';
+
+  @override
+  String get backupScanCameraUnavailable =>
+      '這台裝置的相機無法使用。你仍然可以從相簿匯入截圖，或手動輸入位址與配對碼。';
+
+  @override
+  String get backupScanUseAnotherWay => '改用其他方式配對';
+
+  @override
+  String get backupImportPairingCode => '從相簿匯入配對碼';
+
+  @override
+  String backupTryingAddress(String address, int attempt, int total) {
+    return '正在嘗試 $address（第 $attempt 個，共 $total 個）…';
+  }
+
+  @override
+  String get backupScanNoCodeFound =>
+      '這張圖片裡沒有 QR code。請選擇 Comicdex 備份伺服器視窗的截圖。';
+
+  @override
+  String get backupScanNotOurCode => '這不是 Comicdex 的配對碼。請掃描電腦上備份伺服器顯示的那個碼。';
+
+  @override
+  String get backupScanNeedsAppUpdate => '這個配對碼來自較新版的電腦端伺服器。請先更新這個 App 再試一次。';
+
+  @override
+  String get backupScanNoAddresses => '這個配對碼裡沒有位址。那台電腦可能沒有可用的網路連線——請確認後重新產生一組。';
 
   @override
   String get backupErrorPairingRejected =>

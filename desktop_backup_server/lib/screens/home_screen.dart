@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import 'package:flutter/services.dart';
 
 import '../l10n/app_localizations.dart';
@@ -268,6 +271,34 @@ class _ConnectionCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 24),
+                  // The QR carries every address and the PIN, so the phone can
+                  // pair without anyone reading a number off this screen — and
+                  // without having to work out which of the addresses above is
+                  // the reachable one.
+                  if (model.pairingUri != null) ...<Widget>[
+                    Column(
+                      children: <Widget>[
+                        Text(
+                          l10n.connectScanLabel,
+                          style: theme.textTheme.labelMedium,
+                        ),
+                        const SizedBox(height: 4),
+                        // White backing regardless of theme: a dark-on-dark QR
+                        // is unreadable to a camera.
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          color: Colors.white,
+                          child: QrImageView(
+                            data: model.pairingUri!,
+                            size: 132,
+                            backgroundColor: Colors.white,
+                            padding: EdgeInsets.zero,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(width: 24),
+                  ],
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: <Widget>[
@@ -285,6 +316,8 @@ class _ConnectionCard extends StatelessWidget {
                           letterSpacing: 4,
                         ),
                       ),
+                      if (model.secondsUntilPinRotation != null)
+                        _RotationCountdown(model: model),
                       TextButton.icon(
                         onPressed: model.regeneratePin,
                         icon: const Icon(Icons.autorenew, size: 16),
@@ -842,4 +875,68 @@ String _formatTimestamp(DateTime value) {
   String two(int v) => v.toString().padLeft(2, '0');
   return '${local.year}-${two(local.month)}-${two(local.day)} '
       '${two(local.hour)}:${two(local.minute)}';
+}
+
+/// Counts down to the next PIN and QR change.
+///
+/// Ticks on its own timer rather than waiting for [ServerModel] to notify:
+/// the model only changes at the moment of rotation, so without this the
+/// number would sit still for a minute and then jump. Someone who just
+/// photographed the screen needs to see their picture expiring, not discover
+/// it afterwards.
+class _RotationCountdown extends StatefulWidget {
+  const _RotationCountdown({required this.model});
+
+  final ServerModel model;
+
+  @override
+  State<_RotationCountdown> createState() => _RotationCountdownState();
+}
+
+class _RotationCountdownState extends State<_RotationCountdown> {
+  Timer? _ticker;
+
+  @override
+  void initState() {
+    super.initState();
+    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    // Without this the timer keeps firing setState after the window is gone.
+    _ticker?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final seconds = widget.model.secondsUntilPinRotation;
+    if (seconds == null) {
+      return const SizedBox.shrink();
+    }
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    final total = ServerModel.pinRotationInterval.inSeconds;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: <Widget>[
+        const SizedBox(height: 6),
+        SizedBox(
+          width: 132,
+          child: LinearProgressIndicator(
+            value: total == 0 ? 0 : seconds / total,
+            minHeight: 4,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          l10n.connectPinRotatesIn(seconds),
+          style: theme.textTheme.bodySmall,
+        ),
+      ],
+    );
+  }
 }

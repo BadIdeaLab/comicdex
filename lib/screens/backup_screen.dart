@@ -4,7 +4,11 @@ import 'package:concept_nhv/l10n/app_localizations.dart';
 import 'package:concept_nhv/services/backup/backup_connection.dart';
 import 'package:concept_nhv/services/backup/backup_client.dart';
 import 'package:concept_nhv/services/backup/device_name_service.dart';
+import 'package:concept_nhv/screens/pairing_scanner_screen.dart';
+import 'package:concept_nhv/services/backup/pairing_code_reader.dart';
+import 'package:concept_nhv/services/backup/pairing_connect_attempt.dart';
 import 'package:concept_nhv/services/backup/pairing_memory.dart';
+import 'package:concept_nhv/services/backup/pairing_payload.dart';
 import 'package:concept_nhv/state/backup_control_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -22,6 +26,14 @@ class _BackupScreenState extends State<BackupScreen> {
   final TextEditingController _pinController = TextEditingController();
   final TextEditingController _deviceNameController = TextEditingController();
   String? _validationError;
+  /// Every address the pairing code offered, so connecting can fall through to
+  /// the next when one is unreachable. The visible field only holds the first.
+  List<String> _pairingAddresses = const <String>[];
+
+  /// Which address is being tried, while more than one is on the list.
+  /// Null clears the line — the slow path is several timeouts in a row, and
+  /// silence there is indistinguishable from a hang.
+  String? _connectProgress;
   bool _restartPromptShown = false;
 
   @override
@@ -71,6 +83,73 @@ class _BackupScreenState extends State<BackupScreen> {
         );
       },
     );
+  }
+
+  /// Fills the address and PIN fields from a pairing QR in the photo library.
+  ///
+  /// The desktop offers several addresses because it cannot tell which of its
+  /// interfaces this phone can reach. Only the first is filled in here — the
+  /// field holds one — but the rest are kept so connecting can fall through to
+  /// them instead of making the user work out which line to copy.
+  Future<void> _importPairingCodeFromGallery() async {
+    final l10n = AppLocalizations.of(context)!;
+    try {
+      final payload = await context.read<PairingCodeReader>().readFromGallery();
+      // Null means the picker was dismissed, which is not an error.
+      if (payload != null) {
+        await _applyPairingPayload(payload);
+      }
+    } on PairingScanException catch (error) {
+      if (!mounted) return;
+      // Each reason sends the user somewhere different — find another image,
+      // scan the right thing, or update the app — so they are never collapsed
+      // into one "invalid code" message.
+      setState(() {
+        _validationError = switch (error.failure) {
+          PairingScanFailure.noCodeFound => l10n.backupScanNoCodeFound,
+          PairingScanFailure.notAPairingCode => l10n.backupScanNotOurCode,
+          PairingScanFailure.unsupportedVersion => l10n.backupScanNeedsAppUpdate,
+          PairingScanFailure.noAddresses => l10n.backupScanNoAddresses,
+        };
+      });
+    }
+  }
+
+  /// Opens the camera scanner. Failures are reported on that screen, which can
+  /// keep scanning while the user re-aims, so nothing comes back here but a
+  /// payload or a cancellation.
+  Future<void> _scanPairingCodeWithCamera() async {
+    final payload = await Navigator.of(context).push<PairingPayload>(
+      MaterialPageRoute<PairingPayload>(
+        builder: (_) => const PairingScannerScreen(),
+      ),
+    );
+    if (payload == null) return;
+    await _applyPairingPayload(payload);
+  }
+
+  /// Shared by both entry points, so scanning and importing behave identically.
+  ///
+  /// Reading the code *is* the pairing gesture. Filling the fields and then
+  /// waiting to be told to connect leaves the user doing the one step the code
+  /// was meant to remove — and with a PIN that rotates, hesitating can cost
+  /// them the pairing.
+  ///
+  /// Except when the device name is still blank: connecting would only fail
+  /// validation, which is worse than not trying. The fields are filled in that
+  /// case so finishing by hand is one field away.
+  Future<void> _applyPairingPayload(PairingPayload payload) async {
+    if (!mounted) return;
+    setState(() {
+      _validationError = null;
+      _pairingAddresses = payload.addresses;
+      _addressController.text = payload.addresses.first;
+      _pinController.text = payload.pin;
+    });
+
+    if (_deviceNameController.text.trim().isNotEmpty) {
+      await _connect();
+    }
   }
 
   /// Prefills from the last successful pairing, falling back to the device's
@@ -201,7 +280,7 @@ class _BackupScreenState extends State<BackupScreen> {
               icon: const Icon(Icons.link_off),
               label: Text(l10n.backupDisconnectButton),
             )
-          else
+          else ...<Widget>[
             FilledButton.icon(
               onPressed: model.state == BackupControlState.connecting
                   ? null
@@ -209,8 +288,47 @@ class _BackupScreenState extends State<BackupScreen> {
               icon: const Icon(Icons.link),
               label: Text(l10n.backupConnectButton),
             ),
+            const SizedBox(height: 8),
+            // Two ways to read the desktop's QR, so nothing has to be typed.
+            // Manual entry stays above: these are shortcuts, not the only way
+            // in, and a denied permission or an unreadable code must not leave
+            // the user stuck.
+            //
+            // The photo-library route is not just a fallback — it is the only
+            // one that works on an emulator, which has no usable camera.
+            Row(
+              children: <Widget>[
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: fieldsEnabled
+                        ? _scanPairingCodeWithCamera
+                        : null,
+                    icon: const Icon(Icons.qr_code_scanner),
+                    label: Text(l10n.backupScanWithCamera),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: fieldsEnabled
+                        ? _importPairingCodeFromGallery
+                        : null,
+                    icon: const Icon(Icons.photo_library_outlined),
+                    label: Text(l10n.backupImportPairingCode),
+                  ),
+                ),
+              ],
+            ),
+          ],
           const SizedBox(height: 16),
           _StatusCard(model: model),
+          if (_connectProgress != null) ...<Widget>[
+            const SizedBox(height: 8),
+            Text(
+              _connectProgress!,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
           if (_validationError != null) ...<Widget>[
             const SizedBox(height: 12),
             _ErrorBanner(message: _validationError!),
@@ -241,6 +359,9 @@ class _BackupScreenState extends State<BackupScreen> {
 
   Future<void> _connect() async {
     final l10n = AppLocalizations.of(context)!;
+    // Cleared up front and in every exit below, so a stale "trying …" line can
+    // never outlive the attempt that produced it.
+    setState(() => _connectProgress = null);
     final pin = _pinController.text.trim();
     final deviceId = _deviceNameController.text.trim();
     final rawAddress = _addressController.text.trim();
@@ -255,15 +376,53 @@ class _BackupScreenState extends State<BackupScreen> {
     }
     setState(() => _validationError = null);
     final pairingMemory = context.read<PairingMemory>();
+    final model = context.read<BackupControlModel>();
+
     try {
-      await context.read<BackupControlModel>().connect(
-        BackupConnection(baseUri: baseUri, pin: pin, deviceId: deviceId),
+      final used = await connectToFirstReachable(
+        candidates: orderedConnectionCandidates(
+          typed: rawAddress,
+          fromPairingCode: _pairingAddresses,
+        ),
+        // Only shown when there is more than one to try: "1 / 1" would be
+        // noise on the ordinary typed-address path.
+        onAttempt: (address, attempt, total) {
+          if (total <= 1 || !mounted) return;
+          setState(
+            () => _connectProgress = l10n.backupTryingAddress(
+              address,
+              attempt,
+              total,
+            ),
+          );
+        },
+        attempt: (address) async {
+          final uri = BackupConnection.parseAddress(address);
+          if (uri == null) {
+            // Treated as unreachable so the next candidate still gets a turn;
+            // the typed address was already validated above.
+            throw const FormatException('unparsable address');
+          }
+          await model.connect(
+            BackupConnection(baseUri: uri, pin: pin, deviceId: deviceId),
+          );
+        },
       );
-      // Saved only on success, so a mistyped address is never what gets offered
-      // next time. The PIN is deliberately excluded.
-      await pairingMemory.remember(address: rawAddress, deviceName: deviceId);
-    } on BackupServerException catch (error) {
+      if (!mounted) return;
       setState(() {
+        // The one that worked becomes what the field shows, so the next attempt
+        // and the remembered pairing both use it.
+        _addressController.text = used;
+        _pairingAddresses = const <String>[];
+        _connectProgress = null;
+      });
+      // Saved only on success, so an unreachable address is never what gets
+      // offered next time. The PIN is deliberately excluded.
+      await pairingMemory.remember(address: used, deviceName: deviceId);
+    } on BackupServerException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _connectProgress = null;
         _validationError = error.isUnauthorized
             ? l10n.backupErrorWrongPin
             : error.isLockedOut
@@ -271,9 +430,17 @@ class _BackupScreenState extends State<BackupScreen> {
             : l10n.backupErrorGeneric(error.message);
       });
     } on BackupPairingRejectedException {
-      setState(() => _validationError = l10n.backupErrorPairingRejected);
+      if (!mounted) return;
+      setState(() {
+        _connectProgress = null;
+        _validationError = l10n.backupErrorPairingRejected;
+      });
     } on Object {
-      setState(() => _validationError = l10n.backupErrorUnreachable);
+      if (!mounted) return;
+      setState(() {
+        _connectProgress = null;
+        _validationError = l10n.backupErrorUnreachable;
+      });
     }
   }
 }

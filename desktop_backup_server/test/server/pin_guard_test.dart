@@ -108,4 +108,103 @@ void main() {
       expect(guard.lockedOutAddresses, isEmpty);
     });
   });
+
+  group('session tokens', () {
+    test('survive a PIN rotation — that is their whole purpose', () {
+      // A backup is dozens of requests over tens of minutes, and the PIN rotates
+      // every 60 seconds. Without this, rotation would guarantee a mid-transfer
+      // 401 for a device that paired correctly.
+      final guard = PinGuard();
+      final token = guard.issueSessionToken();
+
+      guard.regenerate();
+
+      expect(
+        guard.check(providedPin: null, providedToken: token, address: '1.2.3.4'),
+        PinCheckResult.ok,
+      );
+    });
+
+    test('the rotated-away PIN itself stops working', () {
+      // The other half: a photographed QR has to go stale quickly, which only
+      // holds if the old PIN is truly dead.
+      final guard = PinGuard();
+      final oldPin = guard.pin;
+
+      guard.regenerate();
+
+      expect(
+        guard.check(providedPin: oldPin, address: '1.2.3.4'),
+        PinCheckResult.rejected,
+      );
+    });
+
+    test('expire once past their lifetime', () {
+      var now = DateTime(2026, 8, 25, 12);
+      final guard = PinGuard(
+        sessionLifetime: const Duration(hours: 1),
+        clock: () => now,
+      );
+      final token = guard.issueSessionToken();
+
+      now = now.add(const Duration(minutes: 59));
+      expect(
+        guard.check(providedPin: null, providedToken: token, address: 'a'),
+        PinCheckResult.ok,
+      );
+
+      now = now.add(const Duration(minutes: 2));
+      expect(
+        guard.check(providedPin: null, providedToken: token, address: 'a'),
+        PinCheckResult.rejected,
+      );
+    });
+
+    test('an unknown token is refused like a wrong PIN', () {
+      final guard = PinGuard();
+
+      expect(
+        guard.check(
+          providedPin: null,
+          providedToken: 'made-up',
+          address: '1.2.3.4',
+        ),
+        PinCheckResult.rejected,
+      );
+    });
+
+    test('expired tokens are not kept around forever', () {
+      var now = DateTime(2026, 8, 25, 12);
+      final guard = PinGuard(
+        sessionLifetime: const Duration(minutes: 1),
+        clock: () => now,
+      );
+      guard.issueSessionToken();
+      guard.issueSessionToken();
+      expect(guard.activeSessionCount, 2);
+
+      now = now.add(const Duration(minutes: 2));
+
+      expect(guard.activeSessionCount, 0);
+    });
+
+    test('a valid token still loses to a lockout', () {
+      // Lockout is about the address, not the credential: something hammering
+      // the server must not be let through just because it once paired.
+      var now = DateTime(2026, 8, 25, 12);
+      final guard = PinGuard(maxFailedAttempts: 1, clock: () => now);
+      final token = guard.issueSessionToken();
+
+      guard.check(providedPin: 'wrong', address: 'attacker');
+
+      expect(
+        guard.check(
+          providedPin: null,
+          providedToken: token,
+          address: 'attacker',
+        ),
+        PinCheckResult.lockedOut,
+      );
+    });
+  });
 }
