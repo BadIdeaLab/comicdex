@@ -113,4 +113,14 @@ class _FakeDownloadSettingsRepository implements DownloadSettingsRepository {
 
   @override
   Future<void> savePageIntervalMs(int milliseconds) async {}
+
+  bool completedViewIsGrid = false;
+
+  @override
+  Future<bool> loadCompletedViewIsGrid() async => completedViewIsGrid;
+
+  @override
+  Future<void> saveCompletedViewIsGrid(bool isGrid) async {
+    completedViewIsGrid = isGrid;
+  }
 }

@@ -320,6 +320,67 @@ void main() {
       manager.dispose();
     });
 
+    test('initialize restores the remembered completed view mode', () async {
+      final downloadSettingsStore = DownloadSettingsStore(
+        optionsStore: OptionsStore(localDatabase: harness.localDatabase),
+      );
+      await downloadSettingsStore.saveCompletedViewIsGrid(true);
+      final manager = DownloadManagerModel(
+        nhentaiGateway: FakeNhentaiGateway(),
+        cdnConfigService: _FakeCdnConfigService(),
+        downloadQueueRepository: harness.downloadQueueRepository,
+        downloadedLibraryRepository: harness.downloadedLibraryRepository,
+        downloadSettingsRepository: downloadSettingsStore,
+        downloadAssetStore: DownloadAssetStore(
+          directoryResolver: () async => tempDirectory,
+        ),
+        imageCompressionService: FakeImageCompressionService(),
+        remoteAssetFetcher: FakeRemoteAssetFetcher(),
+      );
+
+      expect(manager.completedViewIsGrid, isFalse, reason: 'default is list');
+
+      await manager.initialize();
+      await manager.waitForIdle();
+
+      expect(manager.completedViewIsGrid, isTrue);
+
+      manager.dispose();
+    });
+
+    test('setCompletedViewIsGrid persists and notifies once per change', () async {
+      final downloadSettingsStore = DownloadSettingsStore(
+        optionsStore: OptionsStore(localDatabase: harness.localDatabase),
+      );
+      final manager = DownloadManagerModel(
+        nhentaiGateway: FakeNhentaiGateway(),
+        cdnConfigService: _FakeCdnConfigService(),
+        downloadQueueRepository: harness.downloadQueueRepository,
+        downloadedLibraryRepository: harness.downloadedLibraryRepository,
+        downloadSettingsRepository: downloadSettingsStore,
+        downloadAssetStore: DownloadAssetStore(
+          directoryResolver: () async => tempDirectory,
+        ),
+        imageCompressionService: FakeImageCompressionService(),
+        remoteAssetFetcher: FakeRemoteAssetFetcher(),
+      );
+      var notifications = 0;
+      manager.addListener(() => notifications++);
+
+      await manager.setCompletedViewIsGrid(true);
+
+      expect(manager.completedViewIsGrid, isTrue);
+      expect(await downloadSettingsStore.loadCompletedViewIsGrid(), isTrue);
+      expect(notifications, 1);
+
+      // Setting the same value again must not churn the store or the listeners
+      // — this setter runs on every toggle tap.
+      await manager.setCompletedViewIsGrid(true);
+      expect(notifications, 1);
+
+      manager.dispose();
+    });
+
     test('initialize pauses interrupted downloading jobs when auto resume is disabled', () async {
       final comic = sampleComic(id: '904', mediaId: '779');
       final downloadSettingsStore = DownloadSettingsStore(

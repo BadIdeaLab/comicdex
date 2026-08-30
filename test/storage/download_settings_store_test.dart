@@ -33,6 +33,23 @@ void main() {
       );
     });
 
+    test('defaults the completed view to a list', () async {
+      expect(
+        await store.loadCompletedViewIsGrid(),
+        DownloadSettingsRepository.defaultCompletedViewIsGrid,
+      );
+    });
+
+    test('persists the completed view mode both ways', () async {
+      await store.saveCompletedViewIsGrid(true);
+      expect(await store.loadCompletedViewIsGrid(), isTrue);
+
+      // Switching back has to persist too: storing only the non-default value
+      // would leave a reader stuck in grid for good.
+      await store.saveCompletedViewIsGrid(false);
+      expect(await store.loadCompletedViewIsGrid(), isFalse);
+    });
+
     test('persists and clamps the page interval setting', () async {
       await store.saveAutoResumeEnabled(false);
       await store.savePageIntervalMs(99999);

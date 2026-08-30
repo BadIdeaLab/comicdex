@@ -62,6 +62,8 @@ class DownloadManagerModel extends ChangeNotifier with WidgetsBindingObserver {
   DownloadsSortDirection _downloadsSortDirection =
       DownloadsSortDirection.descending;
   int _completedAnchorPage = 1;
+  bool _completedViewIsGrid =
+      DownloadSettingsRepository.defaultCompletedViewIsGrid;
   int _completedPage = 1;
   bool _isInitialized = false;
   bool _isProcessing = false;
@@ -72,8 +74,15 @@ class DownloadManagerModel extends ChangeNotifier with WidgetsBindingObserver {
   List<DownloadJobSnapshot> get jobs => _jobs;
   List<DownloadListItemSnapshot> get downloadItems => _downloadItems;
   DownloadsSortMode get downloadsSortMode => _downloadsSortMode;
-  DownloadsSortDirection get downloadsSortDirection =>
-      _downloadsSortDirection;
+
+  /// Whether completed downloads are shown as a grid.
+  ///
+  /// Lives on the model rather than in the sliver's own `State` because
+  /// `HomeShell` rebuilds its body when the tab changes: widget state here is
+  /// destroyed on the way to the home tab, so the choice was lost before the
+  /// app ever closed.
+  bool get completedViewIsGrid => _completedViewIsGrid;
+  DownloadsSortDirection get downloadsSortDirection => _downloadsSortDirection;
   int get completedAnchorPage => _completedAnchorPage;
   int get completedPage => _completedPage;
   bool get isRefreshing => _isRefreshing;
@@ -105,19 +114,18 @@ class DownloadManagerModel extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   List<DownloadListItemSnapshot> get sortedDownloadItems {
-    final activeItems = _downloadItems
-        .where((item) => item.status != DownloadJobStatus.completed)
-        .toList(growable: false)
-      ..sort(_compareActiveItems);
-    final completedItems = _downloadItems
-        .where((item) => item.status == DownloadJobStatus.completed)
-        .toList(growable: false)
-      ..sort(_compareCompletedItems);
+    final activeItems =
+        _downloadItems
+            .where((item) => item.status != DownloadJobStatus.completed)
+            .toList(growable: false)
+          ..sort(_compareActiveItems);
+    final completedItems =
+        _downloadItems
+            .where((item) => item.status == DownloadJobStatus.completed)
+            .toList(growable: false)
+          ..sort(_compareCompletedItems);
     return List<DownloadListItemSnapshot>.unmodifiable(
-      <DownloadListItemSnapshot>[
-        ...activeItems,
-        ...completedItems,
-      ],
+      <DownloadListItemSnapshot>[...activeItems, ...completedItems],
     );
   }
 
@@ -127,6 +135,10 @@ class DownloadManagerModel extends ChangeNotifier with WidgetsBindingObserver {
     }
     _isInitialized = true;
     WidgetsBinding.instance.addObserver(this);
+    // Read before the first refresh so the section never paints the default
+    // list and then flips to the remembered grid.
+    _completedViewIsGrid = await downloadSettingsRepository
+        .loadCompletedViewIsGrid();
     await refresh();
     await _maybeAutoResume();
   }
@@ -162,8 +174,8 @@ class DownloadManagerModel extends ChangeNotifier with WidgetsBindingObserver {
       return;
     }
     final jobs = await downloadQueueRepository.loadJobs();
-    final rawDownloadedComics =
-        await downloadedLibraryRepository.loadDownloadedComics();
+    final rawDownloadedComics = await downloadedLibraryRepository
+        .loadDownloadedComics();
     final downloadedComics = await _resolveCoverPaths(rawDownloadedComics);
     if (_isDisposed) {
       return;
@@ -180,6 +192,15 @@ class DownloadManagerModel extends ChangeNotifier with WidgetsBindingObserver {
       }
     }
     return null;
+  }
+
+  Future<void> setCompletedViewIsGrid(bool isGrid) async {
+    if (_completedViewIsGrid == isGrid) {
+      return;
+    }
+    _completedViewIsGrid = isGrid;
+    notifyListeners();
+    await downloadSettingsRepository.saveCompletedViewIsGrid(isGrid);
   }
 
   void setDownloadsSortMode(DownloadsSortMode mode) {
@@ -205,26 +226,28 @@ class DownloadManagerModel extends ChangeNotifier with WidgetsBindingObserver {
   Future<List<DownloadedComicSnapshot>> _resolveCoverPaths(
     List<DownloadedComicSnapshot> comics,
   ) async {
-    return Future.wait(comics.map((comic) async {
-      final coverLocalPath = comic.coverLocalPath;
-      if (coverLocalPath == null || coverLocalPath.isEmpty) {
-        return comic;
-      }
-      return DownloadedComicSnapshot(
-        comicId: comic.comicId,
-        mediaId: comic.mediaId,
-        title: comic.title,
-        rootDirectoryPath: comic.rootDirectoryPath,
-        pageCount: comic.pageCount,
-        downloadedAt: comic.downloadedAt,
-        tags: comic.tags,
-        coverLocalPath: await downloadAssetStore.resolveAbsolutePath(
-          coverLocalPath,
-        ),
-        lastReadAt: comic.lastReadAt,
-        numFavorites: comic.numFavorites,
-      );
-    }));
+    return Future.wait(
+      comics.map((comic) async {
+        final coverLocalPath = comic.coverLocalPath;
+        if (coverLocalPath == null || coverLocalPath.isEmpty) {
+          return comic;
+        }
+        return DownloadedComicSnapshot(
+          comicId: comic.comicId,
+          mediaId: comic.mediaId,
+          title: comic.title,
+          rootDirectoryPath: comic.rootDirectoryPath,
+          pageCount: comic.pageCount,
+          downloadedAt: comic.downloadedAt,
+          tags: comic.tags,
+          coverLocalPath: await downloadAssetStore.resolveAbsolutePath(
+            coverLocalPath,
+          ),
+          lastReadAt: comic.lastReadAt,
+          numFavorites: comic.numFavorites,
+        );
+      }),
+    );
   }
 
   List<DownloadListItemSnapshot> _buildDownloadItems(
@@ -239,16 +262,11 @@ class DownloadManagerModel extends ChangeNotifier with WidgetsBindingObserver {
     for (final job in jobs) {
       final downloadedComic = downloadedByComicId.remove(job.comicId);
       items.add(
-        DownloadListItemSnapshot.fromJob(
-          job,
-          downloadedComic: downloadedComic,
-        ),
+        DownloadListItemSnapshot.fromJob(job, downloadedComic: downloadedComic),
       );
     }
     for (final downloadedComic in downloadedByComicId.values) {
-      items.add(
-        DownloadListItemSnapshot.fromDownloadedComic(downloadedComic),
-      );
+      items.add(DownloadListItemSnapshot.fromDownloadedComic(downloadedComic));
     }
     return List<DownloadListItemSnapshot>.unmodifiable(items);
   }
@@ -257,9 +275,9 @@ class DownloadManagerModel extends ChangeNotifier with WidgetsBindingObserver {
     DownloadListItemSnapshot a,
     DownloadListItemSnapshot b,
   ) {
-    final statusComparison = _downloadJobStatusPriority(a.status).compareTo(
-      _downloadJobStatusPriority(b.status),
-    );
+    final statusComparison = _downloadJobStatusPriority(
+      a.status,
+    ).compareTo(_downloadJobStatusPriority(b.status));
     if (statusComparison != 0) {
       return statusComparison;
     }
@@ -365,7 +383,9 @@ class DownloadManagerModel extends ChangeNotifier with WidgetsBindingObserver {
 
   Future<void> enqueue(DownloadRequest request) async {
     await _runMutatingJobAction(request.comicId, () async {
-      final existingJob = await downloadQueueRepository.loadJob(request.comicId);
+      final existingJob = await downloadQueueRepository.loadJob(
+        request.comicId,
+      );
       if (existingJob != null) {
         await refresh();
         return;
@@ -389,13 +409,15 @@ class DownloadManagerModel extends ChangeNotifier with WidgetsBindingObserver {
   /// already contains the full page manifest (e.g. opened in the reader
   /// before being favorited) skip the network round trip entirely.
   Future<
-      ({
-        int queuedCount,
-        int skippedCount,
-        int failedCount,
-        int totalCount,
-        bool stoppedEarly,
-      })> enqueueMany(
+    ({
+      int queuedCount,
+      int skippedCount,
+      int failedCount,
+      int totalCount,
+      bool stoppedEarly,
+    })
+  >
+  enqueueMany(
     List<ComicCardData> comics, {
     void Function(int processed, int total)? onProgress,
   }) async {
@@ -510,8 +532,7 @@ class DownloadManagerModel extends ChangeNotifier with WidgetsBindingObserver {
     );
   }
 
-  Future<Comic>
-  _loadComicDetailWithRetry(String comicId) {
+  Future<Comic> _loadComicDetailWithRetry(String comicId) {
     return withRateLimitRetry(() => nhentaiGateway.loadComicDetail(comicId));
   }
 
@@ -562,7 +583,8 @@ class DownloadManagerModel extends ChangeNotifier with WidgetsBindingObserver {
 
       final detail = await nhentaiGateway.loadComicDetail(comicId);
       final comic = detail;
-      final title = _libraryTitle(comicId) ??
+      final title =
+          _libraryTitle(comicId) ??
           comic.title.pretty ??
           comic.title.english ??
           comic.title.japanese ??
@@ -603,12 +625,15 @@ class DownloadManagerModel extends ChangeNotifier with WidgetsBindingObserver {
       final pageLocalPaths = <int, String?>{
         for (final page in pages) page.pageNumber: page.localPath,
       };
-      final missingPageNumbers = await downloadAssetStore.verifyPages(pageLocalPaths);
-
-      final currentCoverPath = await downloadedLibraryRepository.loadCoverLocalPath(
-        comicId,
+      final missingPageNumbers = await downloadAssetStore.verifyPages(
+        pageLocalPaths,
       );
-      final coverMissing = !await downloadAssetStore.coverExists(currentCoverPath);
+
+      final currentCoverPath = await downloadedLibraryRepository
+          .loadCoverLocalPath(comicId);
+      final coverMissing = !await downloadAssetStore.coverExists(
+        currentCoverPath,
+      );
 
       if (missingPageNumbers.isEmpty && !coverMissing) {
         return;
@@ -620,7 +645,10 @@ class DownloadManagerModel extends ChangeNotifier with WidgetsBindingObserver {
       }
 
       if (missingPageNumbers.isNotEmpty) {
-        await downloadQueueRepository.resetMissingPages(comicId, missingPageNumbers);
+        await downloadQueueRepository.resetMissingPages(
+          comicId,
+          missingPageNumbers,
+        );
         await downloadQueueRepository.requeueJob(comicId);
         await refresh();
         unawaited(_processQueue());
@@ -660,7 +688,10 @@ class DownloadManagerModel extends ChangeNotifier with WidgetsBindingObserver {
         );
         return false;
       }
-      await downloadedLibraryRepository.updateCoverLocalPath(comicId, newCoverPath);
+      await downloadedLibraryRepository.updateCoverLocalPath(
+        comicId,
+        newCoverPath,
+      );
       return true;
     } catch (error, stackTrace) {
       debugPrint('[repairCover] $comicId failed: $error\n$stackTrace');
@@ -688,8 +719,12 @@ class DownloadManagerModel extends ChangeNotifier with WidgetsBindingObserver {
   /// throttling delay is inserted after any item that actually triggered a
   /// network request (repaired or failed), but not after items that were
   /// already intact (pure local check, no network involved).
-  Future<({int repairedCount, int failedCount, int totalCount, bool stoppedEarly})>
-  repairAllCompleted({void Function(int processed, int total)? onProgress}) async {
+  Future<
+    ({int repairedCount, int failedCount, int totalCount, bool stoppedEarly})
+  >
+  repairAllCompleted({
+    void Function(int processed, int total)? onProgress,
+  }) async {
     final completedIds = _downloadItems
         .where((item) => item.isCompletedCard)
         .map((item) => item.comicId)
@@ -745,8 +780,8 @@ class DownloadManagerModel extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> _maybeAutoResume() async {
-    final autoResumeEnabled =
-        await downloadSettingsRepository.loadAutoResumeEnabled();
+    final autoResumeEnabled = await downloadSettingsRepository
+        .loadAutoResumeEnabled();
     if (!autoResumeEnabled) {
       await downloadQueueRepository.pauseInterruptedJobs();
       await refresh();
@@ -780,7 +815,8 @@ class DownloadManagerModel extends ChangeNotifier with WidgetsBindingObserver {
     final detail = await nhentaiGateway.loadComicDetail(job.comicId);
     final comic = detail;
     final imageHosts = await _loadImageHosts();
-    final pageIntervalMs = await downloadSettingsRepository.loadPageIntervalMs();
+    final pageIntervalMs = await downloadSettingsRepository
+        .loadPageIntervalMs();
 
     await downloadQueueRepository.markJobDownloading(job.comicId);
     await _syncState();
@@ -834,10 +870,10 @@ class DownloadManagerModel extends ChangeNotifier with WidgetsBindingObserver {
     // (e.g. when this job was re-queued only to repair missing pages) —
     // otherwise a failed re-fetch here would silently overwrite a cover
     // that a prior repair already fixed.
-    final existingCoverPath = await downloadedLibraryRepository.loadCoverLocalPath(
-      job.comicId,
-    );
-    final coverLocalPath = await downloadAssetStore.coverExists(existingCoverPath)
+    final existingCoverPath = await downloadedLibraryRepository
+        .loadCoverLocalPath(job.comicId);
+    final coverLocalPath =
+        await downloadAssetStore.coverExists(existingCoverPath)
         ? existingCoverPath
         : await _downloadCover(
             comicId: job.comicId,
@@ -924,7 +960,9 @@ class DownloadManagerModel extends ChangeNotifier with WidgetsBindingObserver {
   }) async {
     final coverPath = comic.images.cover?.path;
     if (coverPath == null || coverPath.isEmpty) {
-      debugPrint('[downloadCover] $comicId: comic.images.cover.path is null/empty.');
+      debugPrint(
+        '[downloadCover] $comicId: comic.images.cover.path is null/empty.',
+      );
       return null;
     }
 
@@ -955,7 +993,10 @@ class DownloadManagerModel extends ChangeNotifier with WidgetsBindingObserver {
   }) async {
     final normalizedExtension = fallbackExtension.toLowerCase();
     if (_skiaSafeExtensions.contains(normalizedExtension)) {
-      return _CompressedAsset(bytes: originalBytes, extension: normalizedExtension);
+      return _CompressedAsset(
+        bytes: originalBytes,
+        extension: normalizedExtension,
+      );
     }
 
     try {
@@ -972,7 +1013,10 @@ class DownloadManagerModel extends ChangeNotifier with WidgetsBindingObserver {
       // Keep original format below.
     }
 
-    return _CompressedAsset(bytes: originalBytes, extension: normalizedExtension);
+    return _CompressedAsset(
+      bytes: originalBytes,
+      extension: normalizedExtension,
+    );
   }
 
   String _extensionFromPath(String path) {
@@ -981,7 +1025,8 @@ class DownloadManagerModel extends ChangeNotifier with WidgetsBindingObserver {
       return 'bin';
     }
     final segments = filename.split('.');
-    if (segments.length >= 3 && segments.last == segments[segments.length - 2]) {
+    if (segments.length >= 3 &&
+        segments.last == segments[segments.length - 2]) {
       return segments.last.toLowerCase();
     }
     return segments.last.toLowerCase();

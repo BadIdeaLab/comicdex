@@ -34,7 +34,7 @@ class DownloadJobListSliver extends StatefulWidget {
 
 class _DownloadJobListSliverState extends State<DownloadJobListSliver> {
   String? _expandedComicId;
-  bool _completedViewIsGrid = false;
+
   bool _isRepairingAll = false;
   int? _repairProgressCurrent;
   int? _repairProgressTotal;
@@ -56,19 +56,21 @@ class _DownloadJobListSliverState extends State<DownloadJobListSliver> {
       builder: (context, model, _) {
         final query = widget.searchQuery.trim().toLowerCase();
         final tagDisplayService = context.read<TagDisplayService>();
-        final filteredItems = model.sortedDownloadItems.where((item) {
-          if (query.isEmpty) return true;
-          if (item.title.toLowerCase().contains(query)) return true;
-          return item.tags.any((tag) {
-            final rawName = tag.name ?? '';
-            final displayName = tagDisplayService.displayName(
-              tag.slug,
-              rawName,
-            );
-            return rawName.toLowerCase().contains(query) ||
-                displayName.toLowerCase().contains(query);
-          });
-        }).toList(growable: false);
+        final filteredItems = model.sortedDownloadItems
+            .where((item) {
+              if (query.isEmpty) return true;
+              if (item.title.toLowerCase().contains(query)) return true;
+              return item.tags.any((tag) {
+                final rawName = tag.name ?? '';
+                final displayName = tagDisplayService.displayName(
+                  tag.slug,
+                  rawName,
+                );
+                return rawName.toLowerCase().contains(query) ||
+                    displayName.toLowerCase().contains(query);
+              });
+            })
+            .toList(growable: false);
         final activeItems = filteredItems
             .where((item) => !item.isCompletedCard)
             .toList(growable: false);
@@ -94,76 +96,94 @@ class _DownloadJobListSliverState extends State<DownloadJobListSliver> {
         // page; scrolling to the end only advances currentPage, so already
         // revealed pages stay visible (mirrors ComicFeedModel/ComicGridSliver).
         final pageSize = DownloadManagerModel.completedPageSize;
-        final totalCompletedPages =
-            completedItems.isEmpty ? 1 : ((completedItems.length + pageSize - 1) ~/ pageSize);
-        final anchorPage = model.completedAnchorPage.clamp(1, totalCompletedPages);
+        final totalCompletedPages = completedItems.isEmpty
+            ? 1
+            : ((completedItems.length + pageSize - 1) ~/ pageSize);
+        final anchorPage = model.completedAnchorPage.clamp(
+          1,
+          totalCompletedPages,
+        );
         final currentPage = model.completedPage.clamp(1, totalCompletedPages);
         final pageStart = (anchorPage - 1) * pageSize;
-        final pageEnd = (currentPage * pageSize).clamp(0, completedItems.length);
+        final pageEnd = (currentPage * pageSize).clamp(
+          0,
+          completedItems.length,
+        );
         final pagedCompletedItems = completedItems.sublist(pageStart, pageEnd);
         final showPageBar = completedItems.length > pageSize;
 
         final slivers = <Widget>[];
 
         if (activeItems.isNotEmpty) {
-          slivers.add(const SliverToBoxAdapter(
-            child: _DownloadsSectionHeader(title: 'Active Downloads'),
-          ));
-          slivers.add(SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (context, index) => _buildItemCard(model, activeItems[index]),
-              childCount: activeItems.length,
+          slivers.add(
+            const SliverToBoxAdapter(
+              child: _DownloadsSectionHeader(title: 'Active Downloads'),
             ),
-          ));
+          );
+          slivers.add(
+            SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) => _buildItemCard(model, activeItems[index]),
+                childCount: activeItems.length,
+              ),
+            ),
+          );
         }
 
         if (completedItems.isNotEmpty) {
-          slivers.add(SliverToBoxAdapter(
-            child: _DownloadsSectionHeader(
-              title: 'Completed Downloads',
-              isGridView: _completedViewIsGrid,
-              onViewToggle: () =>
-                  setState(() => _completedViewIsGrid = !_completedViewIsGrid),
-              isRepairingAll: _isRepairingAll,
-              repairProgressCurrent: _repairProgressCurrent,
-              repairProgressTotal: _repairProgressTotal,
-              onRandomCompleted: () => _openRandomCompleted(completedItems),
-              onRepairAll: () => _handleRepairAll(model),
+          slivers.add(
+            SliverToBoxAdapter(
+              child: _DownloadsSectionHeader(
+                title: 'Completed Downloads',
+                isGridView: model.completedViewIsGrid,
+                onViewToggle: () =>
+                    model.setCompletedViewIsGrid(!model.completedViewIsGrid),
+                isRepairingAll: _isRepairingAll,
+                repairProgressCurrent: _repairProgressCurrent,
+                repairProgressTotal: _repairProgressTotal,
+                onRandomCompleted: () => _openRandomCompleted(completedItems),
+                onRepairAll: () => _handleRepairAll(model),
+              ),
             ),
-          ));
+          );
 
           if (showPageBar) {
-            slivers.add(SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: <Widget>[
-                    PageJumpBar(
-                      currentPage: anchorPage,
-                      totalPages: totalCompletedPages,
-                      onJump: (page) async {
-                        model.setCompletedPage(page);
-                      },
-                    ),
-                  ],
+            slivers.add(
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: <Widget>[
+                      PageJumpBar(
+                        currentPage: anchorPage,
+                        totalPages: totalCompletedPages,
+                        onJump: (page) async {
+                          model.setCompletedPage(page);
+                        },
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ));
+            );
           }
 
-          if (_completedViewIsGrid) {
-            slivers.add(SliverPadding(
-              padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
-              sliver: SliverGrid(
-                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                  maxCrossAxisExtent: 150,
-                  mainAxisExtent: 220,
-                  crossAxisSpacing: 8,
-                  mainAxisSpacing: 8,
-                ),
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
+          if (model.completedViewIsGrid) {
+            slivers.add(
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+                sliver: SliverGrid(
+                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                    maxCrossAxisExtent: 150,
+                    mainAxisExtent: 220,
+                    crossAxisSpacing: 8,
+                    mainAxisSpacing: 8,
+                  ),
+                  delegate: SliverChildBuilderDelegate((context, index) {
                     _maybeRevealNextCompletedPage(
                       model,
                       index,
@@ -177,15 +197,14 @@ class _DownloadJobListSliverState extends State<DownloadJobListSliver> {
                       isMutating: model.isMutating(item.comicId),
                       onTap: () => widget.onOpenOfflineReader(item.comicId),
                     );
-                  },
-                  childCount: pagedCompletedItems.length,
+                  }, childCount: pagedCompletedItems.length),
                 ),
               ),
-            ));
+            );
           } else {
-            slivers.add(SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
+            slivers.add(
+              SliverList(
+                delegate: SliverChildBuilderDelegate((context, index) {
                   _maybeRevealNextCompletedPage(
                     model,
                     index,
@@ -193,10 +212,9 @@ class _DownloadJobListSliverState extends State<DownloadJobListSliver> {
                     totalCompletedPages,
                   );
                   return _buildItemCard(model, pagedCompletedItems[index]);
-                },
-                childCount: pagedCompletedItems.length,
+                }, childCount: pagedCompletedItems.length),
               ),
-            ));
+            );
           }
         }
 
@@ -245,8 +263,9 @@ class _DownloadJobListSliverState extends State<DownloadJobListSliver> {
       isMutating: model.isMutating(item.comicId),
       onToggleExpanded: () {
         setState(() {
-          _expandedComicId =
-              _expandedComicId == item.comicId ? null : item.comicId;
+          _expandedComicId = _expandedComicId == item.comicId
+              ? null
+              : item.comicId;
         });
       },
       onOpenOfflineReader: () => widget.onOpenOfflineReader(item.comicId),
@@ -320,16 +339,16 @@ class _DownloadJobListSliverState extends State<DownloadJobListSliver> {
           'Repaired ${result.repairedCount}, failed ${result.failedCount}, '
               'of ${result.totalCount} downloads',
       };
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
     } catch (error) {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Repair all failed: $error')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Repair all failed: $error')));
     } finally {
       if (mounted) {
         setState(() {
@@ -381,9 +400,9 @@ class _DownloadsSectionHeader extends StatelessWidget {
             child: Text(
               title,
               style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: Theme.of(context).colorScheme.primary,
-                    fontWeight: FontWeight.w600,
-                  ),
+                color: Theme.of(context).colorScheme.primary,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
           if (isRepairingAll &&
@@ -478,9 +497,8 @@ class _CompletedGridCell extends StatelessWidget {
                   Text(
                     '${item.pageCount ?? item.totalPages}p',
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color:
-                              Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ),
@@ -706,16 +724,17 @@ Future<void> _runAction(
     if (!context.mounted) return;
     final afterItems = context.read<DownloadManagerModel>().downloadItems;
     final changed = afterItems != beforeItems;
-    final message =
-        (!changed && noOpMessage != null) ? noOpMessage : successMessage;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    final message = (!changed && noOpMessage != null)
+        ? noOpMessage
+        : successMessage;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   } catch (error) {
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$error')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('$error')));
   }
 }
 
@@ -781,9 +800,7 @@ class _DownloadItemCard extends StatelessWidget {
                   ),
                   if (!item.isCompletedCard) ...<Widget>[
                     const SizedBox(width: 8),
-                    Icon(
-                      isExpanded ? Icons.expand_less : Icons.expand_more,
-                    ),
+                    Icon(isExpanded ? Icons.expand_less : Icons.expand_more),
                   ],
                 ],
               ),

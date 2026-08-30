@@ -8,6 +8,8 @@ class DownloadSettingsStore implements DownloadSettingsRepository {
 
   static const String _autoResumeKey = 'download_auto_resume_enabled';
   static const String _pageIntervalKey = 'download_page_interval_ms';
+  static const String _completedViewIsGridKey =
+      'downloads_completed_view_is_grid';
 
   @override
   Future<bool> loadAutoResumeEnabled() async {
@@ -43,5 +45,19 @@ class DownloadSettingsStore implements DownloadSettingsRepository {
       DownloadSettingsRepository.maxPageIntervalMs,
     );
     return optionsStore.saveOption(_pageIntervalKey, clamped.toString());
+  }
+
+  @override
+  Future<bool> loadCompletedViewIsGrid() async {
+    final raw = await optionsStore.loadOption(_completedViewIsGridKey);
+    if (raw.isEmpty) {
+      return DownloadSettingsRepository.defaultCompletedViewIsGrid;
+    }
+    return raw.toLowerCase() == 'true';
+  }
+
+  @override
+  Future<void> saveCompletedViewIsGrid(bool isGrid) {
+    return optionsStore.saveOption(_completedViewIsGridKey, isGrid.toString());
   }
 }

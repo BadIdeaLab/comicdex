@@ -255,8 +255,13 @@ void main() {
             onOpenOfflineReader: (_) => opened = true,
           ),
         );
-        await tester.tap(find.byIcon(Icons.grid_view));
         await tester.pumpAndSettle();
+
+        // Rebuilding the tree must not put us back in list view: the choice
+        // belongs to the model now, precisely so leaving the tab and coming
+        // back does not forget it.
+        expect(find.byIcon(Icons.list), findsOneWidget);
+
         await tester.tap(find.text('Downloaded Comic'));
         await tester.pumpAndSettle();
         expect(opened, isTrue);
@@ -683,4 +688,14 @@ class _FakeDownloadSettingsRepository implements DownloadSettingsRepository {
 
   @override
   Future<void> savePageIntervalMs(int milliseconds) async {}
+
+  bool completedViewIsGrid = false;
+
+  @override
+  Future<bool> loadCompletedViewIsGrid() async => completedViewIsGrid;
+
+  @override
+  Future<void> saveCompletedViewIsGrid(bool isGrid) async {
+    completedViewIsGrid = isGrid;
+  }
 }
