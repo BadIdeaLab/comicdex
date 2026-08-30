@@ -43,6 +43,41 @@ class _HomeShellState extends State<HomeShell> {
         _destinationCount,
         (_) => ScrollController(),
       );
+
+  /// Where each tab was left, recorded by hand rather than left to
+  /// `PageStorage`.
+  ///
+  /// The framework does restore a keyed scroll view's offset, but it writes
+  /// that offset only when a scroll *ends* — a position abandoned mid-fling, or
+  /// any path that skips `didEndScroll`, is never saved, and the tab silently
+  /// comes back at the top. Reading the outgoing controller at the moment of
+  /// the switch has no such timing to miss.
+  final List<double> _savedOffsets = List<double>.filled(_destinationCount, 0);
+  int _destination = 0;
+
+  /// Records where the tab being left sat, and prepares the one being entered.
+  ///
+  /// Called from `build` before the scroll view is rebuilt: the outgoing
+  /// controller is still attached at that point, and the incoming one is not
+  /// attached yet, which is exactly when each can be touched safely.
+  void _rememberOffsetAndSwap(int next) {
+    final outgoing = _scrollControllers[_destination];
+    if (outgoing.hasClients) {
+      _savedOffsets[_destination] = outgoing.offset;
+    }
+
+    final incoming = _scrollControllers[next];
+    if (!incoming.hasClients &&
+        incoming.initialScrollOffset != _savedOffsets[next]) {
+      // A controller's initial offset is fixed at construction, so restoring
+      // to a new position means a new controller.
+      incoming.dispose();
+      _scrollControllers[next] = ScrollController(
+        initialScrollOffset: _savedOffsets[next],
+      );
+    }
+    _destination = next;
+  }
   final TextEditingController _downloadsSearchController =
       TextEditingController();
   String _downloadsSearchQuery = '';
@@ -63,6 +98,9 @@ class _HomeShellState extends State<HomeShell> {
       (m) => m.navigationIndex,
     );
     final destination = navigationIndex.clamp(0, _destinationCount - 1);
+    if (destination != _destination) {
+      _rememberOffsetAndSwap(destination);
+    }
 
     return CustomScrollView(
       key: PageStorageKey<int>(destination),

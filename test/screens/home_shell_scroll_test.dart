@@ -5,6 +5,7 @@ import 'package:concept_nhv/application/favorites/sync_remote_favorites_use_case
 import 'package:concept_nhv/application/favorites/toggle_favorite_use_case.dart';
 import 'package:concept_nhv/application/feed/load_collection_summaries_use_case.dart';
 import 'package:concept_nhv/application/feed/search_comics_use_case.dart';
+import 'package:concept_nhv/application/home/app_shell_navigation_controller.dart';
 import 'package:concept_nhv/application/home/home_shell_controller.dart';
 import 'package:concept_nhv/application/library/comic_card_action_coordinator.dart';
 import 'package:concept_nhv/application/library/remove_comic_from_collection_use_case.dart';
@@ -13,6 +14,10 @@ import 'package:concept_nhv/application/reader/reader_launcher.dart';
 import 'package:concept_nhv/application/tags/load_comic_meta_use_case.dart';
 import 'package:concept_nhv/models/comic.dart';
 import 'package:concept_nhv/models/comic_search_response.dart';
+import 'package:concept_nhv/models/comic_tag.dart';
+import 'package:concept_nhv/models/download_job_snapshot.dart';
+import 'package:concept_nhv/models/download_list_item_snapshot.dart';
+import 'package:concept_nhv/models/downloaded_comic_snapshot.dart';
 import 'package:concept_nhv/screens/home_shell.dart';
 import 'package:concept_nhv/services/download_asset_store.dart';
 import 'package:concept_nhv/services/local_tag_catalog_service.dart';
@@ -32,6 +37,7 @@ import 'package:concept_nhv/storage/options_store.dart';
 import 'package:concept_nhv/storage/search_history_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:provider/single_child_widget.dart';
 
@@ -57,6 +63,7 @@ void main() {
     late DownloadManagerModel downloadManagerModel;
     late FavoriteSyncModel favoriteSyncModel;
     late FakeNhentaiGateway gateway;
+    late AppShellNavigationController navigationController;
 
     setUp(() async {
       harness = SqliteTestHarness();
@@ -85,19 +92,20 @@ void main() {
       await feedModel.loadHomeFeed();
 
       homeUiModel = HomeUiModel();
-      downloadManagerModel = DownloadManagerModel(
-        nhentaiGateway: gateway,
-        cdnConfigService: NhentaiCdnConfigService(),
-        downloadQueueRepository: harness.downloadQueueRepository,
-        downloadedLibraryRepository: harness.downloadedLibraryRepository,
-        downloadSettingsRepository: DownloadSettingsStore(
-          optionsStore: OptionsStore(localDatabase: harness.localDatabase),
-        ),
-        downloadAssetStore: DownloadAssetStore(
-          directoryResolver: () async => throw UnimplementedError(),
-        ),
-        imageCompressionService: FakeImageCompressionService(),
-        remoteAssetFetcher: FakeRemoteAssetFetcher(),
+      navigationController = AppShellNavigationController(
+        homeUiModel: homeUiModel,
+        feedModel: feedModel,
+      );
+      // Downloads carries enough items to scroll. An empty Downloads tab is a
+      // weaker fixture than it looks: a tab that cannot move can never write a
+      // scroll offset, so it hides every bug involving two tabs both holding
+      // a position.
+      downloadManagerModel = _ScrollableDownloadsModel(
+        harness: harness,
+        items: <DownloadListItemSnapshot>[
+          for (var i = 0; i < 30; i++)
+            _completedItem(comicId: 'downloaded-$i', title: 'Downloaded $i'),
+        ],
       );
 
       final apiKeyStore = NhentaiApiKeyStore(
@@ -134,8 +142,38 @@ void main() {
       await harness.dispose();
     });
 
+    late GoRouter router;
+
+    /// Switches tabs the way the bottom navigation bar does.
+    ///
+    /// The `goNamed('index')` matters: the real handler always issues it, even
+    /// when already on /index, so any test that only pokes the navigation
+    /// controller is exercising a path the app never takes.
+    Future<void> selectDestination(WidgetTester tester, int index) async {
+      await navigationController.handleDestinationSelected(index);
+      router.goNamed('index');
+      await tester.pump();
+    }
+
     Widget buildShell() {
       final metaGateway = FakeNhentaiGateway();
+      // Mirrors app_router: a ShellRoute wrapping /index, so the tab switch
+      // goes through the same routing the device does.
+      router = GoRouter(
+        initialLocation: "/index",
+        routes: <RouteBase>[
+          ShellRoute(
+            builder: (context, state, child) => Scaffold(body: child),
+            routes: <RouteBase>[
+              GoRoute(
+                name: "index",
+                path: "/index",
+                builder: (context, state) => const HomeShell(),
+              ),
+            ],
+          ),
+        ],
+      );
       return MultiProvider(
         providers: <SingleChildWidget>[
           ChangeNotifierProvider<HomeUiModel>.value(value: homeUiModel),
@@ -202,7 +240,7 @@ void main() {
             ),
           ),
         ],
-        child: const MaterialApp(home: Scaffold(body: HomeShell())),
+        child: MaterialApp.router(routerConfig: router),
       );
     }
 
@@ -225,13 +263,68 @@ void main() {
       // Downloads is empty here, which is the case that used to destroy the
       // home offset: one shared position, clamped to the shorter extent and
       // never restored on the way back.
-      homeUiModel.setNavigationIndex(1);
-      await tester.pump();
+      await selectDestination(tester, 1);
       expect(offset(tester), 0, reason: 'Downloads starts at the top');
 
-      homeUiModel.setNavigationIndex(0);
-      await tester.pump();
+      await selectDestination(tester, 0);
       expect(offset(tester), homeOffset, reason: 'the home feed kept its place');
+    });
+
+    testWidgets('keeps the home offset after Downloads is scrolled too', (
+      tester,
+    ) async {
+      // Reported from the device: scroll Home, go to Downloads, **scroll there
+      // as well**, come back — and Home is at the top. The earlier test missed
+      // it because its Downloads tab was empty and so never stored an offset
+      // of its own.
+      await tester.pumpWidget(buildShell());
+      await tester.pump();
+
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, -400));
+      await tester.pump();
+      final homeOffset = offset(tester);
+      expect(homeOffset, greaterThan(0));
+
+      await selectDestination(tester, 1);
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, -300));
+      await tester.pump();
+      final downloadsOffset = offset(tester);
+      expect(downloadsOffset, greaterThan(0), reason: 'Downloads scrolled');
+
+      await selectDestination(tester, 0);
+      expect(offset(tester), homeOffset);
+
+      await selectDestination(tester, 1);
+      expect(offset(tester), downloadsOffset);
+    });
+
+    testWidgets('keeps the offset when the tab is left mid-fling', (
+      tester,
+    ) async {
+      // A fling that has not come to rest never fires didEndScroll, so the
+      // framework's PageStorage copy of the offset is never written. Leaving
+      // on that frame is ordinary on a phone — flick, then tap the bar — and
+      // it used to bring the tab back at the very top.
+      await tester.pumpWidget(buildShell());
+      await tester.pump();
+
+      await tester.fling(
+        find.byType(CustomScrollView),
+        const Offset(0, -300),
+        2000,
+      );
+      await tester.pump();
+      final flungTo = offset(tester);
+      expect(flungTo, greaterThan(0));
+
+      await selectDestination(tester, 1);
+      await selectDestination(tester, 0);
+
+      expect(
+        offset(tester),
+        greaterThan(0),
+        reason: 'the home feed must not fall back to the top',
+      );
     });
 
     testWidgets('the refresh button reloads and returns to the top', (
@@ -277,11 +370,66 @@ void main() {
       await tester.pump();
 
       for (final index in <int>[1, 2, 0, 2, 1, 0]) {
-        homeUiModel.setNavigationIndex(index);
-        await tester.pump();
+        await selectDestination(tester, index);
       }
 
       expect(tester.takeException(), isNull);
     });
   });
+}
+
+DownloadListItemSnapshot _completedItem({
+  required String comicId,
+  required String title,
+}) {
+  return DownloadListItemSnapshot.fromDownloadedComic(
+    DownloadedComicSnapshot(
+      comicId: comicId,
+      mediaId: comicId,
+      title: title,
+      coverLocalPath: null,
+      rootDirectoryPath: '/downloads/$comicId',
+      pageCount: 2,
+      downloadedAt: DateTime(2026, 4, 10),
+      tags: const <ComicTag>[],
+    ),
+  );
+}
+
+class _ScrollableDownloadsModel extends DownloadManagerModel {
+  _ScrollableDownloadsModel({required SqliteTestHarness harness, required this.items})
+    : super(
+        nhentaiGateway: FakeNhentaiGateway(),
+        cdnConfigService: NhentaiCdnConfigService(),
+        downloadQueueRepository: harness.downloadQueueRepository,
+        downloadedLibraryRepository: harness.downloadedLibraryRepository,
+        downloadSettingsRepository: DownloadSettingsStore(
+          optionsStore: OptionsStore(localDatabase: harness.localDatabase),
+        ),
+        downloadAssetStore: DownloadAssetStore(
+          directoryResolver: () async => throw UnimplementedError(),
+        ),
+        imageCompressionService: FakeImageCompressionService(),
+        remoteAssetFetcher: FakeRemoteAssetFetcher(),
+      );
+
+  final List<DownloadListItemSnapshot> items;
+
+  @override
+  List<DownloadJobSnapshot> get jobs => const <DownloadJobSnapshot>[];
+
+  @override
+  List<DownloadListItemSnapshot> get downloadItems => items;
+
+  @override
+  List<DownloadListItemSnapshot> get sortedDownloadItems => items;
+
+  @override
+  Future<void> refresh() async {}
+
+  @override
+  bool isMutating(String comicId) => false;
+
+  @override
+  Future<String?> loadCoverLocalPath(String comicId) async => null;
 }
