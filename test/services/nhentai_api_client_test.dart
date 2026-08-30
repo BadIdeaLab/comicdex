@@ -41,6 +41,8 @@ void main() {
                 'thumbnail_width': 320,
                 'thumbnail_height': 480,
                 'num_pages': 12,
+                // The listing endpoint sends bare tag ids and no 'tags'.
+                'tag_ids': <int>[166978, 17249, 29963],
               },
             ],
             'num_pages': 5,
@@ -69,6 +71,12 @@ void main() {
       expect(response.result.single.title.english, 'Mapped Comic');
       expect(response.result.single.images.thumbnail?.path, 'galleries/777/thumb.webp');
       expect(response.result.single.images.thumbnail?.t, 'w');
+      expect(
+        response.result.single.tagIds,
+        <int>[166978, 17249, 29963],
+        reason: 'listings carry tag_ids; dropping them leaves cards languageless',
+      );
+      expect(response.result.single.tags, isEmpty);
       expect(
         adapter.requests.last.options.headers['Authorization'],
         'Key key-123',

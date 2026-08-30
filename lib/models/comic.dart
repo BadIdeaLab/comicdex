@@ -19,6 +19,10 @@ abstract class Comic with _$Comic {
     String? scanlator,
     @JsonKey(name: 'upload_date') int? uploadDate,
     @Default(<ComicTag>[]) List<ComicTag> tags,
+
+    /// Listings return bare tag ids where details return full [tags]; see
+    /// `kLanguageTagIds` in models/comic_language.dart.
+    @JsonKey(name: 'tag_ids') @Default(<int>[]) List<int> tagIds,
     @JsonKey(name: 'num_pages') required int numPages,
     @JsonKey(name: 'num_favorites') int? numFavorites,
   }) = _Comic;

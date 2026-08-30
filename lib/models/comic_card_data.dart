@@ -19,6 +19,7 @@ class ComicCardData {
     required this.thumbnailWidth,
     required this.thumbnailHeight,
     this.tags = const <ComicTag>[],
+    this.tagIds = const <int>[],
     this.uploadDate,
   });
 
@@ -31,6 +32,10 @@ class ComicCardData {
   final int thumbnailWidth;
   final int thumbnailHeight;
   final List<ComicTag> tags;
+
+  /// Language ids from listing payloads, which carry no [tags]; empty for
+  /// cards rebuilt from storage.
+  final List<int> tagIds;
   final int? uploadDate;
 
   factory ComicCardData.fromComic(Comic comic) {
@@ -45,6 +50,7 @@ class ComicCardData {
       thumbnailWidth: thumbnail?.w ?? 9,
       thumbnailHeight: thumbnail?.h ?? 16,
       tags: comic.tags,
+      tagIds: comic.tagIds,
       uploadDate: comic.uploadDate,
     );
   }

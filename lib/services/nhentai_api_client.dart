@@ -128,6 +128,13 @@ class NhentaiApiClient implements NhentaiGateway {
           .whereType<Map<String, dynamic>>()
           .map(ComicTag.fromJson)
           .toList(growable: false),
+      // What this endpoint actually sends is `tag_ids` — bare integers. The
+      // `tags` above is kept because it costs nothing and the field has
+      // appeared on some payloads, but it is empty in practice.
+      tagIds: (json['tag_ids'] as List<dynamic>? ?? const <dynamic>[])
+          .whereType<num>()
+          .map((id) => id.toInt())
+          .toList(growable: false),
     );
   }
 

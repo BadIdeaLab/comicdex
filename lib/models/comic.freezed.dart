@@ -15,7 +15,9 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$Comic {
 
-@JsonKey(fromJson: _stringFromDynamic) String get id;@JsonKey(name: 'media_id', fromJson: _stringFromDynamic) String get mediaId; ComicTitle get title; ComicImages get images; String? get scanlator;@JsonKey(name: 'upload_date') int? get uploadDate; List<ComicTag> get tags;@JsonKey(name: 'num_pages') int get numPages;@JsonKey(name: 'num_favorites') int? get numFavorites;
+@JsonKey(fromJson: _stringFromDynamic) String get id;@JsonKey(name: 'media_id', fromJson: _stringFromDynamic) String get mediaId; ComicTitle get title; ComicImages get images; String? get scanlator;@JsonKey(name: 'upload_date') int? get uploadDate; List<ComicTag> get tags;/// Listings return bare tag ids where details return full [tags]; see
+/// `kLanguageTagIds` in models/comic_language.dart.
+@JsonKey(name: 'tag_ids') List<int> get tagIds;@JsonKey(name: 'num_pages') int get numPages;@JsonKey(name: 'num_favorites') int? get numFavorites;
 /// Create a copy of Comic
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +30,16 @@ $ComicCopyWith<Comic> get copyWith => _$ComicCopyWithImpl<Comic>(this as Comic, 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Comic&&(identical(other.id, id) || other.id == id)&&(identical(other.mediaId, mediaId) || other.mediaId == mediaId)&&(identical(other.title, title) || other.title == title)&&(identical(other.images, images) || other.images == images)&&(identical(other.scanlator, scanlator) || other.scanlator == scanlator)&&(identical(other.uploadDate, uploadDate) || other.uploadDate == uploadDate)&&const DeepCollectionEquality().equals(other.tags, tags)&&(identical(other.numPages, numPages) || other.numPages == numPages)&&(identical(other.numFavorites, numFavorites) || other.numFavorites == numFavorites));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Comic&&(identical(other.id, id) || other.id == id)&&(identical(other.mediaId, mediaId) || other.mediaId == mediaId)&&(identical(other.title, title) || other.title == title)&&(identical(other.images, images) || other.images == images)&&(identical(other.scanlator, scanlator) || other.scanlator == scanlator)&&(identical(other.uploadDate, uploadDate) || other.uploadDate == uploadDate)&&const DeepCollectionEquality().equals(other.tags, tags)&&const DeepCollectionEquality().equals(other.tagIds, tagIds)&&(identical(other.numPages, numPages) || other.numPages == numPages)&&(identical(other.numFavorites, numFavorites) || other.numFavorites == numFavorites));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,mediaId,title,images,scanlator,uploadDate,const DeepCollectionEquality().hash(tags),numPages,numFavorites);
+int get hashCode => Object.hash(runtimeType,id,mediaId,title,images,scanlator,uploadDate,const DeepCollectionEquality().hash(tags),const DeepCollectionEquality().hash(tagIds),numPages,numFavorites);
 
 @override
 String toString() {
-  return 'Comic(id: $id, mediaId: $mediaId, title: $title, images: $images, scanlator: $scanlator, uploadDate: $uploadDate, tags: $tags, numPages: $numPages, numFavorites: $numFavorites)';
+  return 'Comic(id: $id, mediaId: $mediaId, title: $title, images: $images, scanlator: $scanlator, uploadDate: $uploadDate, tags: $tags, tagIds: $tagIds, numPages: $numPages, numFavorites: $numFavorites)';
 }
 
 
@@ -48,7 +50,7 @@ abstract mixin class $ComicCopyWith<$Res>  {
   factory $ComicCopyWith(Comic value, $Res Function(Comic) _then) = _$ComicCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(fromJson: _stringFromDynamic) String id,@JsonKey(name: 'media_id', fromJson: _stringFromDynamic) String mediaId, ComicTitle title, ComicImages images, String? scanlator,@JsonKey(name: 'upload_date') int? uploadDate, List<ComicTag> tags,@JsonKey(name: 'num_pages') int numPages,@JsonKey(name: 'num_favorites') int? numFavorites
+@JsonKey(fromJson: _stringFromDynamic) String id,@JsonKey(name: 'media_id', fromJson: _stringFromDynamic) String mediaId, ComicTitle title, ComicImages images, String? scanlator,@JsonKey(name: 'upload_date') int? uploadDate, List<ComicTag> tags,@JsonKey(name: 'tag_ids') List<int> tagIds,@JsonKey(name: 'num_pages') int numPages,@JsonKey(name: 'num_favorites') int? numFavorites
 });
 
 
@@ -65,7 +67,7 @@ class _$ComicCopyWithImpl<$Res>
 
 /// Create a copy of Comic
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? mediaId = null,Object? title = null,Object? images = null,Object? scanlator = freezed,Object? uploadDate = freezed,Object? tags = null,Object? numPages = null,Object? numFavorites = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? mediaId = null,Object? title = null,Object? images = null,Object? scanlator = freezed,Object? uploadDate = freezed,Object? tags = null,Object? tagIds = null,Object? numPages = null,Object? numFavorites = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,mediaId: null == mediaId ? _self.mediaId : mediaId // ignore: cast_nullable_to_non_nullable
@@ -74,7 +76,8 @@ as ComicTitle,images: null == images ? _self.images : images // ignore: cast_nul
 as ComicImages,scanlator: freezed == scanlator ? _self.scanlator : scanlator // ignore: cast_nullable_to_non_nullable
 as String?,uploadDate: freezed == uploadDate ? _self.uploadDate : uploadDate // ignore: cast_nullable_to_non_nullable
 as int?,tags: null == tags ? _self.tags : tags // ignore: cast_nullable_to_non_nullable
-as List<ComicTag>,numPages: null == numPages ? _self.numPages : numPages // ignore: cast_nullable_to_non_nullable
+as List<ComicTag>,tagIds: null == tagIds ? _self.tagIds : tagIds // ignore: cast_nullable_to_non_nullable
+as List<int>,numPages: null == numPages ? _self.numPages : numPages // ignore: cast_nullable_to_non_nullable
 as int,numFavorites: freezed == numFavorites ? _self.numFavorites : numFavorites // ignore: cast_nullable_to_non_nullable
 as int?,
   ));
@@ -179,10 +182,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(fromJson: _stringFromDynamic)  String id, @JsonKey(name: 'media_id', fromJson: _stringFromDynamic)  String mediaId,  ComicTitle title,  ComicImages images,  String? scanlator, @JsonKey(name: 'upload_date')  int? uploadDate,  List<ComicTag> tags, @JsonKey(name: 'num_pages')  int numPages, @JsonKey(name: 'num_favorites')  int? numFavorites)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(fromJson: _stringFromDynamic)  String id, @JsonKey(name: 'media_id', fromJson: _stringFromDynamic)  String mediaId,  ComicTitle title,  ComicImages images,  String? scanlator, @JsonKey(name: 'upload_date')  int? uploadDate,  List<ComicTag> tags, @JsonKey(name: 'tag_ids')  List<int> tagIds, @JsonKey(name: 'num_pages')  int numPages, @JsonKey(name: 'num_favorites')  int? numFavorites)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Comic() when $default != null:
-return $default(_that.id,_that.mediaId,_that.title,_that.images,_that.scanlator,_that.uploadDate,_that.tags,_that.numPages,_that.numFavorites);case _:
+return $default(_that.id,_that.mediaId,_that.title,_that.images,_that.scanlator,_that.uploadDate,_that.tags,_that.tagIds,_that.numPages,_that.numFavorites);case _:
   return orElse();
 
 }
@@ -200,10 +203,10 @@ return $default(_that.id,_that.mediaId,_that.title,_that.images,_that.scanlator,
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(fromJson: _stringFromDynamic)  String id, @JsonKey(name: 'media_id', fromJson: _stringFromDynamic)  String mediaId,  ComicTitle title,  ComicImages images,  String? scanlator, @JsonKey(name: 'upload_date')  int? uploadDate,  List<ComicTag> tags, @JsonKey(name: 'num_pages')  int numPages, @JsonKey(name: 'num_favorites')  int? numFavorites)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(fromJson: _stringFromDynamic)  String id, @JsonKey(name: 'media_id', fromJson: _stringFromDynamic)  String mediaId,  ComicTitle title,  ComicImages images,  String? scanlator, @JsonKey(name: 'upload_date')  int? uploadDate,  List<ComicTag> tags, @JsonKey(name: 'tag_ids')  List<int> tagIds, @JsonKey(name: 'num_pages')  int numPages, @JsonKey(name: 'num_favorites')  int? numFavorites)  $default,) {final _that = this;
 switch (_that) {
 case _Comic():
-return $default(_that.id,_that.mediaId,_that.title,_that.images,_that.scanlator,_that.uploadDate,_that.tags,_that.numPages,_that.numFavorites);case _:
+return $default(_that.id,_that.mediaId,_that.title,_that.images,_that.scanlator,_that.uploadDate,_that.tags,_that.tagIds,_that.numPages,_that.numFavorites);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -220,10 +223,10 @@ return $default(_that.id,_that.mediaId,_that.title,_that.images,_that.scanlator,
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(fromJson: _stringFromDynamic)  String id, @JsonKey(name: 'media_id', fromJson: _stringFromDynamic)  String mediaId,  ComicTitle title,  ComicImages images,  String? scanlator, @JsonKey(name: 'upload_date')  int? uploadDate,  List<ComicTag> tags, @JsonKey(name: 'num_pages')  int numPages, @JsonKey(name: 'num_favorites')  int? numFavorites)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(fromJson: _stringFromDynamic)  String id, @JsonKey(name: 'media_id', fromJson: _stringFromDynamic)  String mediaId,  ComicTitle title,  ComicImages images,  String? scanlator, @JsonKey(name: 'upload_date')  int? uploadDate,  List<ComicTag> tags, @JsonKey(name: 'tag_ids')  List<int> tagIds, @JsonKey(name: 'num_pages')  int numPages, @JsonKey(name: 'num_favorites')  int? numFavorites)?  $default,) {final _that = this;
 switch (_that) {
 case _Comic() when $default != null:
-return $default(_that.id,_that.mediaId,_that.title,_that.images,_that.scanlator,_that.uploadDate,_that.tags,_that.numPages,_that.numFavorites);case _:
+return $default(_that.id,_that.mediaId,_that.title,_that.images,_that.scanlator,_that.uploadDate,_that.tags,_that.tagIds,_that.numPages,_that.numFavorites);case _:
   return null;
 
 }
@@ -235,7 +238,7 @@ return $default(_that.id,_that.mediaId,_that.title,_that.images,_that.scanlator,
 @JsonSerializable()
 
 class _Comic implements Comic {
-   _Comic({@JsonKey(fromJson: _stringFromDynamic) required this.id, @JsonKey(name: 'media_id', fromJson: _stringFromDynamic) required this.mediaId, required this.title, required this.images, this.scanlator, @JsonKey(name: 'upload_date') this.uploadDate, final  List<ComicTag> tags = const <ComicTag>[], @JsonKey(name: 'num_pages') required this.numPages, @JsonKey(name: 'num_favorites') this.numFavorites}): _tags = tags;
+   _Comic({@JsonKey(fromJson: _stringFromDynamic) required this.id, @JsonKey(name: 'media_id', fromJson: _stringFromDynamic) required this.mediaId, required this.title, required this.images, this.scanlator, @JsonKey(name: 'upload_date') this.uploadDate, final  List<ComicTag> tags = const <ComicTag>[], @JsonKey(name: 'tag_ids') final  List<int> tagIds = const <int>[], @JsonKey(name: 'num_pages') required this.numPages, @JsonKey(name: 'num_favorites') this.numFavorites}): _tags = tags,_tagIds = tagIds;
   factory _Comic.fromJson(Map<String, dynamic> json) => _$ComicFromJson(json);
 
 @override@JsonKey(fromJson: _stringFromDynamic) final  String id;
@@ -249,6 +252,17 @@ class _Comic implements Comic {
   if (_tags is EqualUnmodifiableListView) return _tags;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_tags);
+}
+
+/// Listings return bare tag ids where details return full [tags]; see
+/// `kLanguageTagIds` in models/comic_language.dart.
+ final  List<int> _tagIds;
+/// Listings return bare tag ids where details return full [tags]; see
+/// `kLanguageTagIds` in models/comic_language.dart.
+@override@JsonKey(name: 'tag_ids') List<int> get tagIds {
+  if (_tagIds is EqualUnmodifiableListView) return _tagIds;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_tagIds);
 }
 
 @override@JsonKey(name: 'num_pages') final  int numPages;
@@ -267,16 +281,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Comic&&(identical(other.id, id) || other.id == id)&&(identical(other.mediaId, mediaId) || other.mediaId == mediaId)&&(identical(other.title, title) || other.title == title)&&(identical(other.images, images) || other.images == images)&&(identical(other.scanlator, scanlator) || other.scanlator == scanlator)&&(identical(other.uploadDate, uploadDate) || other.uploadDate == uploadDate)&&const DeepCollectionEquality().equals(other._tags, _tags)&&(identical(other.numPages, numPages) || other.numPages == numPages)&&(identical(other.numFavorites, numFavorites) || other.numFavorites == numFavorites));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Comic&&(identical(other.id, id) || other.id == id)&&(identical(other.mediaId, mediaId) || other.mediaId == mediaId)&&(identical(other.title, title) || other.title == title)&&(identical(other.images, images) || other.images == images)&&(identical(other.scanlator, scanlator) || other.scanlator == scanlator)&&(identical(other.uploadDate, uploadDate) || other.uploadDate == uploadDate)&&const DeepCollectionEquality().equals(other._tags, _tags)&&const DeepCollectionEquality().equals(other._tagIds, _tagIds)&&(identical(other.numPages, numPages) || other.numPages == numPages)&&(identical(other.numFavorites, numFavorites) || other.numFavorites == numFavorites));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,mediaId,title,images,scanlator,uploadDate,const DeepCollectionEquality().hash(_tags),numPages,numFavorites);
+int get hashCode => Object.hash(runtimeType,id,mediaId,title,images,scanlator,uploadDate,const DeepCollectionEquality().hash(_tags),const DeepCollectionEquality().hash(_tagIds),numPages,numFavorites);
 
 @override
 String toString() {
-  return 'Comic(id: $id, mediaId: $mediaId, title: $title, images: $images, scanlator: $scanlator, uploadDate: $uploadDate, tags: $tags, numPages: $numPages, numFavorites: $numFavorites)';
+  return 'Comic(id: $id, mediaId: $mediaId, title: $title, images: $images, scanlator: $scanlator, uploadDate: $uploadDate, tags: $tags, tagIds: $tagIds, numPages: $numPages, numFavorites: $numFavorites)';
 }
 
 
@@ -287,7 +301,7 @@ abstract mixin class _$ComicCopyWith<$Res> implements $ComicCopyWith<$Res> {
   factory _$ComicCopyWith(_Comic value, $Res Function(_Comic) _then) = __$ComicCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(fromJson: _stringFromDynamic) String id,@JsonKey(name: 'media_id', fromJson: _stringFromDynamic) String mediaId, ComicTitle title, ComicImages images, String? scanlator,@JsonKey(name: 'upload_date') int? uploadDate, List<ComicTag> tags,@JsonKey(name: 'num_pages') int numPages,@JsonKey(name: 'num_favorites') int? numFavorites
+@JsonKey(fromJson: _stringFromDynamic) String id,@JsonKey(name: 'media_id', fromJson: _stringFromDynamic) String mediaId, ComicTitle title, ComicImages images, String? scanlator,@JsonKey(name: 'upload_date') int? uploadDate, List<ComicTag> tags,@JsonKey(name: 'tag_ids') List<int> tagIds,@JsonKey(name: 'num_pages') int numPages,@JsonKey(name: 'num_favorites') int? numFavorites
 });
 
 
@@ -304,7 +318,7 @@ class __$ComicCopyWithImpl<$Res>
 
 /// Create a copy of Comic
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? mediaId = null,Object? title = null,Object? images = null,Object? scanlator = freezed,Object? uploadDate = freezed,Object? tags = null,Object? numPages = null,Object? numFavorites = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? mediaId = null,Object? title = null,Object? images = null,Object? scanlator = freezed,Object? uploadDate = freezed,Object? tags = null,Object? tagIds = null,Object? numPages = null,Object? numFavorites = freezed,}) {
   return _then(_Comic(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,mediaId: null == mediaId ? _self.mediaId : mediaId // ignore: cast_nullable_to_non_nullable
@@ -313,7 +327,8 @@ as ComicTitle,images: null == images ? _self.images : images // ignore: cast_nul
 as ComicImages,scanlator: freezed == scanlator ? _self.scanlator : scanlator // ignore: cast_nullable_to_non_nullable
 as String?,uploadDate: freezed == uploadDate ? _self.uploadDate : uploadDate // ignore: cast_nullable_to_non_nullable
 as int?,tags: null == tags ? _self._tags : tags // ignore: cast_nullable_to_non_nullable
-as List<ComicTag>,numPages: null == numPages ? _self.numPages : numPages // ignore: cast_nullable_to_non_nullable
+as List<ComicTag>,tagIds: null == tagIds ? _self._tagIds : tagIds // ignore: cast_nullable_to_non_nullable
+as List<int>,numPages: null == numPages ? _self.numPages : numPages // ignore: cast_nullable_to_non_nullable
 as int,numFavorites: freezed == numFavorites ? _self.numFavorites : numFavorites // ignore: cast_nullable_to_non_nullable
 as int?,
   ));

@@ -1,6 +1,7 @@
 import 'package:concept_nhv/application/library/comic_card_action_coordinator.dart';
 import 'package:concept_nhv/application/reader/reader_launcher.dart';
 import 'package:concept_nhv/models/collection_type.dart';
+import 'package:concept_nhv/models/comic_language.dart';
 import 'package:concept_nhv/models/comic_card_data.dart';
 import 'package:concept_nhv/models/download_job_status.dart';
 import 'package:concept_nhv/state/download_manager_model.dart';
@@ -10,6 +11,7 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import 'comic_language_badge.dart';
 import 'comic_tag_bottom_sheet.dart';
 import 'fallback_cached_network_image.dart';
 
@@ -40,6 +42,10 @@ class ComicCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final inSelectionMode = onSelectionToggle != null;
+    final languageCode = primaryLanguageCode(
+      tags: comic.tags,
+      tagIds: comic.tagIds,
+    );
     return Column(
       children: <Widget>[
         Expanded(
@@ -60,6 +66,8 @@ class ComicCard extends StatelessWidget {
                     height: comic.thumbnailHeight,
                   ),
                 ),
+                if (languageCode != null)
+                  ComicLanguageBadge(label: languageCode),
                 if (isSelected)
                   IgnorePointer(
                     child: Container(color: Theme.of(context).colorScheme.primary.withAlpha(64)),
@@ -109,6 +117,9 @@ class ComicCard extends StatelessWidget {
             );
           },
         ),
+        // Untouched by the language badge on purpose: the page count is centred
+        // only because the two buttons either side are the same width, and
+        // anything added here moves it off centre.
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: <Widget>[

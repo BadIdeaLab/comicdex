@@ -18,6 +18,11 @@ _Comic _$ComicFromJson(Map<String, dynamic> json) => _Comic(
           ?.map((e) => ComicTag.fromJson(e as Map<String, dynamic>))
           .toList() ??
       const <ComicTag>[],
+  tagIds:
+      (json['tag_ids'] as List<dynamic>?)
+          ?.map((e) => (e as num).toInt())
+          .toList() ??
+      const <int>[],
   numPages: (json['num_pages'] as num).toInt(),
   numFavorites: (json['num_favorites'] as num?)?.toInt(),
 );
@@ -30,6 +35,7 @@ Map<String, dynamic> _$ComicToJson(_Comic instance) => <String, dynamic>{
   'scanlator': instance.scanlator,
   'upload_date': instance.uploadDate,
   'tags': instance.tags,
+  'tag_ids': instance.tagIds,
   'num_pages': instance.numPages,
   'num_favorites': instance.numFavorites,
 };
