@@ -56,6 +56,26 @@ void main() {
       expect(result.statusMessage, isNull);
     });
 
+    test('keeps the search query across a tab switch', () async {
+      // Asserted here rather than on HomeUiModel alone: every switch goes
+      // through this controller, and its resetSearchView() call used to clear
+      // the query before HomeUiModel ever got to decide.
+      homeUiModel.searchController.text = 'artist:someone';
+
+      await controller.handleDestinationSelected(1);
+      await controller.handleDestinationSelected(0);
+
+      expect(homeUiModel.searchController.text, 'artist:someone');
+    });
+
+    test('clears the search query when tapping Home while on Home', () async {
+      homeUiModel.searchController.text = 'artist:someone';
+
+      await controller.handleDestinationSelected(0);
+
+      expect(homeUiModel.searchController.text, isEmpty);
+    });
+
     test('does not refetch when returning to home with results in hand', () async {
       // The reported symptom: every trip back to Home re-ran the search and
       // dropped the reader at the top, discarding everything already paged in.

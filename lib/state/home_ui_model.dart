@@ -45,8 +45,14 @@ class HomeUiModel extends ChangeNotifier {
     }
   }
 
+  /// Closes the search overlay if it is open, leaving the query alone.
+  ///
+  /// It used to clear the text as well, which quietly overrode
+  /// [setNavigationIndex]'s rule: every tab switch went through here first, so
+  /// the query was wiped on the way out no matter what. That was invisible
+  /// while returning to Home refetched from scratch, and wrong the moment the
+  /// results started surviving the trip.
   void resetSearchView() {
-    searchController.text = '';
     if (_isSearchControllerAttached && searchController.isOpen) {
       searchController.closeView(null);
     }
