@@ -14,12 +14,25 @@ void main() {
       model.dispose();
     });
 
-    test('clears search text when leaving the index page', () {
+    test('keeps search text when leaving the index page', () {
+      // Leaving used to clear it, which was harmless only while returning to
+      // Home refetched from scratch. Now the results survive the trip, so
+      // clearing the box would leave it empty above the very results it found.
       model.searchController.text = 'sample';
 
       model.setNavigationIndex(2);
 
       expect(model.navigationIndex, 2);
+      expect(model.searchController.text, 'sample');
+    });
+
+    test('clears search text when tapping the index page while on it', () {
+      // Still a deliberate gesture, and still the way back to the plain feed.
+      model.searchController.text = 'sample';
+
+      model.setNavigationIndex(0);
+
+      expect(model.navigationIndex, 0);
       expect(model.searchController.text, isEmpty);
     });
 

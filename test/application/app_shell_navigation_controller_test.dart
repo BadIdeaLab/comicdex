@@ -16,15 +16,17 @@ void main() {
     late SqliteTestHarness harness;
     late HomeUiModel homeUiModel;
     late ComicFeedModel feedModel;
+    late FakeNhentaiGateway gateway;
     late AppShellNavigationController controller;
 
     setUp(() async {
       harness = SqliteTestHarness();
       await harness.initialize();
       homeUiModel = HomeUiModel();
+      gateway = FakeNhentaiGateway();
       feedModel = ComicFeedModel(
         searchComicsUseCase: SearchComicsUseCase(
-          nhentaiGateway: FakeNhentaiGateway(),
+          nhentaiGateway: gateway,
           searchQueryBuilder: const SearchQueryBuilder(),
         ),
         loadCollectionSummariesUseCase: LoadCollectionSummariesUseCase(
@@ -52,6 +54,33 @@ void main() {
       expect(homeUiModel.isLoading, isFalse);
       expect(feedModel.comicsLoaded, greaterThan(0));
       expect(result.statusMessage, isNull);
+    });
+
+    test('does not refetch when returning to home with results in hand', () async {
+      // The reported symptom: every trip back to Home re-ran the search and
+      // dropped the reader at the top, discarding everything already paged in.
+      await controller.handleDestinationSelected(0);
+      final searchesAfterFirstLoad = gateway.searchedUris.length;
+      final loadedAfterFirstLoad = feedModel.comicsLoaded;
+
+      await controller.handleDestinationSelected(1);
+      await controller.handleDestinationSelected(0);
+
+      expect(gateway.searchedUris.length, searchesAfterFirstLoad);
+      expect(feedModel.comicsLoaded, loadedAfterFirstLoad);
+      expect(homeUiModel.navigationIndex, 0);
+    });
+
+    test('loads on return when there is still nothing to show', () async {
+      // An empty feed means the first load never succeeded, so coming back has
+      // to try again — otherwise a failed start leaves Home blank for good.
+      expect(feedModel.comics, isNull);
+
+      await controller.handleDestinationSelected(1);
+      await controller.handleDestinationSelected(0);
+
+      expect(gateway.searchedUris, isNotEmpty);
+      expect(feedModel.comicsLoaded, greaterThan(0));
     });
 
     test('refreshes collection summaries when opening collection tabs', () async {

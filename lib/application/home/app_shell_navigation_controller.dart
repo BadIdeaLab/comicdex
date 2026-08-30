@@ -19,6 +19,15 @@ class AppShellNavigationController {
     switch (index) {
       case 0:
         homeUiModel.setNavigationIndex(index);
+        // Returning to Home used to refetch page 1 unconditionally, throwing
+        // away everything already scrolled through. The feed model is
+        // app-scoped, so the results were never lost — we were discarding
+        // them. Load only when there is nothing to show (first run, or the
+        // last attempt failed); the app bar's refresh button is how a reader
+        // asks for fresh results.
+        if (feedModel.comics != null) {
+          return const AppShellNavigationResult();
+        }
         homeUiModel.setLoading(true);
         final statusCode = await feedModel.loadHomeFeed(clearComic: true);
         homeUiModel.setLoading(false);

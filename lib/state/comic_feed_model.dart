@@ -90,10 +90,7 @@ class ComicFeedModel extends ChangeNotifier {
     final combinedQuery = [
       query,
       if (includeTagFilters) ..._tagFilters,
-    ]
-        .where((s) => s.isNotEmpty)
-        .join(' ')
-        .trim();
+    ].where((s) => s.isNotEmpty).join(' ').trim();
     final result = await searchComicsUseCase.execute(
       query: combinedQuery,
       page: page,
@@ -111,6 +108,13 @@ class ComicFeedModel extends ChangeNotifier {
     notifyListeners();
     return result.statusCode;
   }
+
+  /// Reloads the first page of whatever is on screen, search terms included.
+  ///
+  /// Used by the home tab refresh button. It deliberately re-runs the last
+  /// query rather than resetting to the plain feed: refreshing while a search
+  /// is active should not silently throw the search away.
+  Future<void> refreshCurrentQuery() => fetchNextPage(page: 1);
 
   Future<void> fetchNextPage({int? page, bool? includeTagFilters}) async {
     final targetPage = page ?? pageLoaded + 1;

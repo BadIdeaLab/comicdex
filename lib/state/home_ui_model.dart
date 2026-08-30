@@ -17,9 +17,12 @@ class HomeUiModel extends ChangeNotifier {
   }
 
   void setNavigationIndex(int value) {
-    final doubleClickIndex = _navigationIndex == 0 && value == 0;
-    final fromIndexPage = _navigationIndex == 0;
-    if (doubleClickIndex || fromIndexPage) {
+    // Only a deliberate tap on Home while already on Home clears the search.
+    // Merely leaving the tab used to clear it as well, on the assumption that
+    // coming back would reload from scratch anyway. That assumption is gone,
+    // and clearing now would empty the box while its results stayed on screen.
+    final tappedHomeWhileOnHome = _navigationIndex == 0 && value == 0;
+    if (tappedHomeWhileOnHome) {
       searchController.text = '';
     }
     _navigationIndex = value;

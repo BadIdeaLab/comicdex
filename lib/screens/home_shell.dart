@@ -24,13 +24,34 @@ class HomeShell extends StatefulWidget {
 }
 
 class _HomeShellState extends State<HomeShell> {
-  final ScrollController _scrollController = ScrollController();
-  final TextEditingController _downloadsSearchController = TextEditingController();
+  /// One controller per bottom-nav destination.
+  ///
+  /// There used to be a single controller for all three, which did not merely
+  /// look coupled — the tabs literally shared one scroll offset. Scrolling the
+  /// home feed to 800 px and switching to Downloads landed there at 800 px, and
+  /// a shorter Downloads list clamped the offset so the home feed lost its
+  /// place on the way back.
+  ///
+  /// A controller each is only half of it: the `CustomScrollView` below is the
+  /// same widget across tabs, so Flutter would keep one `ScrollPosition` and
+  /// throw when a second controller attached to it. The per-tab [PageStorageKey]
+  /// is what makes them distinct scroll views — dropping it is a crash, not a
+  /// silent regression.
+  static const int _destinationCount = 3;
+  final List<ScrollController> _scrollControllers =
+      List<ScrollController>.generate(
+        _destinationCount,
+        (_) => ScrollController(),
+      );
+  final TextEditingController _downloadsSearchController =
+      TextEditingController();
   String _downloadsSearchQuery = '';
 
   @override
   void dispose() {
-    _scrollController.dispose();
+    for (final controller in _scrollControllers) {
+      controller.dispose();
+    }
     _downloadsSearchController.dispose();
     super.dispose();
   }
@@ -38,11 +59,14 @@ class _HomeShellState extends State<HomeShell> {
   @override
   Widget build(BuildContext context) {
     // Select only navigationIndex — avoids scroll reset on isLoading changes.
-    final navigationIndex =
-        context.select<HomeUiModel, int>((m) => m.navigationIndex);
+    final navigationIndex = context.select<HomeUiModel, int>(
+      (m) => m.navigationIndex,
+    );
+    final destination = navigationIndex.clamp(0, _destinationCount - 1);
 
     return CustomScrollView(
-      controller: _scrollController,
+      key: PageStorageKey<int>(destination),
+      controller: _scrollControllers[destination],
       physics: const BouncingScrollPhysics(),
       slivers: <Widget>[
         _buildTopBar(context, navigationIndex),
@@ -95,6 +119,32 @@ class _HomeShellState extends State<HomeShell> {
     );
   }
 
+  /// Reloads the home feed and returns to the top.
+  ///
+  /// Jumping to the top is right here and wrong on a tab switch: this is an
+  /// explicit request for fresh results, so landing on them is expected —
+  /// whereas the old automatic reload moved a reader who had asked for
+  /// nothing.
+  Future<void> _refreshHomeFeed(BuildContext context) async {
+    final homeUiModel = context.read<HomeUiModel>();
+    final feedModel = context.read<ComicFeedModel>();
+
+    homeUiModel.setLoading(true);
+    try {
+      await feedModel.refreshCurrentQuery();
+    } finally {
+      homeUiModel.setLoading(false);
+    }
+
+    if (!mounted) {
+      return;
+    }
+    final controller = _scrollControllers[0];
+    if (controller.hasClients) {
+      controller.jumpTo(0);
+    }
+  }
+
   Widget _buildHomeAppBar(BuildContext context) {
     return Consumer<HomeUiModel>(
       builder: (context, homeUiModel, _) {
@@ -109,6 +159,13 @@ class _HomeShellState extends State<HomeShell> {
             searchController: homeUiModel.searchController,
             onSubmitted: (value) => _handleSearchSubmit(context, value),
             barTrailing: <Widget>[
+              IconButton.filledTonal(
+                onPressed: homeUiModel.isLoading
+                    ? null
+                    : () => _refreshHomeFeed(context),
+                icon: const Icon(Icons.refresh),
+                tooltip: 'Refresh',
+              ),
               IconButton.filledTonal(
                 onPressed: () => context.push('/settings'),
                 icon: const Icon(Icons.settings),
@@ -164,7 +221,9 @@ class _HomeShellState extends State<HomeShell> {
           if (errorMessage != null) {
             return _buildFeedError(context, errorMessage);
           }
-          return SliverList(delegate: SliverChildListDelegate(const <Widget>[]));
+          return SliverList(
+            delegate: SliverChildListDelegate(const <Widget>[]),
+          );
         }
 
         final numPages = feedModel.numPages;
@@ -175,7 +234,10 @@ class _HomeShellState extends State<HomeShell> {
             if (showPageBar)
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: <Widget>[
@@ -191,7 +253,8 @@ class _HomeShellState extends State<HomeShell> {
             ComicGridSliver(
               comics: comics.map(ComicCardData.fromComic).toList(),
               pageLoaded: feedModel.pageLoaded,
-              onTagSelected: (tagQueries) => _handleTagSelected(context, tagQueries),
+              onTagSelected: (tagQueries) =>
+                  _handleTagSelected(context, tagQueries),
             ),
           ],
         );
@@ -256,10 +319,7 @@ class _HomeShellState extends State<HomeShell> {
     await context.read<HomeShellController>().retryHomeFeed();
   }
 
-  Future<void> _handleOpenOfflineReader(
-    BuildContext context,
-    String comicId,
-  ) {
+  Future<void> _handleOpenOfflineReader(BuildContext context, String comicId) {
     final navigator = GoRouter.of(context);
 
     return context.read<ReaderLauncher>().open(
