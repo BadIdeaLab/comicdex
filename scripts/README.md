@@ -167,3 +167,26 @@ build 會以一長串 `No target "<舊名稱>"` 失敗。
 本機用 `vswhere` 找得到，runner 的映像佈局可能不同，所以腳本另外加了兩個常見安裝路徑作為
 後備。若第一次跑 CI 就卡在這裡，那不是意外，是這個假設沒成立——依訊息裡列出的缺件調整
 搜尋路徑即可。
+
+---
+
+## 這裡的 .ps1 一定要存成 UTF-8 with BOM
+
+Windows PowerShell 5.1 讀沒有 BOM 的 `.ps1` 時會用系統的 ANSI 代碼頁，而不是 UTF-8。在英文
+環境（例如 GitHub 的 runner）那是 CP1252，於是：
+
+- 中文全部變成亂碼（`完成：` → `å®Œæˆï¼š`）
+- **更糟的是語法會壞掉**：`→` 的 UTF-8 是 `E2 86 92`，而 CP1252 的 `0x92` 是右單引號 `'`，
+  PowerShell 把它當成字串結束符。字串提早結束後整個檔案的括號配對全亂，錯誤訊息是一長串
+  `The string is missing the terminator` 和 `Missing closing '}'`，完全看不出跟編碼有關。
+
+這在本機不會發作（開發機的代碼頁讀得對），只有進 CI 才炸——`flutter-workflow-windows.yml`
+因此有一個 `Check script encoding` 步驟，缺 BOM 時用一句話講清楚原因，而不是丟出語法錯誤瀑布。
+
+若編輯器把 BOM 拿掉了，用這段補回去：
+
+```powershell
+$utf8Bom = New-Object System.Text.UTF8Encoding($true)
+$text = [System.IO.File]::ReadAllText($path, [System.Text.UTF8Encoding]::new($false))
+[System.IO.File]::WriteAllText($path, $text, $utf8Bom)
+```

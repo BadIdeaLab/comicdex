@@ -1,4 +1,4 @@
-#requires -Version 5.1
+﻿#requires -Version 5.1
 <#
 .SYNOPSIS
     由 App 圖示產生桌面端的 windows/runner/resources/app_icon.ico（多尺寸）。

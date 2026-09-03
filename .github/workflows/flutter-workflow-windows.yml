@@ -55,6 +55,22 @@ jobs:
       working-directory: desktop_backup_server
       run: flutter test
 
+    # Windows PowerShell 5.1 reads a BOM-less .ps1 as the system ANSI codepage.
+    # On this runner that is CP1252, where byte 0x92 — the third byte of the
+    # UTF-8 arrow "→" — becomes a right single quote, which PowerShell honours
+    # as a string delimiter. The script then fails to parse with a cascade of
+    # "missing the terminator" errors that say nothing about encoding.
+    #
+    # Checked here, under pwsh, so the message names the actual problem.
+    - name: Check script encoding
+      run: |
+        foreach ($path in 'scripts/package_windows.ps1', 'scripts/build_desktop_icon.ps1') {
+          $bytes = [System.IO.File]::ReadAllBytes($path)
+          if ($bytes.Length -lt 3 -or $bytes[0] -ne 0xEF -or $bytes[1] -ne 0xBB -or $bytes[2] -ne 0xBF) {
+            throw "$path 缺少 UTF-8 BOM。Windows PowerShell 5.1 會改用 ANSI 代碼頁讀取，非 ASCII 字元會變成亂碼並破壞語法。請用 UTF-8 with BOM 重新存檔。"
+          }
+        }
+
     # Runs the same script a developer runs locally, rather than a second copy
     # of the build-and-zip steps written in YAML. A packaging bug then shows up
     # in one place instead of drifting between two.

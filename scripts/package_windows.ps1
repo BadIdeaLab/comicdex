@@ -1,4 +1,4 @@
-#requires -Version 5.1
+﻿#requires -Version 5.1
 <#
 .SYNOPSIS
     將 desktop_backup_server 打包成可直接解壓執行的 Windows zip。
