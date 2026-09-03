@@ -148,3 +148,22 @@ exe）。
 
 **改完 `BINARY_NAME` 一定要先 `flutter clean`**，否則 CMake 快取還記著舊的 target 名稱，
 build 會以一長串 `No target "<舊名稱>"` 失敗。
+
+---
+
+## CI：flutter-workflow-windows.yml
+
+`.github/workflows/flutter-workflow-windows.yml` 在 push 到 `main` 且動到
+`desktop_backup_server/**` 或 `package_windows.ps1` 時，於 `windows-latest` 上建置、測試、
+打包，並把 zip 附到 `latest-build` release——和 APK／IPA 共用同一個 release tag。
+
+三份 workflow 共用 `concurrency: latest-build-release`，否則同一次 push 觸發的多個 workflow
+會同時搶著建立 release，變成好幾個而不是一個被更新。
+
+**CI 用 `-RequireCrt`**：找不到 VC++ 執行階段就直接讓 build 失敗。CI 裡沒有人會看警告，缺了
+那三個 DLL 的 zip 會照樣被發布，然後在別人的電腦上無聲地打不開——寧可紅一次。
+
+**尚未在 runner 上驗證過的部分**：GitHub 的 `windows-latest` 映像是否裝有 VC++ redist 元件。
+本機用 `vswhere` 找得到，runner 的映像佈局可能不同，所以腳本另外加了兩個常見安裝路徑作為
+後備。若第一次跑 CI 就卡在這裡，那不是意外，是這個假設沒成立——依訊息裡列出的缺件調整
+搜尋路徑即可。

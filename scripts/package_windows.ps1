@@ -14,13 +14,19 @@
 .PARAMETER SkipBuild
     沿用既有的 build 產出，只重新打包。改了打包流程但沒改程式碼時用。
 
+.PARAMETER RequireCrt
+    找不到 VC++ 執行階段 DLL 時直接失敗，而不是只發警告。CI 用：那裡沒有人會看
+    警告，缺了 DLL 的 zip 會照樣被發布出去，然後在別人的電腦上無聲地打不開。
+
 .EXAMPLE
     powershell -File scripts\package_windows.ps1
     powershell -File scripts\package_windows.ps1 -SkipBuild
+    powershell -File scripts\package_windows.ps1 -RequireCrt
 #>
 [CmdletBinding()]
 param(
-    [switch]$SkipBuild
+    [switch]$SkipBuild,
+    [switch]$RequireCrt
 )
 
 $ErrorActionPreference = 'Stop'
@@ -67,15 +73,33 @@ $crtNames = @('msvcp140.dll', 'vcruntime140.dll', 'vcruntime140_1.dll')
 
 # 用 vswhere 問 VS 裝在哪，而不是猜 C:\Program Files——這台機器就把 VS 裝在 E 槽，
 # 寫死磁碟機代號的版本在這裡靜靜地找不到檔案。vswhere 自己的路徑才是微軟固定的。
-$crtDir = $null
+$crtSearchRoots = @()
 $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
 if (Test-Path $vswhere) {
     $vsPath = & $vswhere -latest -products * -property installationPath
-    if ($vsPath) {
-        $crtPattern = Join-Path $vsPath 'VC\Redist\MSVC\*\x64\Microsoft.VC*.CRT'
-        $crtDir = Resolve-Path -Path $crtPattern -ErrorAction SilentlyContinue |
+    if ($vsPath) { $crtSearchRoots += $vsPath }
+}
+# 後備：CI runner 的映像可能和開發機不同。多找幾個常見位置比讓打包失敗好，
+# 而且真的一個都找不到時 -RequireCrt 會擋下來，不會靜靜發布壞掉的 zip。
+$crtSearchRoots += 'C:\Program Files\Microsoft Visual Studio\*\*'
+$crtSearchRoots += 'C:\Program Files (x86)\Microsoft Visual Studio\*\*'
+
+$crtDir = $null
+foreach ($root in $crtSearchRoots) {
+    # try/catch 而不是只靠 -ErrorAction：這個檔案開頭把 ErrorActionPreference 設成
+    # Stop，而路徑無效時 Join-Path 會丟出例外而不是回傳空值——那會讓整個腳本在這裡
+    # 中止，連下面那段講清楚缺什麼的訊息都印不到。
+    try {
+        $found = Resolve-Path -Path (Join-Path $root 'VC\Redist\MSVC\*\x64\Microsoft.VC*.CRT') `
+            -ErrorAction SilentlyContinue |
             Sort-Object -Property Path |
             Select-Object -Last 1
+    } catch {
+        continue
+    }
+    if ($found) {
+        $crtDir = $found
+        break
     }
 }
 
@@ -93,11 +117,14 @@ if ($crtDir) {
 if ($copiedCrt.Count -eq $crtNames.Count) {
     Write-Host "  已附帶 VC++ 執行階段：$($copiedCrt -join ', ')" -ForegroundColor DarkGray
 } else {
-    Write-Warning @'
-找不到完整的 VC++ 執行階段 DLL，zip 裡不會包含它們。
+    $missing = $crtNames | Where-Object { $copiedCrt -notcontains $_ }
+    $message = @"
+找不到完整的 VC++ 執行階段 DLL（缺 $($missing -join ', ')），zip 裡不會包含它們。
 沒裝 VC++ Redistributable 的機器上，雙擊 exe 會完全沒有反應（不會跳錯誤）。
 請一併告知使用者安裝：https://aka.ms/vs/17/release/vc_redist.x64.exe
-'@
+"@
+    if ($RequireCrt) { throw $message }
+    Write-Warning $message
 }
 
 $zipPath = Join-Path $outDir "$stageName-windows-x64.zip"

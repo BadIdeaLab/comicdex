@@ -1,0 +1,81 @@
+name: flutter-workflow-windows
+
+on:
+  push:
+    branches:
+      - main
+    # The mirror of flutter-workflow-apk.yml's paths-ignore: the desktop server
+    # is a separate Flutter project, so app-only commits have nothing to
+    # rebuild here. The packaging script is listed because a change to it
+    # changes what ships, even when no Dart code moved.
+    paths:
+      - 'desktop_backup_server/**'
+      - 'scripts/package_windows.ps1'
+      - '.github/workflows/flutter-workflow-windows.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# Shares the group with the apk and ipa workflows: all three publish to the
+# same `latest-build` release tag, and runs triggered by one push execute in
+# parallel across workflows. Without this they can race and create duplicate
+# releases instead of updating one.
+concurrency:
+  group: latest-build-release
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    defaults:
+      run:
+        shell: pwsh
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v5
+
+    - name: Set up Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        channel: stable
+        flutter-version: 3.41.5
+
+    - name: Get dependencies
+      working-directory: desktop_backup_server
+      run: flutter pub get
+
+    - name: Analyze
+      working-directory: desktop_backup_server
+      run: flutter analyze
+
+    - name: Test
+      working-directory: desktop_backup_server
+      run: flutter test
+
+    # Runs the same script a developer runs locally, rather than a second copy
+    # of the build-and-zip steps written in YAML. A packaging bug then shows up
+    # in one place instead of drifting between two.
+    #
+    # -RequireCrt makes a missing VC++ runtime fail the build: nobody reads
+    # warnings in CI, and a zip without those DLLs does nothing at all when
+    # double-clicked on a machine that lacks the redistributable.
+    - name: Build and package
+      run: powershell -ExecutionPolicy Bypass -File scripts\package_windows.ps1 -RequireCrt
+
+    - name: Upload zip
+      uses: actions/upload-artifact@v7
+      with:
+        name: release-windows
+        path: scripts/out/*.zip
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v3
+      with:
+        tag_name: latest-build
+        name: Latest Build
+        draft: false
+        prerelease: true
+        files: scripts/out/*.zip
