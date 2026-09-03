@@ -82,3 +82,69 @@ python scripts/encode_tags.py
 | 檔案 | 說明 |
 |------|------|
 | `tag_raw.json` | `fetch_tags.py` 的完整原始輸出 |
+
+---
+
+## package_windows.ps1
+
+把 `desktop_backup_server` 打包成可直接解壓執行的 Windows zip，輸出至
+`scripts/out/comicdex-backup-server-<版本>-windows-x64.zip`。版本取自
+`desktop_backup_server/pubspec.yaml` 的 `version:`（去掉 `+build` 號）。
+
+**用法**（從專案根目錄執行）：
+
+```powershell
+powershell -File scripts\package_windows.ps1
+powershell -File scripts\package_windows.ps1 -SkipBuild   # 沿用既有 build，只重新打包
+```
+
+**為什麼是整個資料夾而不是單一 exe**：Flutter 的 Windows 產出裡，`.exe` 只有 90 KB，
+真正的引擎在 `flutter_windows.dll`（20 MB），Dart 程式碼在 `data\app.so`。少一個檔就
+開不起來，所以壓的是整包。壓縮後約 12 MB。
+
+**VC++ 執行階段**：腳本會用 `vswhere` 找出 Visual Studio 的安裝位置，把
+`msvcp140.dll` / `vcruntime140.dll` / `vcruntime140_1.dll` 一併放進 zip（app-local
+部署，微軟允許隨應用程式散布）。**不要改成寫死 `C:\Program Files`**——VS 可能裝在
+其他磁碟機，第一版就是這樣靜靜地打包出一個在別台機器打不開的 zip。
+
+沒有這三個 DLL 的機器上，雙擊 exe 會**完全沒有反應、不跳任何錯誤**，是最難自行診斷的
+失敗方式。若腳本找不到它們會發出警告，此時要另外請使用者安裝
+[VC++ Redistributable](https://aka.ms/vs/17/release/vc_redist.x64.exe)。
+
+**未簽章**：第一次執行會跳 SmartScreen 的「不明的發行者」警告，要點「其他資訊 →
+仍要執行」。要消除得購買程式碼簽章憑證，自用不需要。
+
+---
+
+## build_desktop_icon.ps1
+
+由主 App 的 `assets/icon/icon.png` 產生桌面端的
+`desktop_backup_server/windows/runner/resources/app_icon.ico`，讓 exe 圖示和手機端一致。
+
+**用法**（從專案根目錄執行）：
+
+```powershell
+powershell -File scripts\build_desktop_icon.ps1
+```
+
+產出 16 / 24 / 32 / 48 / 64 / 128 / 256 共七種尺寸（每張以 PNG 存放，Vista 起支援）。
+**不要改成只產一張 256**：Windows 用 16 px 畫工作列、24 px 畫檔案總管詳細清單，只有一張
+大圖時那些尺寸全靠即時縮圖，細節多的圖會糊。`flutter_launcher_icons` 的 Windows 產出正是
+單張，所以這裡沒有用它。
+
+改完圖示要重新 `flutter build windows` 才會套用（RC 編譯器在建置時才把 ico 拆成資源嵌入
+exe）。
+
+---
+
+## 桌面端 exe 的命名
+
+`windows/CMakeLists.txt` 的 `BINARY_NAME` 是 `ComicdexBackupServer`，產出
+`ComicdexBackupServer.exe`。**不能改成有空格的名稱**：Flutter 工具直接讀這個值組出 exe 路徑
+（`flutter run` 靠它啟動），而 CMake 的 target 名稱本來就不允許空格。
+
+使用者實際看得到的名稱是有空格的「Comicdex Backup Server」——視窗標題（`runner/main.cpp`）
+與檔案內容頁的 `ProductName`／`FileDescription`（`runner/Runner.rc`）都是。
+
+**改完 `BINARY_NAME` 一定要先 `flutter clean`**，否則 CMake 快取還記著舊的 target 名稱，
+build 會以一長串 `No target "<舊名稱>"` 失敗。

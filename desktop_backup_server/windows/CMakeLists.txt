@@ -4,7 +4,10 @@ project(desktop_backup_server LANGUAGES CXX)
 
 # The name of the executable created for the application. Change this to change
 # the on-disk name of your application.
-set(BINARY_NAME "desktop_backup_server")
+# Flutter 工具直接用這個值組出 exe 路徑，CMake 的 target 名稱又不能有空格，
+# 所以檔名只能是不含空格的形式。使用者看得到的名稱（視窗標題、檔案內容頁的
+# ProductName）則是有空格的 "Comicdex Backup Server"。
+set(BINARY_NAME "ComicdexBackupServer")
 
 # Explicitly opt in to modern CMake behaviors to avoid warnings with recent
 # versions of CMake.

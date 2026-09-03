@@ -92,9 +92,9 @@ BEGIN
             VALUE "CompanyName", "BadIdeaLab" "\0"
             VALUE "FileDescription", "Comicdex Backup Server" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "desktop_backup_server" "\0"
+            VALUE "InternalName", "ComicdexBackupServer" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2026 BadIdeaLab. All rights reserved." "\0"
-            VALUE "OriginalFilename", "desktop_backup_server.exe" "\0"
+            VALUE "OriginalFilename", "ComicdexBackupServer.exe" "\0"
             VALUE "ProductName", "Comicdex Backup Server" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
