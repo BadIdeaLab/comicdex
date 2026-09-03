@@ -20,6 +20,7 @@ class ComicTagBottomSheet extends StatefulWidget {
     required this.onSearchSelected,
     this.comicId,
     this.comicUploadDate,
+    this.comicNumFavorites,
     this.loadMeta,
     this.downloadSlot,
     this.actionSlot,
@@ -29,6 +30,14 @@ class ComicTagBottomSheet extends StatefulWidget {
   final List<ComicTag> initialTags;
   final String? comicId;
   final int? comicUploadDate;
+
+  /// Favorite count already on hand, shown before (or instead of) a fetch.
+  ///
+  /// Downloaded comics store one at download time. Without this the sheet had
+  /// no way to show it: it skips loading entirely when tags are already
+  /// present, so an offline reader saw no count despite the number sitting in
+  /// the database.
+  final int? comicNumFavorites;
 
   /// Optional async loader that fetches the full tag list and favorite count.
   /// When null, [initialTags] is used directly.
@@ -53,6 +62,7 @@ class ComicTagBottomSheet extends StatefulWidget {
     required ValueChanged<List<String>> onSearchSelected,
     String? comicId,
     int? comicUploadDate,
+    int? comicNumFavorites,
     Future<({List<ComicTag> tags, int? numFavorites, int? uploadDate})> Function()? loadMeta,
     Widget? downloadSlot,
     Widget? actionSlot,
@@ -67,6 +77,7 @@ class ComicTagBottomSheet extends StatefulWidget {
         initialTags: tags,
         comicId: comicId,
         comicUploadDate: comicUploadDate,
+        comicNumFavorites: comicNumFavorites,
         loadMeta: loadMeta,
         onSearchSelected: onSearchSelected,
         downloadSlot: downloadSlot,
@@ -90,6 +101,7 @@ class _ComicTagBottomSheetState extends State<ComicTagBottomSheet> {
   @override
   void initState() {
     super.initState();
+    _numFavorites = widget.comicNumFavorites;
     if (widget.initialTags.isNotEmpty) {
       _tags = widget.initialTags;
       return;
@@ -368,7 +380,9 @@ class _ComicTagBottomSheetState extends State<ComicTagBottomSheet> {
       if (!mounted) return;
       setState(() {
         _tags = meta.tags;
-        _numFavorites = meta.numFavorites;
+        // Only overwrite when the fetch actually returned one: a null would
+        // otherwise wipe a count the caller already handed us.
+        if (meta.numFavorites != null) _numFavorites = meta.numFavorites;
         if (meta.uploadDate != null) _loadedUploadDate = meta.uploadDate;
         _isLoading = false;
       });

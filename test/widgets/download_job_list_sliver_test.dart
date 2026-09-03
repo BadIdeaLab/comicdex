@@ -273,6 +273,38 @@ void main() {
       },
     );
 
+    testWidgets('shows the stored favorite count for a completed download', (
+      tester,
+    ) async {
+      // The count is written at download time and sat unused: the sheet skips
+      // loading when tags are already stored, so nothing ever put it on
+      // screen — offline or not.
+      final model = _FakeDownloadManagerModel(
+        harness: harness,
+        itemsOverride: <DownloadListItemSnapshot>[
+          _itemFromDownloadedComic(
+            comicId: 'completed',
+            title: 'Downloaded Comic',
+            requestedAt: DateTime(2026, 4, 10),
+            numFavorites: 4821,
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        _buildTestWidget(
+          model: model,
+          controller: _FakeHomeShellController(harness: harness),
+        ),
+      );
+      await tester.pump();
+
+      await tester.longPress(find.text('Downloaded Comic'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('4.8k'), findsOneWidget);
+    });
+
     testWidgets('random completed button opens a visible completed download', (
       tester,
     ) async {
@@ -555,6 +587,7 @@ DownloadListItemSnapshot _itemFromDownloadedComic({
   required String title,
   required DateTime requestedAt,
   List<ComicTag>? tags,
+  int? numFavorites,
 }) {
   return DownloadListItemSnapshot.fromDownloadedComic(
     DownloadedComicSnapshot(
@@ -565,6 +598,7 @@ DownloadListItemSnapshot _itemFromDownloadedComic({
       rootDirectoryPath: '/downloads/$comicId',
       pageCount: 2,
       downloadedAt: requestedAt,
+      numFavorites: numFavorites,
       tags: tags ?? sampleComic().tags,
     ),
   );

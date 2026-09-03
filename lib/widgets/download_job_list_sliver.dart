@@ -563,6 +563,7 @@ Future<void> _showCompletedSheetFor(
     title: item.title,
     tags: item.tags,
     comicId: item.comicId,
+    comicNumFavorites: item.numFavorites,
     loadMeta: () => loadComicMetaUseCase.execute(item.comicId),
     onSearchSelected: (queries) async {
       await homeShellController.submitTagSearch(queries);

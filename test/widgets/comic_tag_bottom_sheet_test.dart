@@ -164,4 +164,108 @@ void main() {
     expect(find.text('Manage in Downloads tab'), findsNothing);
     expect(find.text('Delete Download'), findsNothing);
   });
+
+  group('favorite count', () {
+    testWidgets('shows a count handed in without loading anything', (
+      tester,
+    ) async {
+      // A downloaded comic arrives with its tags already stored, and the sheet
+      // skips loading entirely in that case — so the count has to come from
+      // the caller or it never appears at all, network or no network.
+      var loadMetaCalls = 0;
+      await tester.pumpWidget(
+        _wrap(
+          ComicTagBottomSheet(
+            title: 'Downloaded Comic',
+            initialTags: <ComicTag>[
+              ComicTag(type: 'tag', name: 'full-color', url: '/tag/full-color/'),
+            ],
+            comicNumFavorites: 4821,
+            loadMeta: () async {
+              loadMetaCalls++;
+              return (
+                tags: const <ComicTag>[],
+                numFavorites: null,
+                uploadDate: null,
+              );
+            },
+            onSearchSelected: (_) {},
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('4.8k'), findsOneWidget);
+      expect(loadMetaCalls, 0, reason: 'stored tags mean no fetch');
+    });
+
+    testWidgets('shows nothing when no count is known', (tester) async {
+      // Downloads made before the column existed have none. Absent must read
+      // as absent — a zero would claim the comic has no favorites at all.
+      await tester.pumpWidget(
+        _wrap(
+          ComicTagBottomSheet(
+            title: 'Old Download',
+            initialTags: <ComicTag>[
+              ComicTag(type: 'tag', name: 'full-color', url: '/tag/full-color/'),
+            ],
+            onSearchSelected: (_) {},
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.favorite), findsNothing);
+      expect(find.text('0'), findsNothing);
+    });
+
+    testWidgets('a fetch without a count does not wipe the one we had', (
+      tester,
+    ) async {
+      // The loader runs when there are no stored tags. If it comes back with a
+      // null count, the seeded value is still the best thing we know.
+      await tester.pumpWidget(
+        _wrap(
+          ComicTagBottomSheet(
+            title: 'Comic',
+            initialTags: const <ComicTag>[],
+            comicNumFavorites: 1200,
+            loadMeta: () async => (
+              tags: <ComicTag>[
+                ComicTag(type: 'tag', name: 'romance', url: '/tag/romance/'),
+              ],
+              numFavorites: null,
+              uploadDate: null,
+            ),
+            onSearchSelected: (_) {},
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('1.2k'), findsOneWidget);
+    });
+
+    testWidgets('a fetched count replaces the seeded one', (tester) async {
+      await tester.pumpWidget(
+        _wrap(
+          ComicTagBottomSheet(
+            title: 'Comic',
+            initialTags: const <ComicTag>[],
+            comicNumFavorites: 1200,
+            loadMeta: () async => (
+              tags: const <ComicTag>[],
+              numFavorites: 3400,
+              uploadDate: null,
+            ),
+            onSearchSelected: (_) {},
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('3.4k'), findsOneWidget);
+      expect(find.text('1.2k'), findsNothing);
+    });
+  });
 }
