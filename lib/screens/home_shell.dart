@@ -78,16 +78,12 @@ class _HomeShellState extends State<HomeShell> {
     }
     _destination = next;
   }
-  final TextEditingController _downloadsSearchController =
-      TextEditingController();
-  String _downloadsSearchQuery = '';
 
   @override
   void dispose() {
     for (final controller in _scrollControllers) {
       controller.dispose();
     }
-    _downloadsSearchController.dispose();
     super.dispose();
   }
 
@@ -138,8 +134,9 @@ class _HomeShellState extends State<HomeShell> {
           floating: true,
           snap: true,
           title: TextField(
-            controller: _downloadsSearchController,
-            onChanged: (value) => setState(() => _downloadsSearchQuery = value),
+            // No onChanged: the model listens to its own controller, so typing
+            // here and the tag sheet writing into it take the same path.
+            controller: context.read<HomeUiModel>().downloadsSearchController,
             decoration: const InputDecoration(
               hintText: 'Search downloaded comics',
               border: InputBorder.none,
@@ -236,7 +233,9 @@ class _HomeShellState extends State<HomeShell> {
     switch (navigationIndex) {
       case 1:
         return DownloadJobListSliver(
-          searchQuery: _downloadsSearchQuery,
+          searchQuery: context.select<HomeUiModel, String>(
+            (m) => m.downloadsSearchQuery,
+          ),
           onOpenOfflineReader: (comicId) =>
               _handleOpenOfflineReader(context, comicId),
         );

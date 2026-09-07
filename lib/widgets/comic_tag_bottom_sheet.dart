@@ -2,6 +2,7 @@ import 'package:concept_nhv/models/comic_tag.dart';
 import 'package:concept_nhv/models/tag_type_l10n.dart';
 import 'package:concept_nhv/services/tag_display_service.dart';
 import 'package:concept_nhv/state/blocked_tags_model.dart';
+import 'package:concept_nhv/state/home_ui_model.dart';
 import 'package:concept_nhv/widgets/glass_bottom_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -269,6 +270,15 @@ class _ComicTagBottomSheetState extends State<ComicTagBottomSheet> {
     if (query.isEmpty) return;
 
     final isBlocked = blockedTagsModel.isBlocked(query);
+    final homeUiModel = context.read<HomeUiModel>();
+    // The label the chip shows, which is also what the Downloads filter matches
+    // against. Passing `query` here would put "tag:full-color" in the box —
+    // plausible-looking and matching nothing, since that filter is a plain
+    // substring search rather than the home page's query syntax.
+    final label = context.read<TagDisplayService>().displayName(
+      tag.slug,
+      tag.name ?? '',
+    );
     showGlassModalBottomSheet<void>(
       context: context,
       useRootNavigator: true,
@@ -300,6 +310,15 @@ class _ComicTagBottomSheetState extends State<ComicTagBottomSheet> {
                       ),
                     ),
                   );
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.download_outlined),
+                title: Text('Search "$label" in Downloads'),
+                onTap: () {
+                  Navigator.of(sheetContext).pop();
+                  Navigator.of(context).pop();
+                  homeUiModel.searchInDownloads(label);
                 },
               ),
             ],

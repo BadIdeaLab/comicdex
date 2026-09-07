@@ -273,6 +273,49 @@ void main() {
       },
     );
 
+    testWidgets('filters by the label the tag sheet writes', (tester) async {
+      // The two halves of this feature sit in different files: the tag sheet
+      // writes a string, this list interprets it. Writing the tag's
+      // `type:slug` query instead of its label would still satisfy the sheet's
+      // own test while matching nothing here, so the handover needs asserting
+      // from this side too.
+      final homeUiModel = HomeUiModel();
+      addTearDown(homeUiModel.dispose);
+      homeUiModel.searchInDownloads('全彩');
+
+      final model = _FakeDownloadManagerModel(
+        harness: harness,
+        itemsOverride: <DownloadListItemSnapshot>[
+          _itemFromDownloadedComic(
+            comicId: 'colored',
+            title: 'Colored Comic',
+            requestedAt: DateTime(2026, 4, 10),
+            tags: <ComicTag>[
+              ComicTag(type: 'tag', name: 'full-color', url: '/tag/full-color/'),
+            ],
+          ),
+          _itemFromDownloadedComic(
+            comicId: 'plain',
+            title: 'Plain Comic',
+            requestedAt: DateTime(2026, 4, 11),
+            tags: const <ComicTag>[],
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        _buildTestWidget(
+          model: model,
+          searchQuery: homeUiModel.downloadsSearchQuery,
+          tagDisplayMap: const <String, String>{'full-color': '全彩'},
+        ),
+      );
+      await tester.pump();
+
+      expect(find.text('Colored Comic'), findsOneWidget);
+      expect(find.text('Plain Comic'), findsNothing);
+    });
+
     testWidgets('shows the stored favorite count for a completed download', (
       tester,
     ) async {

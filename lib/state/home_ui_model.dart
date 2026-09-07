@@ -1,12 +1,45 @@
 import 'package:flutter/material.dart';
 
 class HomeUiModel extends ChangeNotifier {
+  HomeUiModel() {
+    downloadsSearchController.addListener(notifyListeners);
+  }
+
   int _navigationIndex = 0;
   final SearchController searchController = SearchController();
+
+  /// The Downloads tab's filter text.
+  ///
+  /// Owned here rather than by `HomeShell` because the tag sheet needs to set
+  /// it from outside that widget — the same reason the completed-view mode
+  /// moved onto its model in P71.
+  final TextEditingController downloadsSearchController =
+      TextEditingController();
+
   bool _isLoading = false;
 
   int get navigationIndex => _navigationIndex;
   bool get isLoading => _isLoading;
+  String get downloadsSearchQuery => downloadsSearchController.text;
+
+  /// Filters the Downloads tab by [label] and switches to it.
+  ///
+  /// [label] must be the tag's **displayed** name, not its `type:slug` query.
+  /// The Downloads filter is a plain substring match over titles and tag names
+  /// (see `DownloadJobListSliver`), so `tag:full-color` would match nothing
+  /// while looking perfectly reasonable in the box.
+  void searchInDownloads(String label) {
+    downloadsSearchController.text = label;
+    _navigationIndex = 1;
+    notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    downloadsSearchController.removeListener(notifyListeners);
+    downloadsSearchController.dispose();
+    super.dispose();
+  }
 
   bool get _isSearchControllerAttached {
     try {

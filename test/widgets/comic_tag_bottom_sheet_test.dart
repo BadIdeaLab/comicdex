@@ -1,6 +1,7 @@
 import 'package:concept_nhv/models/comic_tag.dart';
 import 'package:concept_nhv/services/tag_display_service.dart';
 import 'package:concept_nhv/state/blocked_tags_model.dart';
+import 'package:concept_nhv/state/home_ui_model.dart';
 import 'package:concept_nhv/widgets/comic_tag_bottom_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -267,5 +268,69 @@ void main() {
       expect(find.text('3.4k'), findsOneWidget);
       expect(find.text('1.2k'), findsNothing);
     });
+  });
+
+  testWidgets('long-pressing a tag offers to search it in Downloads', (
+    tester,
+  ) async {
+    // Pushed as a route rather than built inline, because the action pops the
+    // sheet on its way out — the production path, and the only one where that
+    // pop means anything.
+    final homeUiModel = HomeUiModel();
+    addTearDown(homeUiModel.dispose);
+
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          Provider<TagDisplayService>.value(
+            value: TagDisplayService.fromMap(const {'full-color': '全彩'}),
+          ),
+          ChangeNotifierProvider<BlockedTagsModel>(
+            create: (_) => BlockedTagsModel(
+              blockedTagsRepository: FakeBlockedTagsRepository(),
+            ),
+          ),
+          ChangeNotifierProvider<HomeUiModel>.value(value: homeUiModel),
+        ],
+        child: MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => TextButton(
+                onPressed: () => ComicTagBottomSheet.show(
+                  context: context,
+                  title: 'Comic',
+                  tags: <ComicTag>[
+                    ComicTag(
+                      type: 'tag',
+                      name: 'full-color',
+                      url: '/tag/full-color/',
+                    ),
+                  ],
+                  onSearchSelected: (_) {},
+                ),
+                child: const Text('open'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+    await tester.longPress(find.text('全彩'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Search "全彩" in Downloads'), findsOneWidget);
+
+    await tester.tap(find.text('Search "全彩" in Downloads'));
+    await tester.pumpAndSettle();
+
+    // The displayed label, not the tag's `type:slug` query and not its raw
+    // name: the Downloads filter is a substring match, so 'tag:full-color'
+    // would sit in the box matching nothing at all.
+    expect(homeUiModel.downloadsSearchQuery, '全彩');
+    expect(homeUiModel.navigationIndex, 1, reason: 'and it switches tabs');
+    expect(find.text('Comic'), findsNothing, reason: 'the sheet closed');
   });
 }
