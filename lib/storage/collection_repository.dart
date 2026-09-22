@@ -177,6 +177,88 @@ class CollectionRepository {
     });
   }
 
+  /// Favorite ids in display order (most recently favorited first), read
+  /// straight from `Collection` — unlike [loadCollectionComics], a row whose
+  /// comic is missing is still included, so it is counted like the remote.
+  Future<List<String>> loadFavoriteIdsInOrder() async {
+    final query = localDatabase.select(localDatabase.collections)
+      ..where((table) => table.name.equals(CollectionType.favorite.storageName))
+      ..orderBy(_collectionOrdering);
+    final rows = await query.get();
+    return rows.map((row) => row.comicid).toList(growable: false);
+  }
+
+  /// Puts [prefix] — the newest remote favorites, in remote order — at the
+  /// front of the favorites, followed by every other local favorite in its
+  /// existing order, then renumbers `favoriteRank` from 0. Nothing is
+  /// removed: an incremental sync cannot see remote deletions (see
+  /// .codex/phases/P77-favorites-quick-sync-check.md).
+  Future<void> mergeFavoritePrefix(List<StoredComic> prefix) async {
+    final now = DateTime.now().toIso8601String();
+    final favoriteName = CollectionType.favorite.storageName;
+    await localDatabase.transaction(() async {
+      final existingIds = await loadFavoriteIdsInOrder();
+      final existingSet = existingIds.toSet();
+      final prefixIds = <String>[];
+      for (final comic in prefix) {
+        if (!prefixIds.contains(comic.id)) prefixIds.add(comic.id);
+      }
+      final prefixSet = prefixIds.toSet();
+      final orderedIds = <String>[
+        ...prefixIds,
+        ...existingIds.where((id) => !prefixSet.contains(id)),
+      ];
+
+      await localDatabase.batch((batch) {
+        for (final comic in prefix) {
+          batch.insert(
+            localDatabase.comics,
+            ComicsCompanion.insert(
+              id: comic.id,
+              mid: comic.mediaId,
+              title: comic.title,
+              images: comic.serializedImages,
+              pages: comic.pages,
+            ),
+            mode: drift.InsertMode.insertOrReplace,
+          );
+        }
+        for (var i = 0; i < orderedIds.length; i++) {
+          final id = orderedIds[i];
+          if (existingSet.contains(id)) {
+            // Keep dateCreated; only the position changes.
+            batch.update(
+              localDatabase.collections,
+              CollectionsCompanion(favoriteRank: drift.Value(i)),
+              where: (table) =>
+                  table.name.equals(favoriteName) & table.comicid.equals(id),
+            );
+          } else {
+            batch.insert(
+              localDatabase.collections,
+              CollectionsCompanion.insert(
+                name: favoriteName,
+                comicid: id,
+                dateCreated: now,
+                favoriteRank: drift.Value(i),
+              ),
+            );
+          }
+        }
+      });
+    });
+  }
+
+  static List<drift.OrderingTerm Function($CollectionsTable)>
+  get _collectionOrdering => <drift.OrderingTerm Function($CollectionsTable)>[
+    // Rows with favoriteRank (favorites) sort before rows without (0 < 1).
+    (table) => drift.OrderingTerm.asc(table.favoriteRank.isNull()),
+    // Within favorites: lower rank = more recently favorited = first.
+    (table) => drift.OrderingTerm.asc(table.favoriteRank),
+    // For non-favorites (favoriteRank IS NULL): sort by dateCreated desc.
+    (table) => drift.OrderingTerm.desc(table.dateCreated),
+  ];
+
   Future<List<drift.TypedResult>> _loadCollectionJoinRows({
     CollectionType? collectionType,
   }) {
@@ -186,14 +268,7 @@ class CollectionRepository {
         (table) => table.name.equals(collectionType.storageName),
       );
     }
-    collectionQuery.orderBy([
-      // Rows with favoriteRank (favorites) sort before rows without (0 < 1).
-      (table) => drift.OrderingTerm.asc(table.favoriteRank.isNull()),
-      // Within favorites: lower rank = more recently favorited = first.
-      (table) => drift.OrderingTerm.asc(table.favoriteRank),
-      // For non-favorites (favoriteRank IS NULL): sort by dateCreated desc.
-      (table) => drift.OrderingTerm.desc(table.dateCreated),
-    ]);
+    collectionQuery.orderBy(_collectionOrdering);
 
     return collectionQuery.join([
       drift.leftOuterJoin(

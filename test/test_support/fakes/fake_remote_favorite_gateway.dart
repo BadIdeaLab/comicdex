@@ -21,6 +21,16 @@ class FakeRemoteFavoriteGateway implements RemoteFavoriteGateway {
   /// callers (e.g. CollectionPageCoordinator.load) don't block on it.
   Completer<void>? hangCompleter;
 
+  /// Page size for [loadRemoteFavoritePage]; [remoteFavorites] is read as
+  /// newest-first, the way the real endpoint orders it.
+  int pageSize = 25;
+
+  /// When true, [loadRemoteFavoritePage] reports no `total`.
+  bool omitTotal = false;
+
+  /// Pages requested through [loadRemoteFavoritePage], in order.
+  final List<int> requestedPages = <int>[];
+
   @override
   Future<void> addRemoteFavorite(String comicId) async {
     addedComicIds.add(comicId);
@@ -44,6 +54,33 @@ class FakeRemoteFavoriteGateway implements RemoteFavoriteGateway {
       );
     }
     return List<Comic>.from(remoteFavorites);
+  }
+
+  @override
+  Future<RemoteFavoritePage> loadRemoteFavoritePage(
+    int page, {
+    void Function(Duration retryIn)? onRateLimit,
+  }) async {
+    requestedPages.add(page);
+    if (hangCompleter != null) {
+      await hangCompleter!.future;
+    }
+    if (throwAuthException) {
+      throw const RemoteFavoriteAuthException(
+        'API key expired or invalid. Showing cached favorites.',
+      );
+    }
+    final start = (page - 1) * pageSize;
+    final end = (start + pageSize).clamp(0, remoteFavorites.length);
+    return RemoteFavoritePage(
+      comics: start >= remoteFavorites.length
+          ? const <Comic>[]
+          : remoteFavorites.sublist(start, end),
+      numPages: remoteFavorites.isEmpty
+          ? 1
+          : (remoteFavorites.length / pageSize).ceil(),
+      total: omitTotal ? null : remoteFavorites.length,
+    );
   }
 
   @override

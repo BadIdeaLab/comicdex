@@ -19,12 +19,13 @@ class CollectionPageCoordinator {
   final ComicFeedModel feedModel;
 
   /// Loads locally cached comics for [collectionType] immediately, without
-  /// waiting on a remote favorites resync. For [CollectionType.favorite], a
-  /// full sync (`SyncRemoteFavoritesUseCase`, the same one "Sync Favorites
-  /// Now" triggers) is kicked off in the background instead of being
+  /// waiting on a remote favorites resync. For [CollectionType.favorite], an
+  /// incremental sync is kicked off in the background instead of being
   /// awaited — see .codex/phases/P53-nonblocking-favorite-list-sync.md.
   /// Blocking here on a multi-page sync meant the Favorite screen could sit
-  /// blank for minutes when the sync hit rate-limit backoff.
+  /// blank for minutes when the sync hit rate-limit backoff. Incremental
+  /// (P77) because a full sync re-fetched every page on each visit; "Sync
+  /// Favorites Now" in Settings stays a full sync.
   Future<List<ComicCardData>> load(CollectionType collectionType) async {
     if (collectionType == CollectionType.favorite) {
       unawaited(_syncFavoritesInBackground());
@@ -33,7 +34,7 @@ class CollectionPageCoordinator {
   }
 
   Future<void> _syncFavoritesInBackground() async {
-    final synced = await favoriteSyncModel.syncFavorites();
+    final synced = await favoriteSyncModel.syncFavorites(incremental: true);
     if (synced) {
       feedModel.refreshCollections();
     }

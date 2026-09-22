@@ -129,6 +129,22 @@ void main() {
       expect(ids, <String>{'11'});
     });
 
+    // P77: entering the page must not re-fetch every favorites page.
+    test('load syncs incrementally rather than fetching every page', () async {
+      authService.isValid = true;
+      await harness.collectionRepository.replaceCollectionCache(
+        collectionType: CollectionType.favorite,
+        comics: <StoredComic>[StoredComic.fromComic(sampleComic(id: '11'))],
+      );
+      remoteFavoriteGateway.remoteFavorites = <Comic>[sampleComic(id: '11')];
+
+      await coordinator.load(CollectionType.favorite);
+      await pumpEventQueue();
+
+      expect(remoteFavoriteGateway.requestedPages, <int>[1]);
+      expect(remoteFavoriteGateway.loadCallCount, 0);
+    });
+
     test('refresh loads collection records without favorite sync side effects', () async {
       await harness.comicRepository.upsertComic(
         StoredComic.fromComic(sampleComic(id: '12')),

@@ -82,6 +82,61 @@ void main() {
       );
     });
 
+    test('loadRemoteFavoritePage fetches one page and reads total', () async {
+      await secureStore.write('nhentai-api-key', 'key-123');
+      final adapter = _QueueHttpClientAdapter(<_StubbedResponse>[
+        _StubbedResponse(
+          body: jsonEncode(<String, Object>{
+            'result': <Map<String, Object?>>[
+              <String, Object?>{
+                'id': 3,
+                'media_id': '33',
+                'english_title': 'Favorite C',
+                'thumbnail': 'galleries/33/thumb.jpg',
+                'num_pages': 1,
+                'tag_ids': <int>[2937],
+              },
+            ],
+            'num_pages': 26,
+            'per_page': 25,
+            'total': 650,
+          }),
+        ),
+      ]);
+      final gateway = NhentaiApiRemoteFavoriteGateway(
+        apiKeyStore: apiKeyStore,
+        authService: authService,
+        dio: Dio()..httpClientAdapter = adapter,
+      );
+
+      final page = await gateway.loadRemoteFavoritePage(2);
+
+      expect(page.comics.single.id, '3');
+      expect(page.comics.single.tagIds, <int>[2937]);
+      expect(page.numPages, 26);
+      expect(page.total, 650);
+      expect(adapter.requests.single.options.uri.queryParameters['page'], '2');
+    });
+
+    test('loadRemoteFavoritePage reports a missing total as null', () async {
+      await secureStore.write('nhentai-api-key', 'key-123');
+      final adapter = _QueueHttpClientAdapter(<_StubbedResponse>[
+        _StubbedResponse(
+          body: jsonEncode(<String, Object>{
+            'result': <Map<String, Object?>>[],
+            'num_pages': 1,
+          }),
+        ),
+      ]);
+      final gateway = NhentaiApiRemoteFavoriteGateway(
+        apiKeyStore: apiKeyStore,
+        authService: authService,
+        dio: Dio()..httpClientAdapter = adapter,
+      );
+
+      expect((await gateway.loadRemoteFavoritePage(1)).total, isNull);
+    });
+
     test('uses the correct http methods for add and remove operations', () async {
       await secureStore.write('nhentai-api-key', 'key-123');
       final adapter = _QueueHttpClientAdapter(<_StubbedResponse>[

@@ -96,4 +96,171 @@ void main() {
       );
     });
   });
+
+  group('SyncRemoteFavoritesUseCase.executeIncremental', () {
+    late SqliteTestHarness harness;
+    late FakeRemoteFavoriteGateway gateway;
+    late SyncRemoteFavoritesUseCase useCase;
+
+    List<Comic> comics(List<String> ids) => ids
+        .map(
+          (id) => sampleComic(
+            id: id,
+          ).copyWith(tags: const [], tagIds: <int>[int.parse(id)]),
+        )
+        .toList();
+
+    Future<void> seedLocal(List<String> ids) {
+      return harness.collectionRepository.replaceCollectionCache(
+        collectionType: CollectionType.favorite,
+        comics: comics(ids).map(StoredComic.fromComic),
+      );
+    }
+
+    Future<List<String>> localOrder() =>
+        harness.collectionRepository.loadFavoriteIdsInOrder();
+
+    setUp(() async {
+      harness = SqliteTestHarness();
+      await harness.initialize();
+      gateway = FakeRemoteFavoriteGateway()..pageSize = 3;
+      useCase = SyncRemoteFavoritesUseCase(
+        collectionRepository: harness.collectionRepository,
+        comicTagRepository: harness.comicTagRepository,
+        remoteFavoriteGateway: gateway,
+        pageDelay: Duration.zero,
+      );
+    });
+
+    tearDown(() async {
+      await harness.dispose();
+    });
+
+    test('no change: one page request and no full sync', () async {
+      await seedLocal(<String>['1', '2', '3', '4', '5', '6', '7']);
+      gateway.remoteFavorites = comics(<String>[
+        '1',
+        '2',
+        '3',
+        '4',
+        '5',
+        '6',
+        '7',
+      ]);
+
+      final result = await useCase.executeIncremental();
+
+      expect(result.success, isTrue);
+      expect(gateway.requestedPages, <int>[1]);
+      expect(gateway.loadCallCount, 0);
+      expect(await localOrder(), <String>['1', '2', '3', '4', '5', '6', '7']);
+    });
+
+    test(
+      'new favorites are fetched until a fully known page, then merged first',
+      () async {
+        await seedLocal(<String>['1', '2', '3', '4', '5', '6']);
+        gateway.remoteFavorites = comics(<String>[
+          '10',
+          '11',
+          '1',
+          '2',
+          '3',
+          '4',
+          '5',
+          '6',
+        ]);
+
+        final result = await useCase.executeIncremental();
+
+        expect(result.success, isTrue);
+        // Page 1 = [10,11,1] has new ids, page 2 = [2,3,4] is all known.
+        expect(gateway.requestedPages, <int>[1, 2]);
+        expect(gateway.loadCallCount, 0);
+        expect(await localOrder(), <String>[
+          '10',
+          '11',
+          '1',
+          '2',
+          '3',
+          '4',
+          '5',
+          '6',
+        ]);
+        expect(await harness.comicTagRepository.loadTagIds('10'), <int>{10});
+        expect(result.favoriteIds, contains('11'));
+      },
+    );
+
+    test(
+      'a re-favorited old comic on top does not stop the walk early',
+      () async {
+        await seedLocal(<String>['1', '2', '3', '4', '5', '6']);
+        // 6 was re-favorited, so it sits above the genuinely new 10.
+        gateway.remoteFavorites = comics(<String>[
+          '6',
+          '10',
+          '1',
+          '2',
+          '3',
+          '4',
+          '5',
+        ]);
+
+        await useCase.executeIncremental();
+
+        expect(await localOrder(), <String>[
+          '6',
+          '10',
+          '1',
+          '2',
+          '3',
+          '4',
+          '5',
+        ]);
+      },
+    );
+
+    test('a favorite removed elsewhere falls back to a full sync', () async {
+      await seedLocal(<String>['1', '2', '3', '4']);
+      gateway.remoteFavorites = comics(<String>['1', '2', '4']);
+
+      final result = await useCase.executeIncremental();
+
+      expect(result.success, isTrue);
+      expect(gateway.loadCallCount, 1);
+      expect(await localOrder(), <String>['1', '2', '4']);
+    });
+
+    test('a missing total falls back to a full sync', () async {
+      await seedLocal(<String>['1', '2', '3']);
+      gateway.remoteFavorites = comics(<String>['1', '2', '3']);
+      gateway.omitTotal = true;
+
+      await useCase.executeIncremental();
+
+      expect(gateway.loadCallCount, 1);
+    });
+
+    test('empty local favorites go straight to a full sync', () async {
+      gateway.remoteFavorites = comics(<String>['1', '2']);
+
+      await useCase.executeIncremental();
+
+      expect(gateway.requestedPages, isEmpty);
+      expect(gateway.loadCallCount, 1);
+      expect(await localOrder(), <String>['1', '2']);
+    });
+
+    test('auth failure keeps cached favorites', () async {
+      await seedLocal(<String>['1']);
+      gateway.throwAuthException = true;
+
+      final result = await useCase.executeIncremental();
+
+      expect(result.success, isFalse);
+      expect(result.isAuthenticated, isFalse);
+      expect(result.favoriteIds, <String>{'1'});
+    });
+  });
 }

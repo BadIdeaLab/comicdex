@@ -62,7 +62,10 @@ class FavoriteSyncModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<bool> syncFavorites() async {
+  /// [incremental] fetches only the newest pages until they overlap the
+  /// local favorites (P77) — for automatic syncs. The default full sync
+  /// backs the explicit "Sync Favorites Now" action.
+  Future<bool> syncFavorites({bool incremental = false}) async {
     if (_isSyncing) {
       return false;
     }
@@ -75,17 +78,22 @@ class FavoriteSyncModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final result = await syncRemoteFavoritesUseCase.execute(
-        onProgress: (page, totalPages) {
-          _syncPage = page;
-          _syncTotalPages = totalPages;
-          _clearRetryCountdown();
-          notifyListeners();
-        },
-        onRateLimit: (retryIn) {
-          _startRetryCountdown(retryIn);
-        },
-      );
+      void onProgress(int page, int totalPages) {
+        _syncPage = page;
+        _syncTotalPages = totalPages;
+        _clearRetryCountdown();
+        notifyListeners();
+      }
+
+      final result = incremental
+          ? await syncRemoteFavoritesUseCase.executeIncremental(
+              onProgress: onProgress,
+              onRateLimit: _startRetryCountdown,
+            )
+          : await syncRemoteFavoritesUseCase.execute(
+              onProgress: onProgress,
+              onRateLimit: _startRetryCountdown,
+            );
       _favoriteIds
         ..clear()
         ..addAll(result.favoriteIds);

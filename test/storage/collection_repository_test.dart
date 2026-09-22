@@ -17,6 +17,96 @@ void main() {
       await harness.dispose();
     });
 
+    group('mergeFavoritePrefix', () {
+      StoredComic comic(String id) => _storedComic(
+        id: id,
+        mediaId: 'm$id',
+        title: 'Comic $id',
+        serializedImages: '{}',
+        pages: 1,
+      );
+
+      Future<void> seedFavorites(List<String> ids) {
+        return harness.collectionRepository.replaceCollectionCache(
+          collectionType: CollectionType.favorite,
+          comics: ids.map(comic),
+        );
+      }
+
+      test('puts new favorites first and keeps the rest in order', () async {
+        await seedFavorites(<String>['a', 'b', 'c']);
+
+        await harness.collectionRepository.mergeFavoritePrefix(
+          <StoredComic>[comic('x'), comic('y'), comic('a')],
+        );
+
+        expect(
+          await harness.collectionRepository.loadFavoriteIdsInOrder(),
+          <String>['x', 'y', 'a', 'b', 'c'],
+        );
+        final loaded = await harness.collectionRepository.loadCollectionComics(
+          CollectionType.favorite,
+        );
+        expect(loaded.first.comic.title, 'Comic x');
+      });
+
+      test('moves a re-favorited old comic to the front', () async {
+        await seedFavorites(<String>['a', 'b', 'c']);
+
+        await harness.collectionRepository.mergeFavoritePrefix(
+          <StoredComic>[comic('c'), comic('a'), comic('b')],
+        );
+
+        expect(
+          await harness.collectionRepository.loadFavoriteIdsInOrder(),
+          <String>['c', 'a', 'b'],
+        );
+      });
+
+      test('normalizes in-app toggles (rank -1) and removes nothing', () async {
+        await seedFavorites(<String>['a', 'b']);
+        await harness.collectionRepository.upsertComicAndAddToCollection(
+          collectionType: CollectionType.favorite,
+          comic: comic('t'),
+        );
+
+        await harness.collectionRepository.mergeFavoritePrefix(
+          <StoredComic>[comic('t'), comic('a')],
+        );
+
+        expect(
+          await harness.collectionRepository.loadFavoriteIdsInOrder(),
+          <String>['t', 'a', 'b'],
+        );
+        final ranks = await harness.localDatabase
+            .customSelect(
+              "SELECT favorite_rank FROM Collection WHERE name = 'Favorite' "
+              'ORDER BY favorite_rank',
+            )
+            .get();
+        expect(ranks.map((r) => r.read<int>('favorite_rank')), <int>[0, 1, 2]);
+      });
+
+      test('leaves other collections untouched', () async {
+        await seedFavorites(<String>['a']);
+        await harness.collectionRepository.addComicToCollection(
+          collectionType: CollectionType.history,
+          comicId: 'a',
+        );
+
+        await harness.collectionRepository.mergeFavoritePrefix(
+          <StoredComic>[comic('x')],
+        );
+
+        expect(
+          await harness.collectionRepository.loadCollectedComicIds(
+            CollectionType.history,
+          ),
+          <String>{'a'},
+        );
+      });
+    });
+
     test('loads collection summaries from stored collection entries', () async {
       await harness.comicRepository.upsertComic(
         _storedComic(

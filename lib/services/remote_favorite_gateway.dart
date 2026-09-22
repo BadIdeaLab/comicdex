@@ -18,9 +18,31 @@ class RemoteFavoriteAuthException implements Exception {
   String toString() => 'RemoteFavoriteAuthException($message)';
 }
 
+/// One page of the favorites listing, newest favorite first.
+class RemoteFavoritePage {
+  const RemoteFavoritePage({
+    required this.comics,
+    required this.numPages,
+    required this.total,
+  });
+
+  final List<Comic> comics;
+  final int numPages;
+
+  /// Total favorites on the account; null when the response omits it.
+  final int? total;
+}
+
 abstract class RemoteFavoriteGateway {
   Future<List<Comic>> loadRemoteFavorites({
     void Function(int page, int totalPages)? onProgress,
+    void Function(Duration retryIn)? onRateLimit,
+  });
+
+  /// Fetches a single page with no leading throttle delay — pacing between
+  /// pages is the caller's job (see P77 incremental sync).
+  Future<RemoteFavoritePage> loadRemoteFavoritePage(
+    int page, {
     void Function(Duration retryIn)? onRateLimit,
   });
 
@@ -52,10 +74,7 @@ class NhentaiApiRemoteFavoriteGateway implements RemoteFavoriteGateway {
 
     while (true) {
       await Future<void>.delayed(_favoritePageDelay);
-      final response = await _fetchFavoritesPage(
-        page,
-        onRateLimit: onRateLimit,
-      );
+      final response = await _fetchFavoritesPage(page, onRateLimit: onRateLimit);
       final searchResponse = _mapFavoritesResponse(response.data ?? const {});
       comics.addAll(searchResponse.result);
 
@@ -68,6 +87,21 @@ class NhentaiApiRemoteFavoriteGateway implements RemoteFavoriteGateway {
     }
 
     return comics;
+  }
+
+  @override
+  Future<RemoteFavoritePage> loadRemoteFavoritePage(
+    int page, {
+    void Function(Duration retryIn)? onRateLimit,
+  }) async {
+    final response = await _fetchFavoritesPage(page, onRateLimit: onRateLimit);
+    final json = response.data ?? const <String, dynamic>{};
+    final searchResponse = _mapFavoritesResponse(json);
+    return RemoteFavoritePage(
+      comics: searchResponse.result,
+      numPages: searchResponse.numPages ?? 1,
+      total: (json['total'] as num?)?.toInt(),
+    );
   }
 
   Future<Response<Map<String, dynamic>>> _fetchFavoritesPage(

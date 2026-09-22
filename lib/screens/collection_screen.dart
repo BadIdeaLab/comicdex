@@ -294,11 +294,41 @@ class CollectionComicSliver extends StatefulWidget {
 
 class _CollectionComicSliverState extends State<CollectionComicSliver> {
   late Future<List<ComicCardData>> _future;
+  FavoriteSyncModel? _favoriteSyncModel;
+  DateTime? _seenSyncAt;
 
   @override
   void initState() {
     super.initState();
     _future = _loadInitialComics();
+    if (widget.collectionType == CollectionType.favorite) {
+      final model = context.read<FavoriteSyncModel>();
+      _favoriteSyncModel = model;
+      _seenSyncAt = model.lastSyncAt;
+      model.addListener(_onFavoriteSyncChanged);
+    }
+  }
+
+  @override
+  void dispose() {
+    _favoriteSyncModel?.removeListener(_onFavoriteSyncChanged);
+    super.dispose();
+  }
+
+  /// Reloads the list once a background sync (P77) actually finished, so a
+  /// favorite added elsewhere shows up without leaving the screen. Reads
+  /// local data only — `refresh` never starts another sync, so this cannot
+  /// loop. Skipped during multi-select, where rows disappearing under the
+  /// user would be worse than waiting.
+  void _onFavoriteSyncChanged() {
+    final model = _favoriteSyncModel;
+    if (model == null || model.isSyncing) return;
+    final syncedAt = model.lastSyncAt;
+    if (syncedAt == null || syncedAt == _seenSyncAt) return;
+    _seenSyncAt = syncedAt;
+    if (widget.onToggleSelection != null) return;
+    if (!mounted) return;
+    _refresh();
   }
 
   @override
