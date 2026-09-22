@@ -28,6 +28,7 @@ void main() {
       remoteFavoriteGateway = FakeRemoteFavoriteGateway();
       useCase = ToggleFavoriteUseCase(
         collectionRepository: harness.collectionRepository,
+        comicTagRepository: harness.comicTagRepository,
         remoteFavoriteGateway: remoteFavoriteGateway,
         authService: authService,
       );
@@ -59,6 +60,16 @@ void main() {
       expect(remoteFavoriteGateway.removedComicIds, <String>['7']);
       // A lightweight toggle never calls the paginated listing endpoint.
       expect(remoteFavoriteGateway.loadCallCount, 0);
+    });
+
+    test('stores the tag ids of a newly favorited comic', () async {
+      authService.isValid = true;
+      // sampleComic carries a detail-style tag list with id 1.
+      final comic = ComicCardData.fromComic(sampleComic(id: '7'));
+
+      await useCase.execute(comic: comic, isFavorite: false);
+
+      expect(await harness.comicTagRepository.loadTagIds('7'), <int>{1});
     });
 
     test('returns cached ids when no valid api key is available', () async {

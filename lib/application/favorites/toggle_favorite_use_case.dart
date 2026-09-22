@@ -4,15 +4,18 @@ import 'package:concept_nhv/models/comic_card_data.dart';
 import 'package:concept_nhv/services/nhentai_auth_service.dart';
 import 'package:concept_nhv/services/remote_favorite_gateway.dart';
 import 'package:concept_nhv/storage/collection_repository.dart';
+import 'package:concept_nhv/storage/comic_tag_repository.dart';
 
 class ToggleFavoriteUseCase {
   const ToggleFavoriteUseCase({
     required this.collectionRepository,
+    required this.comicTagRepository,
     required this.remoteFavoriteGateway,
     required this.authService,
   });
 
   final CollectionRepository collectionRepository;
+  final ComicTagRepository comicTagRepository;
   final RemoteFavoriteGateway remoteFavoriteGateway;
   final NhentaiAuthService authService;
 
@@ -51,6 +54,7 @@ class ToggleFavoriteUseCase {
           collectionType: CollectionType.favorite,
           comic: comic.toStoredComic(),
         );
+        await comicTagRepository.replaceTagIds(comic.id, comic.effectiveTagIds);
       }
       return FavoriteSyncResult(
         favoriteIds: await _loadCachedFavoriteIds(),
@@ -78,8 +82,6 @@ class ToggleFavoriteUseCase {
   }
 
   Future<Set<String>> _loadCachedFavoriteIds() {
-    return collectionRepository.loadCollectedComicIds(
-      CollectionType.favorite,
-    );
+    return collectionRepository.loadCollectedComicIds(CollectionType.favorite);
   }
 }

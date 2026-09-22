@@ -52,7 +52,10 @@ class NhentaiApiRemoteFavoriteGateway implements RemoteFavoriteGateway {
 
     while (true) {
       await Future<void>.delayed(_favoritePageDelay);
-      final response = await _fetchFavoritesPage(page, onRateLimit: onRateLimit);
+      final response = await _fetchFavoritesPage(
+        page,
+        onRateLimit: onRateLimit,
+      );
       final searchResponse = _mapFavoritesResponse(response.data ?? const {});
       comics.addAll(searchResponse.result);
 
@@ -156,6 +159,12 @@ class NhentaiApiRemoteFavoriteGateway implements RemoteFavoriteGateway {
       ),
       numPages: (json['num_pages'] as num?)?.toInt() ?? 0,
       tags: const <ComicTag>[],
+      // Like the gallery listing, the favorites endpoint sends bare
+      // `tag_ids` and no `tags` (verified 2026-09-23, P76).
+      tagIds: (json['tag_ids'] as List<dynamic>? ?? const <dynamic>[])
+          .whereType<num>()
+          .map((id) => id.toInt())
+          .toList(growable: false),
     );
   }
 }

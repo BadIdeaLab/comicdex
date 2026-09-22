@@ -29,3 +29,15 @@ abstract class Comic with _$Comic {
 
   factory Comic.fromJson(Map<String, dynamic> json) => _$ComicFromJson(json);
 }
+
+extension ComicTagIdList on Comic {
+  /// The comic's tag ids from whichever form it carries: listings (and the
+  /// favorites endpoint) send bare [tagIds], details send full [tags].
+  List<int> get effectiveTagIds {
+    if (tagIds.isNotEmpty) return tagIds;
+    return <int>[
+      for (final tag in tags)
+        if (tag.id != null) tag.id!,
+    ];
+  }
+}

@@ -125,4 +125,56 @@ void main() {
       expect(await overrideFile.exists(), isTrue);
     });
   });
+  group('entryById', () {
+    late Directory tempDirectory;
+
+    setUp(() async {
+      tempDirectory = await Directory.systemTemp.createTemp('tag_catalog_by_id_test');
+    });
+
+    tearDown(() async {
+      await tempDirectory.delete(recursive: true);
+    });
+
+    LocalTagCatalogService emptyService() => LocalTagCatalogService.fromEntries(
+      const <LocalTagCatalogEntry>[],
+      overrideDirectoryResolver: () async => tempDirectory,
+    );
+
+    test('resolves ids decoded from the i field and returns null for unknown ids', () async {
+      final service = emptyService();
+      await service.applyOverrideBytes(
+        encodeTagCatalog('2026-09-23', <Map<String, Object?>>[
+          <String, Object?>{'i': 2937, 't': 'tag', 'n': 'big breasts', 's': 'big-breasts', 'c': 20},
+        ]),
+      );
+
+      expect(service.entryById(2937)?.query, 'tag:big-breasts');
+      expect(service.entryById(1), isNull);
+    });
+
+    test('still loads a catalog without the i field, with no ids resolvable', () async {
+      final service = emptyService();
+      await service.applyOverrideBytes(
+        encodeTagCatalog('2026-07-18', <Map<String, Object?>>[
+          <String, Object?>{'t': 'tag', 'n': 'big breasts', 's': 'big-breasts', 'c': 20},
+        ]),
+      );
+
+      expect(service.search('', type: TagCatalogType.tag).single.id, isNull);
+      expect(service.entryById(2937), isNull);
+    });
+
+    // Guards the shipped asset itself: rebuilding it with an old build script
+    // would silently drop the ids again.
+    test('the bundled asset carries ids matching gallery tag_ids', () async {
+      final service = emptyService();
+      await service.applyOverrideBytes(
+        await File('assets/tag_catalog.bin').readAsBytes(),
+      );
+
+      expect(service.entryById(2937)?.slug, 'big-breasts');
+      expect(service.entryById(12227)?.slug, 'english');
+    });
+  });
 }

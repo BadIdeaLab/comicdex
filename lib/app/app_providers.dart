@@ -56,6 +56,7 @@ import 'package:concept_nhv/state/home_ui_model.dart';
 import 'package:concept_nhv/state/tag_catalog_browser_model.dart';
 import 'package:concept_nhv/storage/collection_repository.dart';
 import 'package:concept_nhv/storage/comic_repository.dart';
+import 'package:concept_nhv/storage/comic_tag_repository.dart';
 import 'package:concept_nhv/storage/download_queue_repository.dart';
 import 'package:concept_nhv/storage/blocked_tags_store.dart';
 import 'package:concept_nhv/storage/download_settings_store.dart';
@@ -125,6 +126,9 @@ List<SingleChildWidget> _buildStorageProviders() {
     ),
     Provider(
       create: (context) => CollectionRepository(localDatabase: context.read()),
+    ),
+    Provider(
+      create: (context) => ComicTagRepository(localDatabase: context.read()),
     ),
     Provider(
       create: (context) =>
@@ -270,6 +274,7 @@ List<SingleChildWidget> _buildUseCaseProviders() {
       create: (context) => OpenComicUseCase(
         comicRepository: context.read(),
         collectionRepository: context.read(),
+        comicTagRepository: context.read(),
       ),
     ),
     Provider(
@@ -314,12 +319,14 @@ List<SingleChildWidget> _buildUseCaseProviders() {
     Provider(
       create: (context) => SyncRemoteFavoritesUseCase(
         collectionRepository: context.read(),
+        comicTagRepository: context.read(),
         remoteFavoriteGateway: context.read(),
       ),
     ),
     Provider(
       create: (context) => ToggleFavoriteUseCase(
         collectionRepository: context.read(),
+        comicTagRepository: context.read(),
         remoteFavoriteGateway: context.read(),
         authService: context.read(),
       ),

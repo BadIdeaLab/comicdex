@@ -33,10 +33,20 @@ class ComicCardData {
   final int thumbnailHeight;
   final List<ComicTag> tags;
 
-  /// Language ids from listing payloads, which carry no [tags]; empty for
-  /// cards rebuilt from storage.
+  /// Tag ids from listing payloads, which carry no [tags]; empty for cards
+  /// rebuilt from storage.
   final List<int> tagIds;
   final int? uploadDate;
+
+  /// Same rule as `Comic.effectiveTagIds`: bare [tagIds] when present,
+  /// otherwise the ids inside [tags]. Empty for cards rebuilt from storage.
+  List<int> get effectiveTagIds {
+    if (tagIds.isNotEmpty) return tagIds;
+    return <int>[
+      for (final tag in tags)
+        if (tag.id != null) tag.id!,
+    ];
+  }
 
   factory ComicCardData.fromComic(Comic comic) {
     final thumbnail = comic.images.thumbnail;

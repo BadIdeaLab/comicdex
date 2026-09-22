@@ -74,10 +74,12 @@ void main() {
         ),
         syncRemoteFavoritesUseCase: SyncRemoteFavoritesUseCase(
           collectionRepository: harness.collectionRepository,
+          comicTagRepository: harness.comicTagRepository,
           remoteFavoriteGateway: remoteFavoriteGateway,
         ),
         toggleFavoriteUseCase: ToggleFavoriteUseCase(
           collectionRepository: harness.collectionRepository,
+          comicTagRepository: harness.comicTagRepository,
           remoteFavoriteGateway: remoteFavoriteGateway,
           authService: authService,
         ),

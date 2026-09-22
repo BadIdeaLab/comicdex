@@ -16,6 +16,16 @@ void main() {
       await harness.dispose();
     });
 
+    test('also records the tag ids in ComicTagId', () async {
+      await harness.downloadedLibraryRepository.saveDownloadedComic(
+        comic: sampleComic(id: '800', mediaId: '500'),
+        rootDirectoryPath: '/downloads/800',
+        coverLocalPath: null,
+      );
+
+      expect(await harness.comicTagRepository.loadTagIds('800'), <int>{1});
+    });
+
     test('loads downloaded comics with parsed tags and metadata', () async {
       final comic = sampleComic(id: '800', mediaId: '500');
       final timestamp = DateTime(2026, 5, 2, 10, 30);

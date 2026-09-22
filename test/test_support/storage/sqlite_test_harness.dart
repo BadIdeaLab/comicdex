@@ -1,5 +1,6 @@
 import 'package:concept_nhv/storage/collection_repository.dart';
 import 'package:concept_nhv/storage/comic_repository.dart';
+import 'package:concept_nhv/storage/comic_tag_repository.dart';
 import 'package:concept_nhv/storage/download_queue_repository.dart';
 import 'package:concept_nhv/storage/downloaded_library_repository.dart';
 import 'package:concept_nhv/storage/local_database.dart';
@@ -10,6 +11,7 @@ import 'package:drift/native.dart';
 class SqliteTestHarness {
   late LocalDatabase localDatabase;
   late ComicRepository comicRepository;
+  late ComicTagRepository comicTagRepository;
   late CollectionRepository collectionRepository;
   late DownloadQueueRepository downloadQueueRepository;
   late DownloadedLibraryRepository downloadedLibraryRepository;
@@ -24,6 +26,7 @@ class SqliteTestHarness {
     );
     await localDatabase.initialize();
     comicRepository = ComicRepository(localDatabase: localDatabase);
+    comicTagRepository = ComicTagRepository(localDatabase: localDatabase);
     collectionRepository = CollectionRepository(localDatabase: localDatabase);
     downloadQueueRepository = DownloadQueueRepository(
       localDatabase: localDatabase,

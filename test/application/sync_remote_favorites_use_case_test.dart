@@ -29,6 +29,7 @@ void main() {
       remoteFavoriteGateway = FakeRemoteFavoriteGateway();
       useCase = SyncRemoteFavoritesUseCase(
         collectionRepository: harness.collectionRepository,
+        comicTagRepository: harness.comicTagRepository,
         remoteFavoriteGateway: remoteFavoriteGateway,
       );
     });
@@ -54,6 +55,24 @@ void main() {
         ),
         <String>{'11', '22'},
       );
+    });
+
+    test('stores the tag ids each favorite carries', () async {
+      remoteFavoriteGateway.remoteFavorites = <Comic>[
+        sampleComic(
+          id: '11',
+        ).copyWith(tags: const [], tagIds: <int>[2937, 12227]),
+        sampleComic(id: '22').copyWith(tags: const [], tagIds: const <int>[]),
+      ];
+      authService.isValid = true;
+
+      await useCase.execute();
+
+      expect(await harness.comicTagRepository.loadTagIds('11'), <int>{
+        2937,
+        12227,
+      });
+      expect(await harness.comicTagRepository.loadTagIds('22'), isEmpty);
     });
 
     test('keeps cached favorites when auth validation fails', () async {

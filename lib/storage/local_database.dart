@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:drift/drift.dart';
@@ -134,6 +135,23 @@ class DownloadedComics extends Table {
   Set<Column<Object>> get primaryKey => <Column<Object>>{comicId};
 }
 
+/// Tag ids per comic, keyed by comic only — favorites, history and downloads
+/// all share it. Kept out of [Comics] on purpose: that table is rewritten
+/// with `insertOrReplace` from several paths that carry no tags, which would
+/// silently blank a column there. Only paths that actually hold tag ids write
+/// here (see .codex/phases/P76-comic-tag-id-storage.md).
+@TableIndex(name: 'idx_comic_tag_id_tag', columns: {#tagId})
+class ComicTagIds extends Table {
+  @override
+  String get tableName => 'ComicTagId';
+
+  TextColumn get comicId => text().named('comic_id')();
+  IntColumn get tagId => integer().named('tag_id')();
+
+  @override
+  Set<Column<Object>> get primaryKey => <Column<Object>>{comicId, tagId};
+}
+
 @DriftDatabase(
   tables: [
     AppOptions,
@@ -143,6 +161,7 @@ class DownloadedComics extends Table {
     DownloadJobs,
     DownloadJobPages,
     DownloadedComics,
+    ComicTagIds,
   ],
 )
 class LocalDatabase extends _$LocalDatabase {
@@ -158,7 +177,7 @@ class LocalDatabase extends _$LocalDatabase {
   final DatabasePathResolver _databasePathResolver;
 
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -260,8 +279,44 @@ class LocalDatabase extends _$LocalDatabase {
           'ALTER TABLE Collection ADD COLUMN favorite_rank INTEGER',
         );
       }
+      if (from < 10) {
+        await migrator.createTable(comicTagIds);
+        await migrator.createIndex(idxComicTagIdTag);
+        await _backfillDownloadedComicTagIds();
+      }
     },
   );
+
+  /// Copies the tag ids already sitting in `DownloadedComic.tags_json` into
+  /// [comicTagIds]. Parsed in Dart rather than with `json_each` so the
+  /// migration does not depend on the SQLite build shipping JSON1.
+  Future<void> _backfillDownloadedComicTagIds() async {
+    final rows = await customSelect(
+      'SELECT comic_id, tags_json FROM DownloadedComic',
+    ).get();
+    for (final row in rows) {
+      final comicId = row.read<String>('comic_id');
+      final tagIds = <int>{};
+      try {
+        final decoded = jsonDecode(row.read<String>('tags_json'));
+        if (decoded is List) {
+          for (final tag in decoded) {
+            final id = tag is Map ? tag['id'] : null;
+            if (id is int) tagIds.add(id);
+          }
+        }
+      } on FormatException {
+        // A corrupt row has nothing to copy; it must not fail the upgrade.
+        continue;
+      }
+      for (final tagId in tagIds) {
+        await customStatement(
+          'INSERT OR IGNORE INTO ComicTagId (comic_id, tag_id) VALUES (?, ?)',
+          <Object>[comicId, tagId],
+        );
+      }
+    }
+  }
 
   Future<void> initialize() async {
     await customSelect('SELECT 1').get();

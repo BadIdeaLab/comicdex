@@ -3450,6 +3450,216 @@ class DownloadedComicsCompanion extends UpdateCompanion<DownloadedComic> {
   }
 }
 
+class $ComicTagIdsTable extends ComicTagIds
+    with TableInfo<$ComicTagIdsTable, ComicTagId> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ComicTagIdsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _comicIdMeta = const VerificationMeta(
+    'comicId',
+  );
+  @override
+  late final GeneratedColumn<String> comicId = GeneratedColumn<String>(
+    'comic_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _tagIdMeta = const VerificationMeta('tagId');
+  @override
+  late final GeneratedColumn<int> tagId = GeneratedColumn<int>(
+    'tag_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [comicId, tagId];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'ComicTagId';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ComicTagId> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('comic_id')) {
+      context.handle(
+        _comicIdMeta,
+        comicId.isAcceptableOrUnknown(data['comic_id']!, _comicIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_comicIdMeta);
+    }
+    if (data.containsKey('tag_id')) {
+      context.handle(
+        _tagIdMeta,
+        tagId.isAcceptableOrUnknown(data['tag_id']!, _tagIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_tagIdMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {comicId, tagId};
+  @override
+  ComicTagId map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ComicTagId(
+      comicId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}comic_id'],
+      )!,
+      tagId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}tag_id'],
+      )!,
+    );
+  }
+
+  @override
+  $ComicTagIdsTable createAlias(String alias) {
+    return $ComicTagIdsTable(attachedDatabase, alias);
+  }
+}
+
+class ComicTagId extends DataClass implements Insertable<ComicTagId> {
+  final String comicId;
+  final int tagId;
+  const ComicTagId({required this.comicId, required this.tagId});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['comic_id'] = Variable<String>(comicId);
+    map['tag_id'] = Variable<int>(tagId);
+    return map;
+  }
+
+  ComicTagIdsCompanion toCompanion(bool nullToAbsent) {
+    return ComicTagIdsCompanion(comicId: Value(comicId), tagId: Value(tagId));
+  }
+
+  factory ComicTagId.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ComicTagId(
+      comicId: serializer.fromJson<String>(json['comicId']),
+      tagId: serializer.fromJson<int>(json['tagId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'comicId': serializer.toJson<String>(comicId),
+      'tagId': serializer.toJson<int>(tagId),
+    };
+  }
+
+  ComicTagId copyWith({String? comicId, int? tagId}) =>
+      ComicTagId(comicId: comicId ?? this.comicId, tagId: tagId ?? this.tagId);
+  ComicTagId copyWithCompanion(ComicTagIdsCompanion data) {
+    return ComicTagId(
+      comicId: data.comicId.present ? data.comicId.value : this.comicId,
+      tagId: data.tagId.present ? data.tagId.value : this.tagId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ComicTagId(')
+          ..write('comicId: $comicId, ')
+          ..write('tagId: $tagId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(comicId, tagId);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ComicTagId &&
+          other.comicId == this.comicId &&
+          other.tagId == this.tagId);
+}
+
+class ComicTagIdsCompanion extends UpdateCompanion<ComicTagId> {
+  final Value<String> comicId;
+  final Value<int> tagId;
+  final Value<int> rowid;
+  const ComicTagIdsCompanion({
+    this.comicId = const Value.absent(),
+    this.tagId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ComicTagIdsCompanion.insert({
+    required String comicId,
+    required int tagId,
+    this.rowid = const Value.absent(),
+  }) : comicId = Value(comicId),
+       tagId = Value(tagId);
+  static Insertable<ComicTagId> custom({
+    Expression<String>? comicId,
+    Expression<int>? tagId,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (comicId != null) 'comic_id': comicId,
+      if (tagId != null) 'tag_id': tagId,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ComicTagIdsCompanion copyWith({
+    Value<String>? comicId,
+    Value<int>? tagId,
+    Value<int>? rowid,
+  }) {
+    return ComicTagIdsCompanion(
+      comicId: comicId ?? this.comicId,
+      tagId: tagId ?? this.tagId,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (comicId.present) {
+      map['comic_id'] = Variable<String>(comicId.value);
+    }
+    if (tagId.present) {
+      map['tag_id'] = Variable<int>(tagId.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ComicTagIdsCompanion(')
+          ..write('comicId: $comicId, ')
+          ..write('tagId: $tagId, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$LocalDatabase extends GeneratedDatabase {
   _$LocalDatabase(QueryExecutor e) : super(e);
   $LocalDatabaseManager get managers => $LocalDatabaseManager(this);
@@ -3466,6 +3676,11 @@ abstract class _$LocalDatabase extends GeneratedDatabase {
   late final $DownloadedComicsTable downloadedComics = $DownloadedComicsTable(
     this,
   );
+  late final $ComicTagIdsTable comicTagIds = $ComicTagIdsTable(this);
+  late final Index idxComicTagIdTag = Index(
+    'idx_comic_tag_id_tag',
+    'CREATE INDEX idx_comic_tag_id_tag ON ComicTagId (tag_id)',
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -3478,6 +3693,8 @@ abstract class _$LocalDatabase extends GeneratedDatabase {
     downloadJobs,
     downloadJobPages,
     downloadedComics,
+    comicTagIds,
+    idxComicTagIdTag,
   ];
 }
 
@@ -5246,6 +5463,149 @@ typedef $$DownloadedComicsTableProcessedTableManager =
       DownloadedComic,
       PrefetchHooks Function()
     >;
+typedef $$ComicTagIdsTableCreateCompanionBuilder =
+    ComicTagIdsCompanion Function({
+      required String comicId,
+      required int tagId,
+      Value<int> rowid,
+    });
+typedef $$ComicTagIdsTableUpdateCompanionBuilder =
+    ComicTagIdsCompanion Function({
+      Value<String> comicId,
+      Value<int> tagId,
+      Value<int> rowid,
+    });
+
+class $$ComicTagIdsTableFilterComposer
+    extends Composer<_$LocalDatabase, $ComicTagIdsTable> {
+  $$ComicTagIdsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get comicId => $composableBuilder(
+    column: $table.comicId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get tagId => $composableBuilder(
+    column: $table.tagId,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ComicTagIdsTableOrderingComposer
+    extends Composer<_$LocalDatabase, $ComicTagIdsTable> {
+  $$ComicTagIdsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get comicId => $composableBuilder(
+    column: $table.comicId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get tagId => $composableBuilder(
+    column: $table.tagId,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ComicTagIdsTableAnnotationComposer
+    extends Composer<_$LocalDatabase, $ComicTagIdsTable> {
+  $$ComicTagIdsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get comicId =>
+      $composableBuilder(column: $table.comicId, builder: (column) => column);
+
+  GeneratedColumn<int> get tagId =>
+      $composableBuilder(column: $table.tagId, builder: (column) => column);
+}
+
+class $$ComicTagIdsTableTableManager
+    extends
+        RootTableManager<
+          _$LocalDatabase,
+          $ComicTagIdsTable,
+          ComicTagId,
+          $$ComicTagIdsTableFilterComposer,
+          $$ComicTagIdsTableOrderingComposer,
+          $$ComicTagIdsTableAnnotationComposer,
+          $$ComicTagIdsTableCreateCompanionBuilder,
+          $$ComicTagIdsTableUpdateCompanionBuilder,
+          (
+            ComicTagId,
+            BaseReferences<_$LocalDatabase, $ComicTagIdsTable, ComicTagId>,
+          ),
+          ComicTagId,
+          PrefetchHooks Function()
+        > {
+  $$ComicTagIdsTableTableManager(_$LocalDatabase db, $ComicTagIdsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ComicTagIdsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ComicTagIdsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ComicTagIdsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> comicId = const Value.absent(),
+                Value<int> tagId = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ComicTagIdsCompanion(
+                comicId: comicId,
+                tagId: tagId,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String comicId,
+                required int tagId,
+                Value<int> rowid = const Value.absent(),
+              }) => ComicTagIdsCompanion.insert(
+                comicId: comicId,
+                tagId: tagId,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ComicTagIdsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$LocalDatabase,
+      $ComicTagIdsTable,
+      ComicTagId,
+      $$ComicTagIdsTableFilterComposer,
+      $$ComicTagIdsTableOrderingComposer,
+      $$ComicTagIdsTableAnnotationComposer,
+      $$ComicTagIdsTableCreateCompanionBuilder,
+      $$ComicTagIdsTableUpdateCompanionBuilder,
+      (
+        ComicTagId,
+        BaseReferences<_$LocalDatabase, $ComicTagIdsTable, ComicTagId>,
+      ),
+      ComicTagId,
+      PrefetchHooks Function()
+    >;
 
 class $LocalDatabaseManager {
   final _$LocalDatabase _db;
@@ -5264,4 +5624,6 @@ class $LocalDatabaseManager {
       $$DownloadJobPagesTableTableManager(_db, _db.downloadJobPages);
   $$DownloadedComicsTableTableManager get downloadedComics =>
       $$DownloadedComicsTableTableManager(_db, _db.downloadedComics);
+  $$ComicTagIdsTableTableManager get comicTagIds =>
+      $$ComicTagIdsTableTableManager(_db, _db.comicTagIds);
 }

@@ -25,7 +25,13 @@ VERSION_DST = pathlib.Path('assets/tag_catalog.version')
 
 def build_entries(raw: list[dict]) -> list[dict]:
     entries = [
-        {'t': item['type'], 'n': item['name'], 's': item['slug'], 'c': item['count']}
+        {
+            'i': item['id'],
+            't': item['type'],
+            'n': item['name'],
+            's': item['slug'],
+            'c': item['count'],
+        }
         for item in raw
         if item.get('type') in INCLUDED_TYPES
     ]

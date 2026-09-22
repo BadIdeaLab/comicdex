@@ -37,6 +37,7 @@ void main() {
         openComicUseCase: OpenComicUseCase(
           comicRepository: harness.comicRepository,
           collectionRepository: harness.collectionRepository,
+          comicTagRepository: harness.comicTagRepository,
         ),
         readerSettingsRepository: FakeReaderSettingsRepository(),
         downloadedLibraryRepository: harness.downloadedLibraryRepository,

@@ -36,6 +36,7 @@ void main() {
                 'thumbnail_width': 120,
                 'thumbnail_height': 180,
                 'num_pages': 2,
+                'tag_ids': <int>[2937, 12227],
               },
             ],
             'num_pages': 2,
@@ -68,6 +69,9 @@ void main() {
       final comics = await gateway.loadRemoteFavorites();
 
       expect(comics.map((comic) => comic.id), <String>['1', '2']);
+      // The favorites endpoint sends bare tag_ids, never tags (P76).
+      expect(comics[0].tagIds, <int>[2937, 12227]);
+      expect(comics[1].tagIds, isEmpty);
       expect(
         adapter.requests.map((request) => request.options.uri.queryParameters['page']),
         <String?>['1', '2'],

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:concept_nhv/models/comic.dart' as model;
 import 'package:concept_nhv/models/comic_tag.dart';
 import 'package:concept_nhv/models/downloaded_comic_snapshot.dart';
+import 'package:concept_nhv/storage/comic_tag_repository.dart';
 import 'package:concept_nhv/storage/local_database.dart';
 import 'package:drift/drift.dart' as drift;
 
@@ -18,35 +19,58 @@ class DownloadedLibraryRepository {
     DateTime? downloadedAt,
   }) async {
     final timestamp = downloadedAt ?? DateTime.now();
-    await localDatabase.into(localDatabase.downloadedComics).insert(
-      DownloadedComicsCompanion.insert(
-        comicId: comic.id,
-        mediaId: comic.mediaId,
-        titleEnglish: drift.Value(comic.title.english),
-        titleJapanese: drift.Value(comic.title.japanese),
-        titlePretty: drift.Value(comic.title.pretty),
-        coverLocalPath: drift.Value(coverLocalPath),
-        rootDirectoryPath: rootDirectoryPath,
-        pageCount: comic.numPages,
-        downloadedAt: timestamp.toIso8601String(),
-        lastReadAt: const drift.Value.absent(),
-        numFavorites: drift.Value(comic.numFavorites),
-        tagsJson: jsonEncode(
-          comic.tags
-              .map(
-                (tag) => <String, dynamic>{
-                  'id': tag.id,
-                  'type': tag.type,
-                  'name': tag.name,
-                  'url': tag.url,
-                  'count': tag.count,
-                },
-              )
-              .toList(growable: false),
-        ),
-      ),
-      mode: drift.InsertMode.insertOrReplace,
-    );
+    await localDatabase.transaction(() async {
+      await _insertDownloadedComic(
+        comic,
+        rootDirectoryPath,
+        coverLocalPath,
+        timestamp,
+      );
+      // tags_json already holds these ids; ComicTagId gets them too so tag
+      // statistics can query favorites, history and downloads alike (P76).
+      await ComicTagRepository(
+        localDatabase: localDatabase,
+      ).replaceTagIds(comic.id, comic.effectiveTagIds);
+    });
+  }
+
+  Future<void> _insertDownloadedComic(
+    model.Comic comic,
+    String rootDirectoryPath,
+    String? coverLocalPath,
+    DateTime timestamp,
+  ) async {
+    await localDatabase
+        .into(localDatabase.downloadedComics)
+        .insert(
+          DownloadedComicsCompanion.insert(
+            comicId: comic.id,
+            mediaId: comic.mediaId,
+            titleEnglish: drift.Value(comic.title.english),
+            titleJapanese: drift.Value(comic.title.japanese),
+            titlePretty: drift.Value(comic.title.pretty),
+            coverLocalPath: drift.Value(coverLocalPath),
+            rootDirectoryPath: rootDirectoryPath,
+            pageCount: comic.numPages,
+            downloadedAt: timestamp.toIso8601String(),
+            lastReadAt: const drift.Value.absent(),
+            numFavorites: drift.Value(comic.numFavorites),
+            tagsJson: jsonEncode(
+              comic.tags
+                  .map(
+                    (tag) => <String, dynamic>{
+                      'id': tag.id,
+                      'type': tag.type,
+                      'name': tag.name,
+                      'url': tag.url,
+                      'count': tag.count,
+                    },
+                  )
+                  .toList(growable: false),
+            ),
+          ),
+          mode: drift.InsertMode.insertOrReplace,
+        );
   }
 
   Future<void> deleteDownloadedComic(String comicId) async {
@@ -65,7 +89,10 @@ class DownloadedLibraryRepository {
     );
   }
 
-  Future<void> updateCoverLocalPath(String comicId, String? coverLocalPath) async {
+  Future<void> updateCoverLocalPath(
+    String comicId,
+    String? coverLocalPath,
+  ) async {
     final updateStatement = localDatabase.update(localDatabase.downloadedComics)
       ..where((table) => table.comicId.equals(comicId));
     await updateStatement.write(
@@ -92,12 +119,18 @@ class DownloadedLibraryRepository {
     return DownloadedComicSnapshot(
       comicId: row.comicId,
       mediaId: row.mediaId,
-      title: row.titlePretty ?? row.titleEnglish ?? row.titleJapanese ?? row.comicId,
+      title:
+          row.titlePretty ??
+          row.titleEnglish ??
+          row.titleJapanese ??
+          row.comicId,
       coverLocalPath: row.coverLocalPath,
       rootDirectoryPath: row.rootDirectoryPath,
       pageCount: row.pageCount,
       downloadedAt: DateTime.parse(row.downloadedAt),
-      lastReadAt: row.lastReadAt == null ? null : DateTime.parse(row.lastReadAt!),
+      lastReadAt: row.lastReadAt == null
+          ? null
+          : DateTime.parse(row.lastReadAt!),
       numFavorites: row.numFavorites,
       tags: _parseTags(row.tagsJson),
     );

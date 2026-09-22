@@ -1,17 +1,21 @@
 import 'package:concept_nhv/application/favorites/favorite_sync_result.dart';
 import 'package:concept_nhv/models/collection_type.dart';
+import 'package:concept_nhv/models/comic.dart';
 import 'package:concept_nhv/models/stored_comic.dart';
 import 'package:concept_nhv/services/remote_favorite_gateway.dart';
 import 'package:concept_nhv/storage/collection_repository.dart';
+import 'package:concept_nhv/storage/comic_tag_repository.dart';
 import 'package:dio/dio.dart';
 
 class SyncRemoteFavoritesUseCase {
   const SyncRemoteFavoritesUseCase({
     required this.collectionRepository,
+    required this.comicTagRepository,
     required this.remoteFavoriteGateway,
   });
 
   final CollectionRepository collectionRepository;
+  final ComicTagRepository comicTagRepository;
   final RemoteFavoriteGateway remoteFavoriteGateway;
 
   Future<FavoriteSyncResult> execute({
@@ -27,6 +31,9 @@ class SyncRemoteFavoritesUseCase {
         collectionType: CollectionType.favorite,
         comics: comics.map(StoredComic.fromComic),
       );
+      await comicTagRepository.replaceTagIdsForComics(<String, List<int>>{
+        for (final comic in comics) comic.id: comic.effectiveTagIds,
+      });
       return FavoriteSyncResult(
         favoriteIds: comics.map((comic) => comic.id).toSet(),
         isAuthenticated: true,

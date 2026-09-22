@@ -29,17 +29,33 @@ class LocalTagCatalogService extends ChangeNotifier {
     required TagCatalogOverrideDirectoryResolver overrideDirectoryResolver,
   }) : _version = version,
        _entries = entries,
+       _entriesById = _indexById(entries),
        _isUsingOverride = isUsingOverride,
        _overrideDirectoryResolver = overrideDirectoryResolver;
 
   String _version;
   List<LocalTagCatalogEntry> _entries;
+  Map<int, LocalTagCatalogEntry> _entriesById;
   bool _isUsingOverride;
   final TagCatalogOverrideDirectoryResolver _overrideDirectoryResolver;
 
   String get version => _version;
   int get entryCount => _entries.length;
   bool get isUsingOverride => _isUsingOverride;
+
+  /// Resolves a gallery `tag_ids` value to its catalog entry. Null when the
+  /// id is unknown — including every id on a catalog built before P76 added
+  /// the `i` field, and `group`/`category` ids, which the catalog omits.
+  LocalTagCatalogEntry? entryById(int id) => _entriesById[id];
+
+  static Map<int, LocalTagCatalogEntry> _indexById(
+    List<LocalTagCatalogEntry> entries,
+  ) {
+    return <int, LocalTagCatalogEntry>{
+      for (final entry in entries)
+        if (entry.id != null) entry.id!: entry,
+    };
+  }
 
   static Future<LocalTagCatalogService> load({
     TagCatalogOverrideDirectoryResolver? overrideDirectoryResolver,
@@ -131,6 +147,7 @@ class LocalTagCatalogService extends ChangeNotifier {
 
     _version = candidate.version;
     _entries = candidate.entries;
+    _entriesById = _indexById(candidate.entries);
     _isUsingOverride = true;
     notifyListeners();
     return _version;
@@ -151,6 +168,7 @@ class LocalTagCatalogService extends ChangeNotifier {
     final entries = rawEntries.map((e) {
       final map = e as Map<String, dynamic>;
       return LocalTagCatalogEntry(
+        id: map['i'] as int?,
         type: _typeFromApiValue(map['t'] as String),
         name: map['n'] as String,
         slug: map['s'] as String,
