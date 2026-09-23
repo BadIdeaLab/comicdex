@@ -1,4 +1,7 @@
+import 'package:concept_nhv/application/tags/load_tag_cooccurrence_use_case.dart';
+import 'package:concept_nhv/application/tags/load_tag_coverage_use_case.dart';
 import 'package:concept_nhv/application/tags/load_tag_preferences_use_case.dart';
+import 'package:concept_nhv/models/tag_pair_preference.dart';
 import 'package:concept_nhv/models/tag_catalog_type.dart';
 import 'package:concept_nhv/models/tag_preference_entry.dart';
 import 'package:concept_nhv/storage/tag_preference_store.dart';
@@ -8,10 +11,14 @@ import 'package:flutter/foundation.dart';
 class TagPreferenceModel extends ChangeNotifier {
   TagPreferenceModel({
     required this.loadTagPreferencesUseCase,
+    required this.loadTagCooccurrenceUseCase,
+    required this.loadTagCoverageUseCase,
     required this.tagPreferenceStore,
   });
 
   final LoadTagPreferencesUseCase loadTagPreferencesUseCase;
+  final LoadTagCooccurrenceUseCase loadTagCooccurrenceUseCase;
+  final LoadTagCoverageUseCase loadTagCoverageUseCase;
   final TagPreferenceStore tagPreferenceStore;
 
   Map<TagCatalogType, List<TagPreferenceEntry>> _preferences =
@@ -19,11 +26,39 @@ class TagPreferenceModel extends ChangeNotifier {
   TagPreferenceSort _sort = TagPreferenceSort.count;
   bool _isLoading = false;
   bool _hasLoaded = false;
+  List<TagPairPreference> _pairs = const <TagPairPreference>[];
+  TagCoverage? _coverage;
+  bool _isAnalysisLoading = false;
+  bool _hasLoadedAnalysis = false;
 
   Map<TagCatalogType, List<TagPreferenceEntry>> get preferences => _preferences;
   TagPreferenceSort get sort => _sort;
   bool get isLoading => _isLoading;
   bool get hasLoaded => _hasLoaded;
+
+  /// Only loaded once the analysis page asks for it — the Collections tab
+  /// shows the ranking alone and must not pay for the pair join (P81).
+  List<TagPairPreference> get pairs => _pairs;
+  TagCoverage? get coverage => _coverage;
+  bool get isAnalysisLoading => _isAnalysisLoading;
+  bool get hasLoadedAnalysis => _hasLoadedAnalysis;
+
+  /// Everything the analysis page shows: the ranking, the tag coverage and
+  /// the co-occurring pairs.
+  Future<void> loadAnalysis() async {
+    if (_isAnalysisLoading) return;
+    _isAnalysisLoading = true;
+    notifyListeners();
+    try {
+      await load();
+      _coverage = await loadTagCoverageUseCase.execute();
+      _pairs = await loadTagCooccurrenceUseCase.execute();
+      _hasLoadedAnalysis = true;
+    } finally {
+      _isAnalysisLoading = false;
+      notifyListeners();
+    }
+  }
 
   /// Recomputes the ranking. Cheap enough to run on every visit (one query
   /// plus an in-memory sort), so there is no cache to invalidate when

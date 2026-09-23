@@ -1,5 +1,6 @@
 import 'package:concept_nhv/application/home/app_shell_navigation_controller.dart';
 import 'package:concept_nhv/application/home/home_shell_controller.dart';
+import 'package:concept_nhv/screens/analysis_screen.dart';
 import 'package:concept_nhv/screens/bootstrap_screen.dart';
 import 'package:concept_nhv/screens/collection_screen.dart';
 import 'package:concept_nhv/screens/comic_reader_screen.dart';
@@ -30,6 +31,11 @@ GoRouter createAppRouter() {
             name: 'index',
             path: '/index',
             builder: (context, state) => const HomeShell(),
+          ),
+          GoRoute(
+            name: 'analysis',
+            path: '/analysis',
+            builder: (context, state) => const AnalysisScreen(),
           ),
           GoRoute(
             name: 'collection',

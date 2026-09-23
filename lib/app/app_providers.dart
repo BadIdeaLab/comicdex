@@ -20,6 +20,8 @@ import 'package:concept_nhv/application/reader/open_comic_use_case.dart';
 import 'package:concept_nhv/application/reader/reader_launcher.dart';
 import 'package:concept_nhv/application/reader/reader_settings_repository.dart';
 import 'package:concept_nhv/application/tags/check_tag_catalog_update_use_case.dart';
+import 'package:concept_nhv/application/tags/load_tag_cooccurrence_use_case.dart';
+import 'package:concept_nhv/application/tags/load_tag_coverage_use_case.dart';
 import 'package:concept_nhv/application/tags/load_tag_preferences_use_case.dart';
 import 'package:concept_nhv/application/tags/load_comic_meta_use_case.dart';
 import 'package:concept_nhv/application/tags/update_local_tag_catalog_use_case.dart';
@@ -294,6 +296,17 @@ List<SingleChildWidget> _buildUseCaseProviders() {
       ),
     ),
     Provider(
+      create: (context) => LoadTagCooccurrenceUseCase(
+        comicTagRepository: context.read(),
+        localTagCatalogService: context.read(),
+        blockedTagsRepository: context.read(),
+      ),
+    ),
+    Provider(
+      create: (context) =>
+          LoadTagCoverageUseCase(comicTagRepository: context.read()),
+    ),
+    Provider(
       create: (context) => CheckTagCatalogUpdateUseCase(
         remoteAssetFetcher: context.read(),
         localTagCatalogService: context.read(),
@@ -366,6 +379,8 @@ List<SingleChildWidget> _buildStateProviders() {
     ChangeNotifierProvider(
       create: (context) => TagPreferenceModel(
         loadTagPreferencesUseCase: context.read(),
+        loadTagCooccurrenceUseCase: context.read(),
+        loadTagCoverageUseCase: context.read(),
         tagPreferenceStore: context.read(),
       ),
     ),

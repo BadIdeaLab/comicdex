@@ -26,6 +26,8 @@ import 'package:concept_nhv/services/search_query_builder.dart';
 import 'package:concept_nhv/services/tag_display_service.dart';
 import 'package:concept_nhv/services/tag_search_query_builder.dart';
 import 'package:concept_nhv/state/blocked_tags_model.dart';
+import 'package:concept_nhv/application/tags/load_tag_cooccurrence_use_case.dart';
+import 'package:concept_nhv/application/tags/load_tag_coverage_use_case.dart';
 import 'package:concept_nhv/application/tags/load_tag_preferences_use_case.dart';
 import 'package:concept_nhv/state/comic_feed_model.dart';
 import 'package:concept_nhv/state/tag_preference_model.dart';
@@ -202,6 +204,16 @@ void main() {
                   const [],
                 ),
                 blockedTagsRepository: FakeBlockedTagsRepository(),
+              ),
+              loadTagCooccurrenceUseCase: LoadTagCooccurrenceUseCase(
+                comicTagRepository: harness.comicTagRepository,
+                localTagCatalogService: LocalTagCatalogService.fromEntries(
+                  const [],
+                ),
+                blockedTagsRepository: FakeBlockedTagsRepository(),
+              ),
+              loadTagCoverageUseCase: LoadTagCoverageUseCase(
+                comicTagRepository: harness.comicTagRepository,
               ),
               tagPreferenceStore: TagPreferenceStore(
                 optionsStore: OptionsStore(

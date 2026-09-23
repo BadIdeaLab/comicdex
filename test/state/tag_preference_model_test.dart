@@ -1,3 +1,5 @@
+import 'package:concept_nhv/application/tags/load_tag_cooccurrence_use_case.dart';
+import 'package:concept_nhv/application/tags/load_tag_coverage_use_case.dart';
 import 'package:concept_nhv/application/tags/load_tag_preferences_use_case.dart';
 import 'package:concept_nhv/models/collection_type.dart';
 import 'package:concept_nhv/models/local_tag_catalog_entry.dart';
@@ -31,6 +33,16 @@ void main() {
               ),
             ]),
         blockedTagsRepository: FakeBlockedTagsRepository(),
+      ),
+      loadTagCooccurrenceUseCase: LoadTagCooccurrenceUseCase(
+        comicTagRepository: harness.comicTagRepository,
+        localTagCatalogService: LocalTagCatalogService.fromEntries(
+          const <LocalTagCatalogEntry>[],
+        ),
+        blockedTagsRepository: FakeBlockedTagsRepository(),
+      ),
+      loadTagCoverageUseCase: LoadTagCoverageUseCase(
+        comicTagRepository: harness.comicTagRepository,
       ),
       tagPreferenceStore: store,
     );

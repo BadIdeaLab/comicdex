@@ -6,7 +6,9 @@ class LoadComicMetaUseCase {
 
   final NhentaiGateway nhentaiGateway;
 
-  Future<({List<ComicTag> tags, int? numFavorites, int? uploadDate})> execute(String comicId) {
+  Future<({List<ComicTag> tags, int? numFavorites, int? uploadDate})> execute(
+    String comicId,
+  ) {
     return nhentaiGateway.loadComicMeta(comicId);
   }
 }

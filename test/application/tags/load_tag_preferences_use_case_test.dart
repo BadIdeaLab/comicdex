@@ -1,4 +1,5 @@
 import 'package:concept_nhv/application/tags/load_tag_preferences_use_case.dart';
+import 'package:concept_nhv/application/tags/preference_statistics.dart';
 import 'package:concept_nhv/models/collection_type.dart';
 import 'package:concept_nhv/models/local_tag_catalog_entry.dart';
 import 'package:concept_nhv/models/tag_catalog_type.dart';
@@ -212,14 +213,14 @@ void main() {
 
   group('wilsonLowerBound', () {
     test('is zero without evidence', () {
-      expect(LoadTagPreferencesUseCase.wilsonLowerBound(0, 650), 0);
-      expect(LoadTagPreferencesUseCase.wilsonLowerBound(5, 0), 0);
+      expect(wilsonLowerBound(0, 650), 0);
+      expect(wilsonLowerBound(5, 0), 0);
     });
 
     test('discounts a small sample far more than a large one', () {
       // Same observed share (10%), 100x the evidence.
-      final small = LoadTagPreferencesUseCase.wilsonLowerBound(1, 10);
-      final large = LoadTagPreferencesUseCase.wilsonLowerBound(100, 1000);
+      final small = wilsonLowerBound(1, 10);
+      final large = wilsonLowerBound(100, 1000);
 
       expect(small, lessThan(0.1));
       expect(large, lessThan(0.1));
@@ -227,7 +228,7 @@ void main() {
     });
 
     test('approaches the observed share as evidence grows', () {
-      final bound = LoadTagPreferencesUseCase.wilsonLowerBound(1000, 10000);
+      final bound = wilsonLowerBound(1000, 10000);
 
       expect(bound, greaterThan(0.09));
       expect(bound, lessThan(0.1));

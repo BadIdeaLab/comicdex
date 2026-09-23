@@ -19,17 +19,23 @@ class TagPreferenceSliver extends StatefulWidget {
     required this.onTagTap,
     required this.onTagLongPress,
     this.collapsedCount = 10,
+    this.onOpenFullAnalysis,
   });
 
   final Map<TagCatalogType, List<TagPreferenceEntry>> preferences;
   final TagPreferenceSort sort;
   final ValueChanged<TagPreferenceSort> onSortChanged;
+
+  /// Shows a "Full analysis" link when given; the analysis page itself
+  /// passes null, being already there.
+  final VoidCallback? onOpenFullAnalysis;
   final void Function(LocalTagCatalogEntry tag, String displayName) onTagTap;
   final void Function(LocalTagCatalogEntry tag, String displayName)
   onTagLongPress;
 
-  /// Entries shown per section before "Show more".
-  final int collapsedCount;
+  /// Entries shown per section before "Show more"; null shows every entry
+  /// with no expander — the analysis page exists to show the whole list.
+  final int? collapsedCount;
 
   @override
   State<TagPreferenceSliver> createState() => _TagPreferenceSliverState();
@@ -73,7 +79,16 @@ class _TagPreferenceSliverState extends State<TagPreferenceSliver> {
       child: Row(
         children: <Widget>[
           Expanded(
-            child: Text('Tag Preferences', style: theme.textTheme.titleMedium),
+            child: Row(
+              children: <Widget>[
+                Text('Tag Preferences', style: theme.textTheme.titleMedium),
+                if (widget.onOpenFullAnalysis != null)
+                  TextButton(
+                    onPressed: widget.onOpenFullAnalysis,
+                    child: const Text('Full analysis ›'),
+                  ),
+              ],
+            ),
           ),
           SegmentedButton<TagPreferenceSort>(
             showSelectedIcon: false,
@@ -117,10 +132,11 @@ class _TagPreferenceSliverState extends State<TagPreferenceSliver> {
     List<TagPreferenceEntry> entries,
   ) {
     final theme = Theme.of(context);
-    final isExpanded = _expanded.contains(type);
+    final collapsedCount = widget.collapsedCount;
+    final isExpanded = collapsedCount == null || _expanded.contains(type);
     final visible = isExpanded
         ? entries
-        : entries.take(widget.collapsedCount).toList(growable: false);
+        : entries.take(collapsedCount).toList(growable: false);
     // One scale per section: a section's own leader defines a full bar, so
     // sections with smaller numbers stay readable instead of flat.
     final maxValue = _sortValue(entries.first);
@@ -145,7 +161,7 @@ class _TagPreferenceSliverState extends State<TagPreferenceSliver> {
             onLongPress: () =>
                 widget.onTagLongPress(entry.tag, _displayName(entry)),
           ),
-        if (entries.length > widget.collapsedCount)
+        if (collapsedCount != null && entries.length > collapsedCount)
           Padding(
             padding: const EdgeInsets.only(left: 8),
             child: TextButton(
@@ -159,7 +175,7 @@ class _TagPreferenceSliverState extends State<TagPreferenceSliver> {
               child: Text(
                 isExpanded
                     ? 'Show less'
-                    : 'Show ${entries.length - widget.collapsedCount} more',
+                    : 'Show ${entries.length - collapsedCount} more',
               ),
             ),
           ),

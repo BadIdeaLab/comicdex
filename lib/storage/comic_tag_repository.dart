@@ -1,4 +1,5 @@
 import 'package:concept_nhv/models/collection_type.dart';
+import 'package:concept_nhv/models/tag_pair_count.dart';
 import 'package:concept_nhv/models/tag_source_count.dart';
 import 'package:concept_nhv/storage/local_database.dart';
 import 'package:drift/drift.dart' as drift;
@@ -53,6 +54,83 @@ class ComicTagRepository {
       ..where((table) => table.comicId.equals(comicId));
     final rows = await query.get();
     return rows.map((row) => row.tagId).toSet();
+  }
+
+  /// Kept comics that carry at least one tag id — the numerator of the tag
+  /// coverage shown on the analysis page (P81). Without it a ranking built
+  /// from half the library would look like one built from all of it.
+  Future<int> loadTaggedKeptComicCount() async {
+    final row = await localDatabase
+        .customSelect(
+          'SELECT COUNT(*) AS tagged FROM ('
+          'SELECT DISTINCT t.comic_id FROM ComicTagId t WHERE t.comic_id IN ('
+          'SELECT comicid FROM Collection WHERE name = ?1 '
+          'UNION SELECT comic_id FROM DownloadedComic'
+          ')'
+          ')',
+          variables: <drift.Variable<Object>>[
+            drift.Variable.withString(CollectionType.favorite.storageName),
+          ],
+          readsFrom: <drift.ResultSetImplementation<dynamic, dynamic>>{
+            localDatabase.comicTagIds,
+            localDatabase.collections,
+            localDatabase.downloadedComics,
+          },
+        )
+        .getSingle();
+    return row.read<int>('tagged');
+  }
+
+  /// Tag pairs that appear together on kept comics (P81).
+  ///
+  /// Both filters are load-bearing, not tuning: without them 650 comics of
+  /// ~20 tags each yield tens of thousands of pairs seen once.
+  /// [minimumTagComics] drops tags that barely appear at all,
+  /// [minimumPairComics] drops pairs that barely appear together.
+  Future<List<TagPairCount>> loadTagPairCounts({
+    int minimumTagComics = 3,
+    int minimumPairComics = 5,
+  }) async {
+    final rows = await localDatabase
+        .customSelect(
+          'WITH kept AS ('
+          'SELECT comicid AS comic_id FROM Collection WHERE name = ?1 '
+          'UNION SELECT comic_id FROM DownloadedComic'
+          '), tagged AS ('
+          'SELECT t.comic_id, t.tag_id FROM ComicTagId t '
+          'JOIN kept k ON k.comic_id = t.comic_id'
+          '), frequent AS ('
+          'SELECT tag_id FROM tagged GROUP BY tag_id HAVING COUNT(*) >= ?2'
+          ') '
+          'SELECT a.tag_id AS tag_a, b.tag_id AS tag_b, '
+          'COUNT(*) AS pair_count '
+          'FROM tagged a '
+          'JOIN tagged b ON b.comic_id = a.comic_id AND b.tag_id > a.tag_id '
+          'JOIN frequent fa ON fa.tag_id = a.tag_id '
+          'JOIN frequent fb ON fb.tag_id = b.tag_id '
+          'GROUP BY a.tag_id, b.tag_id '
+          'HAVING pair_count >= ?3',
+          variables: <drift.Variable<Object>>[
+            drift.Variable.withString(CollectionType.favorite.storageName),
+            drift.Variable.withInt(minimumTagComics),
+            drift.Variable.withInt(minimumPairComics),
+          ],
+          readsFrom: <drift.ResultSetImplementation<dynamic, dynamic>>{
+            localDatabase.comicTagIds,
+            localDatabase.collections,
+            localDatabase.downloadedComics,
+          },
+        )
+        .get();
+    return rows
+        .map(
+          (row) => TagPairCount(
+            tagA: row.read<int>('tag_a'),
+            tagB: row.read<int>('tag_b'),
+            comicCount: row.read<int>('pair_count'),
+          ),
+        )
+        .toList(growable: false);
   }
 
   /// Comic ids carrying [tagId] — the exact filter behind "search in

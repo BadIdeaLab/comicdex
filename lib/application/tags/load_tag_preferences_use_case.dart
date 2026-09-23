@@ -1,6 +1,5 @@
-import 'dart:math' as math;
-
 import 'package:concept_nhv/application/search/blocked_tags_repository.dart';
+import 'package:concept_nhv/application/tags/preference_statistics.dart';
 import 'package:concept_nhv/models/tag_catalog_type.dart';
 import 'package:concept_nhv/models/tag_preference_entry.dart';
 import 'package:concept_nhv/services/local_tag_catalog_service.dart';
@@ -41,27 +40,6 @@ class LoadTagPreferencesUseCase {
     TagCatalogType.parody,
     TagCatalogType.character,
   ];
-
-  /// Lower bound of the Wilson score interval for `successes / trials`.
-  ///
-  /// The point estimate alone lets a tag on 3 of 650 comics beat one on 30
-  /// once divided by a small site-wide count; the lower bound answers "how
-  /// much does this share hold up given how little evidence there is", which
-  /// is exactly the penalty small samples need. Additive smoothing cannot do
-  /// this job here: it shifts every tag by the same constant and leaves the
-  /// order untouched.
-  static double wilsonLowerBound(int successes, int trials, {double z = 1.96}) {
-    if (trials <= 0 || successes <= 0) return 0;
-    final n = trials.toDouble();
-    final observed = successes / n;
-    final zSquared = z * z;
-    final denominator = 1 + zSquared / n;
-    final centre = observed + zSquared / (2 * n);
-    final margin =
-        z * math.sqrt((observed * (1 - observed) + zSquared / (4 * n)) / n);
-    final lower = (centre - margin) / denominator;
-    return lower < 0 ? 0 : lower;
-  }
 
   Future<Map<TagCatalogType, List<TagPreferenceEntry>>> execute({
     TagPreferenceSort sort = TagPreferenceSort.count,
