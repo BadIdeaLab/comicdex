@@ -1,5 +1,5 @@
 import 'package:concept_nhv/models/collection_type.dart';
-import 'package:concept_nhv/models/tag_pair_count.dart';
+import 'package:concept_nhv/models/tag_assignment.dart';
 import 'package:concept_nhv/models/tag_source_count.dart';
 import 'package:concept_nhv/storage/local_database.dart';
 import 'package:drift/drift.dart' as drift;
@@ -81,15 +81,14 @@ class ComicTagRepository {
     return row.read<int>('tagged');
   }
 
-  /// Tag pairs that appear together on kept comics (P81).
+  /// Every (comic, tag) assignment among kept comics, limited to tags that
+  /// appear on at least [minimumTagComics] of them (P83).
   ///
-  /// Both filters are load-bearing, not tuning: without them 650 comics of
-  /// ~20 tags each yield tens of thousands of pairs seen once.
-  /// [minimumTagComics] drops tags that barely appear at all,
-  /// [minimumPairComics] drops pairs that barely appear together.
-  Future<List<TagPairCount>> loadTagPairCounts({
+  /// The caller counts pairs and triples from this in Dart: a SQL self-join
+  /// gives pairs cheaply but triples need the same rows again, and one dump
+  /// of ~13k rows keeps a single source of truth for both.
+  Future<List<TagAssignment>> loadKeptTagAssignments({
     int minimumTagComics = 3,
-    int minimumPairComics = 5,
   }) async {
     final rows = await localDatabase
         .customSelect(
@@ -102,18 +101,11 @@ class ComicTagRepository {
           '), frequent AS ('
           'SELECT tag_id FROM tagged GROUP BY tag_id HAVING COUNT(*) >= ?2'
           ') '
-          'SELECT a.tag_id AS tag_a, b.tag_id AS tag_b, '
-          'COUNT(*) AS pair_count '
-          'FROM tagged a '
-          'JOIN tagged b ON b.comic_id = a.comic_id AND b.tag_id > a.tag_id '
-          'JOIN frequent fa ON fa.tag_id = a.tag_id '
-          'JOIN frequent fb ON fb.tag_id = b.tag_id '
-          'GROUP BY a.tag_id, b.tag_id '
-          'HAVING pair_count >= ?3',
+          'SELECT tagged.comic_id, tagged.tag_id FROM tagged '
+          'JOIN frequent f ON f.tag_id = tagged.tag_id',
           variables: <drift.Variable<Object>>[
             drift.Variable.withString(CollectionType.favorite.storageName),
             drift.Variable.withInt(minimumTagComics),
-            drift.Variable.withInt(minimumPairComics),
           ],
           readsFrom: <drift.ResultSetImplementation<dynamic, dynamic>>{
             localDatabase.comicTagIds,
@@ -124,10 +116,9 @@ class ComicTagRepository {
         .get();
     return rows
         .map(
-          (row) => TagPairCount(
-            tagA: row.read<int>('tag_a'),
-            tagB: row.read<int>('tag_b'),
-            comicCount: row.read<int>('pair_count'),
+          (row) => TagAssignment(
+            comicId: row.read<String>('comic_id'),
+            tagId: row.read<int>('tag_id'),
           ),
         )
         .toList(growable: false);

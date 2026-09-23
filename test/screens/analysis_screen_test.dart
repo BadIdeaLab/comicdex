@@ -110,7 +110,7 @@ void main() {
     await harness.dispose();
   });
 
-  testWidgets('shows coverage, the ranking and the kept-together pairs', (
+  testWidgets('shows coverage, the ranking and the taste combinations', (
     tester,
   ) async {
     for (var i = 0; i < 6; i++) {
@@ -127,7 +127,7 @@ void main() {
     expect(find.text('7 comics kept'), findsOneWidget);
     expect(find.text('6 of them carry tags (86%)'), findsOneWidget);
     expect(find.textContaining('Sync favorites from Settings'), findsOneWidget);
-    expect(find.text('Kept Together'), findsOneWidget);
+    expect(find.text('Taste Combinations'), findsOneWidget);
     expect(find.text('全彩 + schoolgirl'), findsOneWidget);
     // The full ranking, with no "Show more" expander on this page.
     expect(find.text('全彩'), findsOneWidget);
@@ -151,7 +151,7 @@ void main() {
     await pumpScreen(tester);
 
     expect(find.textContaining('Nothing kept yet'), findsOneWidget);
-    expect(find.text('Kept Together'), findsNothing);
+    expect(find.text('Taste Combinations'), findsNothing);
   });
 
   /// Pumps the analysis page inside a router with a stand-in home route, so
@@ -243,7 +243,7 @@ void main() {
     expect(find.text('home'), findsOneWidget);
   });
 
-  testWidgets('long-pressing a pair filters Downloads by both tags', (
+  testWidgets('long-pressing a combination filters Downloads by its tags', (
     tester,
   ) async {
     for (var i = 0; i < 6; i++) {

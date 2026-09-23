@@ -1,7 +1,6 @@
 import 'package:concept_nhv/application/home/home_shell_controller.dart';
-import 'package:concept_nhv/application/tags/load_tag_cooccurrence_use_case.dart';
 import 'package:concept_nhv/application/tags/load_tag_coverage_use_case.dart';
-import 'package:concept_nhv/models/tag_pair_preference.dart';
+import 'package:concept_nhv/models/tag_combination.dart';
 import 'package:concept_nhv/services/tag_display_service.dart';
 import 'package:concept_nhv/state/home_ui_model.dart';
 import 'package:concept_nhv/state/tag_preference_model.dart';
@@ -54,7 +53,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
             )
           else ...<Widget>[
             SliverToBoxAdapter(child: _buildCoverage(context, model.coverage)),
-            _buildPairs(context, model.pairs),
+            _buildCombinations(context, model.combinations),
             TagPreferenceSliver(
               preferences: model.preferences,
               sort: model.sort,
@@ -144,54 +143,54 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
     );
   }
 
-  Widget _buildPairs(BuildContext context, List<TagPairPreference> pairs) {
+  Widget _buildCombinations(
+    BuildContext context,
+    List<TagCombination> combinations,
+  ) {
     final theme = Theme.of(context);
-    if (pairs.isEmpty) {
+    if (combinations.isEmpty) {
       return const SliverToBoxAdapter(child: SizedBox.shrink());
     }
-    final maxLift = pairs.first.lift;
+    final maxLift = combinations.first.lift;
 
     return SliverList.list(
       children: <Widget>[
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 24, 16, 2),
-          child: Text('Kept Together', style: theme.textTheme.titleMedium),
+          child: Text('Taste Combinations', style: theme.textTheme.titleMedium),
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
           child: Text(
-            'Tag pairs that show up together more often than each tag on its '
-            'own would suggest. Tap to search both; long-press to filter '
-            'Downloads by them.',
+            'Two or three tags that show up together more often than each '
+            'tag on its own would suggest. Tap to search them; long-press to '
+            'filter Downloads by them.',
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
         ),
-        for (final pair in pairs)
-          _PairRow(
-            pair: pair,
-            fraction: maxLift <= 0 ? 0 : pair.lift / maxLift,
-            onTap: () => _searchOnHome(context, pair.searchQueries),
-            onLongPress: () => _filterDownloads(context, <int>[
-              if (pair.first.id != null) pair.first.id!,
-              if (pair.second.id != null) pair.second.id!,
-            ]),
+        for (final combination in combinations)
+          _CombinationRow(
+            combination: combination,
+            fraction: maxLift <= 0 ? 0 : combination.lift / maxLift,
+            onTap: () => _searchOnHome(context, combination.searchQueries),
+            onLongPress: () => _filterDownloads(context, combination.tagIds),
           ),
       ],
     );
   }
 }
 
-class _PairRow extends StatelessWidget {
-  const _PairRow({
-    required this.pair,
+class _CombinationRow extends StatelessWidget {
+  const _CombinationRow({
+    required this.combination,
     required this.fraction,
     required this.onTap,
     required this.onLongPress,
   });
 
-  final TagPairPreference pair;
+  final TagCombination combination;
   final double fraction;
   final VoidCallback onTap;
   final VoidCallback onLongPress;
@@ -200,10 +199,9 @@ class _PairRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final display = context.read<TagDisplayService>();
-    final label =
-        '${display.displayName(pair.first.slug, pair.first.name)}'
-        ' + '
-        '${display.displayName(pair.second.slug, pair.second.name)}';
+    final label = combination.members
+        .map((member) => display.displayName(member.slug, member.name))
+        .join(' + ');
     const radius = BorderRadius.all(Radius.circular(10));
 
     return Padding(
@@ -242,7 +240,8 @@ class _PairRow extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      '${pair.comicCount} · ${pair.lift.toStringAsFixed(1)}×',
+                      '${combination.comicCount} · '
+                      '${combination.lift.toStringAsFixed(1)}×',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),

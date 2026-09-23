@@ -26,12 +26,14 @@ void main() {
     );
 
     LoadTagCooccurrenceUseCase buildUseCase(
-      List<LocalTagCatalogEntry> entries,
-    ) {
+      List<LocalTagCatalogEntry> entries, {
+      double tripleGainFactor = 1.1,
+    }) {
       return LoadTagCooccurrenceUseCase(
         comicTagRepository: harness.comicTagRepository,
         localTagCatalogService: LocalTagCatalogService.fromEntries(entries),
         blockedTagsRepository: blockedTags,
+        tripleGainFactor: tripleGainFactor,
       );
     }
 
@@ -76,9 +78,20 @@ void main() {
           entry(40, 'tail'),
         ]).execute();
 
-        expect('${result.first.first.slug}+${result.first.second.slug}', 'a+b');
+        // The top combination is built on the pair that always travels
+        // together; "everywhere" may ride along as a third member, but the
+        // loose pairing of "everywhere" with "common" must not outrank it.
+        final top = result.first.members.map((m) => m.slug).toSet();
+        expect(top.containsAll(<String>{'a', 'b'}), isTrue);
         expect(result.first.comicCount, 8);
         expect(result.first.lift, greaterThan(1));
+        final looseRank = result.indexWhere(
+          (c) => c.members.map((m) => m.slug).toSet().containsAll(<String>{
+            'everywhere',
+            'common',
+          }),
+        );
+        expect(looseRank, isNot(0));
       },
     );
 
@@ -98,7 +111,7 @@ void main() {
       ]).execute();
 
       expect(
-        result.map((pair) => '${pair.first.slug}+${pair.second.slug}'),
+        result.map((c) => c.members.map((m) => m.slug).join('+')),
         <String>['a+c'],
       );
     });
@@ -120,7 +133,7 @@ void main() {
         ]).execute();
 
         expect(
-          result.map((pair) => '${pair.first.slug}+${pair.second.slug}'),
+          result.map((c) => c.members.map((m) => m.slug).join('+')),
           <String>['a+b'],
         );
       },
@@ -142,7 +155,7 @@ void main() {
       ]).execute();
 
       final labels = result
-          .map((pair) => '${pair.first.slug}+${pair.second.slug}')
+          .map((c) => c.members.map((m) => m.slug).join('+'))
           .toSet();
       // Kept: content tag paired with who/what made or stars in it.
       expect(labels, <String>{
@@ -161,6 +174,83 @@ void main() {
         labels.any((l) => l.contains('artist-name+artist-name-2')),
         isFalse,
       );
+    });
+
+    test(
+      'surfaces a three-tag combination that always travels together',
+      () async {
+        for (var i = 0; i < 8; i++) {
+          await keep('trio-$i', <int>[10, 11, 12]);
+        }
+        // Padding so the trio is not simply everything in the library.
+        for (var i = 0; i < 20; i++) {
+          await keep('other-$i', <int>[30, 40]);
+        }
+
+        final result = await buildUseCase(<LocalTagCatalogEntry>[
+          entry(10, 'a'),
+          entry(11, 'b'),
+          entry(12, 'c'),
+          entry(30, 'x'),
+          entry(40, 'y'),
+        ]).execute();
+
+        expect(
+          result.any(
+            (c) =>
+                c.members.length == 3 &&
+                c.members.map((m) => m.slug).toSet().containsAll(<String>{
+                  'a',
+                  'b',
+                  'c',
+                }),
+          ),
+          isTrue,
+        );
+      },
+    );
+
+    test(
+      'a triple whose pair is below the support floor never appears',
+      () async {
+        // a+b only on 3 comics, so no triple containing it can reach 5 either.
+        for (var i = 0; i < 3; i++) {
+          await keep('rare-$i', <int>[10, 11, 12]);
+        }
+        for (var i = 0; i < 8; i++) {
+          await keep('common-$i', <int>[12, 30]);
+        }
+
+        final result = await buildUseCase(<LocalTagCatalogEntry>[
+          entry(10, 'a'),
+          entry(11, 'b'),
+          entry(12, 'c'),
+          entry(30, 'x'),
+        ]).execute();
+
+        expect(result.every((c) => c.members.length == 2), isTrue);
+      },
+    );
+
+    test('a third tag that adds nothing is left out', () async {
+      // c rides along on every a+b comic, but a+b already explains them, so
+      // the triple's lift cannot clear the pair's by the required margin.
+      for (var i = 0; i < 8; i++) {
+        await keep('pair-$i', <int>[10, 11, 12]);
+      }
+      for (var i = 0; i < 8; i++) {
+        await keep('carrier-$i', <int>[12, 30]);
+      }
+
+      final result = await buildUseCase(<LocalTagCatalogEntry>[
+        entry(10, 'a'),
+        entry(11, 'b'),
+        entry(12, 'carrier'),
+        entry(30, 'x'),
+      ], tripleGainFactor: 1.5).execute();
+
+      final triples = result.where((c) => c.members.length == 3);
+      expect(triples, isEmpty);
     });
 
     test('ignores tags on comics that were never kept', () async {

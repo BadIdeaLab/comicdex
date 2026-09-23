@@ -1,7 +1,7 @@
 import 'package:concept_nhv/application/tags/load_tag_cooccurrence_use_case.dart';
 import 'package:concept_nhv/application/tags/load_tag_coverage_use_case.dart';
 import 'package:concept_nhv/application/tags/load_tag_preferences_use_case.dart';
-import 'package:concept_nhv/models/tag_pair_preference.dart';
+import 'package:concept_nhv/models/tag_combination.dart';
 import 'package:concept_nhv/models/tag_catalog_type.dart';
 import 'package:concept_nhv/models/tag_preference_entry.dart';
 import 'package:concept_nhv/storage/tag_preference_store.dart';
@@ -26,7 +26,7 @@ class TagPreferenceModel extends ChangeNotifier {
   TagPreferenceSort _sort = TagPreferenceSort.count;
   bool _isLoading = false;
   bool _hasLoaded = false;
-  List<TagPairPreference> _pairs = const <TagPairPreference>[];
+  List<TagCombination> _combinations = const <TagCombination>[];
   TagCoverage? _coverage;
   bool _isAnalysisLoading = false;
   bool _hasLoadedAnalysis = false;
@@ -37,14 +37,14 @@ class TagPreferenceModel extends ChangeNotifier {
   bool get hasLoaded => _hasLoaded;
 
   /// Only loaded once the analysis page asks for it — the Collections tab
-  /// shows the ranking alone and must not pay for the pair join (P81).
-  List<TagPairPreference> get pairs => _pairs;
+  /// shows the ranking alone and must not pay for the combination pass (P81).
+  List<TagCombination> get combinations => _combinations;
   TagCoverage? get coverage => _coverage;
   bool get isAnalysisLoading => _isAnalysisLoading;
   bool get hasLoadedAnalysis => _hasLoadedAnalysis;
 
   /// Everything the analysis page shows: the ranking, the tag coverage and
-  /// the co-occurring pairs.
+  /// the tag combinations.
   Future<void> loadAnalysis() async {
     if (_isAnalysisLoading) return;
     _isAnalysisLoading = true;
@@ -52,7 +52,7 @@ class TagPreferenceModel extends ChangeNotifier {
     try {
       await load();
       _coverage = await loadTagCoverageUseCase.execute();
-      _pairs = await loadTagCooccurrenceUseCase.execute();
+      _combinations = await loadTagCooccurrenceUseCase.execute();
       _hasLoadedAnalysis = true;
     } finally {
       _isAnalysisLoading = false;
