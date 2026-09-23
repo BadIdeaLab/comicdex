@@ -10,6 +10,7 @@ import 'package:concept_nhv/state/home_ui_model.dart';
 import 'package:concept_nhv/state/tag_preference_model.dart';
 import 'package:concept_nhv/widgets/collection_grid_sliver.dart';
 import 'package:concept_nhv/widgets/comic_grid_sliver.dart';
+import 'package:concept_nhv/widgets/favorites_tag_filter_route.dart';
 import 'package:concept_nhv/widgets/download_job_list_sliver.dart';
 import 'package:concept_nhv/widgets/loading_indicator_bar.dart';
 import 'package:concept_nhv/widgets/page_jump_bar.dart';
@@ -459,6 +460,15 @@ class _CollectionOverviewScreenState extends State<CollectionOverviewScreen> {
                 );
               },
             ),
+            if (tag.id != null)
+              ListTile(
+                leading: const Icon(Icons.favorite_border),
+                title: Text('Search "$displayName" in Favorites'),
+                onTap: () {
+                  Navigator.of(sheetContext).pop();
+                  openFavoritesFilteredByTag(context, tag.id!);
+                },
+              ),
             ListTile(
               leading: const Icon(Icons.download_outlined),
               title: Text('Search "$displayName" in Downloads'),

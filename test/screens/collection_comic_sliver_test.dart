@@ -8,7 +8,9 @@ import 'package:concept_nhv/application/feed/search_comics_use_case.dart';
 import 'package:concept_nhv/application/library/collection_page_coordinator.dart';
 import 'package:concept_nhv/application/library/load_collection_comics_use_case.dart';
 import 'package:concept_nhv/models/collection_type.dart';
+import 'package:concept_nhv/models/comic.dart';
 import 'package:concept_nhv/models/comic_card_data.dart';
+import 'package:concept_nhv/models/stored_comic.dart';
 import 'package:concept_nhv/screens/collection_screen.dart';
 import 'package:concept_nhv/services/search_query_builder.dart';
 import 'package:concept_nhv/state/comic_feed_model.dart';
@@ -24,6 +26,7 @@ import '../test_support/fakes/fake_nhentai_auth_service.dart';
 import '../test_support/fakes/fake_nhentai_gateway.dart';
 import '../test_support/fakes/fake_remote_favorite_gateway.dart';
 import '../test_support/fakes/memory_secure_store.dart';
+import '../test_support/fixtures/sample_comic.dart';
 import '../test_support/storage/sqlite_test_harness.dart';
 
 /// Counts loads so a test can tell a local reload from a remote sync.
@@ -115,6 +118,7 @@ void main() {
   Future<void> pumpSliver(
     WidgetTester tester, {
     bool selectionMode = false,
+    Set<String>? filterComicIds,
   }) async {
     await tester.pumpWidget(
       MultiProvider(
@@ -130,6 +134,7 @@ void main() {
               CollectionComicSliver(
                 collectionType: CollectionType.favorite,
                 onToggleSelection: selectionMode ? (_) {} : null,
+                filterComicIds: filterComicIds,
               ),
             ],
           ),
@@ -164,5 +169,29 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(coordinator.refreshCount, refreshesAfterEntry);
+  });
+
+  testWidgets('a tag filter that matches nothing says so, not "empty"', (
+    tester,
+  ) async {
+    // Remote has it too, or the background sync on entry would wipe the
+    // local favorite and the screen would show the plain empty state.
+    remoteFavoriteGateway.remoteFavorites = <Comic>[sampleComic(id: '11')];
+    await harness.collectionRepository.replaceCollectionCache(
+      collectionType: CollectionType.favorite,
+      comics: <StoredComic>[StoredComic.fromComic(sampleComic(id: '11'))],
+    );
+
+    await pumpSliver(tester, filterComicIds: <String>{'999'});
+
+    expect(find.text('No comics here carry that tag'), findsOneWidget);
+    expect(find.textContaining('No comics in'), findsNothing);
+  });
+
+  testWidgets('an empty collection keeps its own empty state', (tester) async {
+    await pumpSliver(tester, filterComicIds: <String>{'999'});
+
+    expect(find.textContaining('No comics in'), findsOneWidget);
+    expect(find.text('No comics here carry that tag'), findsNothing);
   });
 }

@@ -37,7 +37,14 @@ GoRouter createAppRouter() {
             builder: (context, state) {
               final collectionName =
                   state.uri.queryParameters['collectionName'] ?? '';
-              return CollectionScreen(collectionName: collectionName);
+              return CollectionScreen(
+                collectionName: collectionName,
+                // Optional tag filter (P80): favorites store tag ids but no
+                // tag names locally, so the filter is by id, not by text.
+                initialTagId: int.tryParse(
+                  state.uri.queryParameters['tagId'] ?? '',
+                ),
+              );
             },
           ),
         ],
@@ -169,7 +176,8 @@ class _SortFilterFab extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<ComicFeedModel>(
       builder: (context, feedModel, _) {
-        final hasActiveFilters = feedModel.sortByPopularType != null ||
+        final hasActiveFilters =
+            feedModel.sortByPopularType != null ||
             feedModel.tagFilters.isNotEmpty;
 
         return Badge(

@@ -1,6 +1,7 @@
 import 'package:concept_nhv/models/comic_tag.dart';
 import 'package:concept_nhv/models/tag_type_l10n.dart';
 import 'package:concept_nhv/services/tag_display_service.dart';
+import 'package:concept_nhv/widgets/favorites_tag_filter_route.dart';
 import 'package:concept_nhv/state/blocked_tags_model.dart';
 import 'package:concept_nhv/state/home_ui_model.dart';
 import 'package:concept_nhv/widgets/glass_bottom_sheet.dart';
@@ -312,6 +313,16 @@ class _ComicTagBottomSheetState extends State<ComicTagBottomSheet> {
                   );
                 },
               ),
+              if (tag.id != null)
+                ListTile(
+                  leading: const Icon(Icons.favorite_border),
+                  title: Text('Search "$label" in Favorites'),
+                  onTap: () {
+                    Navigator.of(sheetContext).pop();
+                    Navigator.of(context).pop();
+                    openFavoritesFilteredByTag(context, tag.id!);
+                  },
+                ),
               ListTile(
                 leading: const Icon(Icons.download_outlined),
                 title: Text('Search "$label" in Downloads'),

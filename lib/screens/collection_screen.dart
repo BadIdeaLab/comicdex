@@ -2,7 +2,10 @@ import 'package:concept_nhv/application/library/collection_page_coordinator.dart
 import 'package:concept_nhv/application/home/home_shell_controller.dart';
 import 'package:concept_nhv/models/collection_type.dart';
 import 'package:concept_nhv/models/comic_card_data.dart';
+import 'package:concept_nhv/services/local_tag_catalog_service.dart';
+import 'package:concept_nhv/services/tag_display_service.dart';
 import 'package:concept_nhv/state/download_manager_model.dart';
+import 'package:concept_nhv/storage/comic_tag_repository.dart';
 import 'package:concept_nhv/state/favorite_sync_model.dart';
 import 'package:concept_nhv/widgets/comic_grid_sliver.dart';
 import 'package:concept_nhv/widgets/glass_container.dart';
@@ -11,9 +14,16 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 class CollectionScreen extends StatefulWidget {
-  const CollectionScreen({super.key, required this.collectionName});
+  const CollectionScreen({
+    super.key,
+    required this.collectionName,
+    this.initialTagId,
+  });
 
   final String collectionName;
+
+  /// Shows only comics carrying this tag id, with a chip to clear it (P80).
+  final int? initialTagId;
 
   @override
   State<CollectionScreen> createState() => _CollectionScreenState();
@@ -21,6 +31,42 @@ class CollectionScreen extends StatefulWidget {
 
 class _CollectionScreenState extends State<CollectionScreen> {
   bool _selectionMode = false;
+  int? _tagId;
+  Set<String>? _tagFilterIds;
+
+  @override
+  void initState() {
+    super.initState();
+    _tagId = widget.initialTagId;
+    _loadTagFilter();
+  }
+
+  Future<void> _loadTagFilter() async {
+    final tagId = _tagId;
+    if (tagId == null) return;
+    final ids = await context.read<ComicTagRepository>().loadComicIdsWithTag(
+      tagId,
+    );
+    if (!mounted) return;
+    setState(() => _tagFilterIds = ids);
+  }
+
+  void _clearTagFilter() {
+    setState(() {
+      _tagId = null;
+      _tagFilterIds = null;
+    });
+  }
+
+  String get _tagFilterLabel {
+    final entry = context.read<LocalTagCatalogService>().entryById(_tagId!);
+    if (entry == null) return 'Tag #$_tagId';
+    return context.read<TagDisplayService>().displayName(
+      entry.slug,
+      entry.name,
+    );
+  }
+
   final Map<String, ComicCardData> _selectedComics = {};
   List<ComicCardData> _allComics = const <ComicCardData>[];
   bool _isBatchDownloading = false;
@@ -153,7 +199,9 @@ class _CollectionScreenState extends State<CollectionScreen> {
     final collectionType = _collectionType;
     if (collectionType == null) {
       return Scaffold(
-        body: Center(child: Text('Unknown collection: ${widget.collectionName}')),
+        body: Center(
+          child: Text('Unknown collection: ${widget.collectionName}'),
+        ),
       );
     }
 
@@ -182,7 +230,9 @@ class _CollectionScreenState extends State<CollectionScreen> {
                 ),
               if (_selectionMode)
                 IconButton(
-                  icon: Icon(_isAllSelected ? Icons.deselect : Icons.select_all),
+                  icon: Icon(
+                    _isAllSelected ? Icons.deselect : Icons.select_all,
+                  ),
                   tooltip: _isAllSelected ? 'Deselect all' : 'Select all',
                   onPressed: _allComics.isEmpty
                       ? null
@@ -224,18 +274,37 @@ class _CollectionScreenState extends State<CollectionScreen> {
                 );
               },
             ),
+          if (_tagId != null)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: InputChip(
+                    label: Text(_tagFilterLabel),
+                    onDeleted: _clearTagFilter,
+                  ),
+                ),
+              ),
+            ),
           CollectionComicSliver(
             collectionType: collectionType,
             selectedIds: _selectedComics.keys.toSet(),
             onToggleSelection: _selectionMode ? _toggleSelection : null,
             onComicsLoaded: _handleComicsLoaded,
+            // Null until the lookup finishes, which reads as "no filter yet"
+            // rather than "nothing matches".
+            filterComicIds: _tagId == null ? null : _tagFilterIds,
           ),
         ],
       ),
       bottomNavigationBar: _isBatchDownloading
           ? SafeArea(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 child: Row(
                   children: <Widget>[
                     const SizedBox(
@@ -281,12 +350,16 @@ class CollectionComicSliver extends StatefulWidget {
     this.selectedIds = const <String>{},
     this.onToggleSelection,
     this.onComicsLoaded,
+    this.filterComicIds,
   });
 
   final CollectionType collectionType;
   final Set<String> selectedIds;
   final void Function(ComicCardData comic)? onToggleSelection;
   final void Function(List<ComicCardData> comics)? onComicsLoaded;
+
+  /// Restricts the list to these comic ids; null means no filter (P80).
+  final Set<String>? filterComicIds;
 
   @override
   State<CollectionComicSliver> createState() => _CollectionComicSliverState();
@@ -362,8 +435,21 @@ class _CollectionComicSliverState extends State<CollectionComicSliver> {
           return const SliverFillRemaining(hasScrollBody: false);
         }
 
-        final comics = snapshot.requireData;
+        final loaded = snapshot.requireData;
+        final filterIds = widget.filterComicIds;
+        final comics = filterIds == null
+            ? loaded
+            : loaded
+                  .where((comic) => filterIds.contains(comic.id))
+                  .toList(growable: false);
+        // Selection acts on what is on screen, so it gets the filtered list.
         widget.onComicsLoaded?.call(comics);
+        if (comics.isEmpty && loaded.isNotEmpty) {
+          return const SliverFillRemaining(
+            hasScrollBody: false,
+            child: Center(child: Text('No comics here carry that tag')),
+          );
+        }
         if (comics.isEmpty) {
           final favoriteModel = context.watch<FavoriteSyncModel>();
           final isFavoriteCollection =
@@ -391,9 +477,9 @@ class _CollectionComicSliverState extends State<CollectionComicSliver> {
           collectionType: widget.collectionType,
           onCollectionChanged: _refresh,
           onTagSelected: (tagQueries) async {
-            await context
-                .read<HomeShellController>()
-                .submitTagSearch(tagQueries);
+            await context.read<HomeShellController>().submitTagSearch(
+              tagQueries,
+            );
             if (context.mounted) {
               context.goNamed('index');
             }

@@ -70,6 +70,24 @@ void main() {
       expect(await harness.comicTagRepository.loadTagIds('1'), <int>{5, 6});
     });
 
+    test('loadComicIdsWithTag returns only the comics carrying that tag', () async {
+      await harness.comicTagRepository.replaceTagIds('1', <int>[10, 20]);
+      await harness.comicTagRepository.replaceTagIds('2', <int>[20]);
+
+      expect(
+        await harness.comicTagRepository.loadComicIdsWithTag(10),
+        <String>{'1'},
+      );
+      expect(
+        await harness.comicTagRepository.loadComicIdsWithTag(20),
+        <String>{'1', '2'},
+      );
+      expect(
+        await harness.comicTagRepository.loadComicIdsWithTag(999),
+        isEmpty,
+      );
+    });
+
     group('loadTagSourceCounts', () {
       Future<void> addTo(CollectionType type, String comicId) {
         return harness.collectionRepository.addComicToCollection(

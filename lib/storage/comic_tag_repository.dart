@@ -55,6 +55,16 @@ class ComicTagRepository {
     return rows.map((row) => row.tagId).toSet();
   }
 
+  /// Comic ids carrying [tagId] — the exact filter behind "search in
+  /// favorites" (P80). Favorites hold no tag *names* locally, only these
+  /// ids, so matching by id is both the only option and the precise one.
+  Future<Set<String>> loadComicIdsWithTag(int tagId) async {
+    final query = localDatabase.select(localDatabase.comicTagIds)
+      ..where((table) => table.tagId.equals(tagId));
+    final rows = await query.get();
+    return rows.map((row) => row.comicId).toSet();
+  }
+
   /// How many comics the user kept: favorited or downloaded, counted once
   /// when both. The sample size behind every tag's share (P79).
   Future<int> loadKeptComicCount() async {

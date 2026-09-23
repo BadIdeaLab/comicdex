@@ -322,6 +322,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Search "全彩" in Downloads'), findsOneWidget);
+    // This tag arrived without an id (listing payloads carry none), so the
+    // Favorites filter — which travels as an id — is not offered.
+    expect(find.text('Search "全彩" in Favorites'), findsNothing);
 
     await tester.tap(find.text('Search "全彩" in Downloads'));
     await tester.pumpAndSettle();
