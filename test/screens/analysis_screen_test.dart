@@ -154,13 +154,9 @@ void main() {
     expect(find.text('Kept Together'), findsNothing);
   });
 
-  testWidgets('tapping a pair searches both tags and returns to home', (
-    tester,
-  ) async {
-    for (var i = 0; i < 6; i++) {
-      await keep('paired-$i', <int>[10, 11]);
-    }
-
+  /// Pumps the analysis page inside a router with a stand-in home route, so
+  /// a test can tell "the action ran" from "the page got out of the way".
+  Future<HomeUiModel> pumpRoutedScreen(WidgetTester tester) async {
     final model = buildModel();
     addTearDown(model.dispose);
     final homeUiModel = HomeUiModel();
@@ -223,6 +219,36 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    return homeUiModel;
+  }
+
+  testWidgets('long-pressing a tag can search it in Downloads', (tester) async {
+    for (var i = 0; i < 6; i++) {
+      await keep('paired-$i', <int>[10, 11]);
+    }
+
+    final homeUiModel = await pumpRoutedScreen(tester);
+
+    await tester.longPress(find.text('全彩'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Search "全彩" in Downloads'));
+    await tester.pumpAndSettle();
+
+    // Same trap as the tap-to-search fix: filling the query alone leaves the
+    // analysis page on screen, so the action appears to do nothing.
+    expect(homeUiModel.downloadsSearchQuery, '全彩');
+    expect(homeUiModel.navigationIndex, 1);
+    expect(find.text('home'), findsOneWidget);
+  });
+
+  testWidgets('tapping a pair searches both tags and returns to home', (
+    tester,
+  ) async {
+    for (var i = 0; i < 6; i++) {
+      await keep('paired-$i', <int>[10, 11]);
+    }
+
+    final homeUiModel = await pumpRoutedScreen(tester);
 
     await tester.tap(find.text('全彩 + schoolgirl'));
     await tester.pumpAndSettle();

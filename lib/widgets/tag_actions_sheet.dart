@@ -3,6 +3,7 @@ import 'package:concept_nhv/state/blocked_tags_model.dart';
 import 'package:concept_nhv/state/home_ui_model.dart';
 import 'package:concept_nhv/widgets/favorites_tag_filter_route.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 /// Long-press actions for a tag shown outside a comic (the preference
@@ -18,6 +19,7 @@ Future<void> showTagActionsSheet(
   final messenger = ScaffoldMessenger.of(context);
   final isBlocked = blockedTagsModel.blockedTags.contains(tag.query);
   final tagId = tag.id;
+  final router = GoRouter.of(context);
 
   return showModalBottomSheet<void>(
     context: context,
@@ -63,6 +65,10 @@ Future<void> showTagActionsSheet(
             onTap: () {
               Navigator.of(sheetContext).pop();
               homeUiModel.searchInDownloads(displayName);
+              // Filling the query only switches the tab *inside* the shell;
+              // from a pushed route (the analysis page) the shell keeps
+              // showing that route, so the action looks like it did nothing.
+              router.goNamed('index');
             },
           ),
         ],
