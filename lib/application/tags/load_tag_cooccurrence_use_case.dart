@@ -4,6 +4,7 @@ import 'package:concept_nhv/application/tags/preference_statistics.dart';
 import 'package:concept_nhv/models/local_tag_catalog_entry.dart';
 import 'package:concept_nhv/models/tag_catalog_type.dart';
 import 'package:concept_nhv/models/tag_combination.dart';
+import 'package:concept_nhv/models/tag_preference_entry.dart';
 import 'package:concept_nhv/services/local_tag_catalog_service.dart';
 import 'package:concept_nhv/storage/comic_tag_repository.dart';
 
@@ -15,7 +16,7 @@ class LoadTagCooccurrenceUseCase {
     required this.comicTagRepository,
     required this.localTagCatalogService,
     required this.blockedTagsRepository,
-    this.limit = 30,
+    this.limit = 50,
     this.minimumComics = 5,
     this.tripleGainFactor = 1.1,
     this.tripleSeedPairs = 400,
@@ -44,7 +45,14 @@ class LoadTagCooccurrenceUseCase {
   /// fills with "a strong pair plus whatever else was on those comics".
   final double tripleGainFactor;
 
-  Future<List<TagCombination>> execute() async {
+  /// [sort] decides which question the list answers: the combinations kept
+  /// most often, or the ones furthest from chance. They differ by more than
+  /// order — lift caps at `1 / max(P(tag))`, so a tag on 60% of the library
+  /// can never exceed 1.67 and simply never appears in a lift-ranked list,
+  /// however much it is kept.
+  Future<List<TagCombination>> execute({
+    TagPreferenceSort sort = TagPreferenceSort.affinity,
+  }) async {
     final assignments = await comicTagRepository.loadKeptTagAssignments();
     if (assignments.isEmpty) return const <TagCombination>[];
 
@@ -97,8 +105,13 @@ class LoadTagCooccurrenceUseCase {
     );
 
     combinations.sort((a, b) {
-      final byLift = b.lift.compareTo(a.lift);
-      return byLift != 0 ? byLift : b.comicCount.compareTo(a.comicCount);
+      final primary = sort == TagPreferenceSort.count
+          ? b.comicCount.compareTo(a.comicCount)
+          : b.lift.compareTo(a.lift);
+      if (primary != 0) return primary;
+      return sort == TagPreferenceSort.count
+          ? b.lift.compareTo(a.lift)
+          : b.comicCount.compareTo(a.comicCount);
     });
     return combinations.take(limit).toList(growable: false);
   }

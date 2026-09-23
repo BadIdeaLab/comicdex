@@ -1,6 +1,7 @@
 import 'package:concept_nhv/application/home/home_shell_controller.dart';
 import 'package:concept_nhv/application/tags/load_tag_coverage_use_case.dart';
 import 'package:concept_nhv/models/tag_combination.dart';
+import 'package:concept_nhv/models/tag_preference_entry.dart';
 import 'package:concept_nhv/services/tag_display_service.dart';
 import 'package:concept_nhv/state/home_ui_model.dart';
 import 'package:concept_nhv/state/tag_preference_model.dart';
@@ -53,7 +54,12 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
             )
           else ...<Widget>[
             SliverToBoxAdapter(child: _buildCoverage(context, model.coverage)),
-            _buildCombinations(context, model.combinations),
+            _buildCombinations(
+              context,
+              model.combinations,
+              model.combinationSort,
+              model.setCombinationSort,
+            ),
             TagPreferenceSliver(
               preferences: model.preferences,
               sort: model.sort,
@@ -146,6 +152,8 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
   Widget _buildCombinations(
     BuildContext context,
     List<TagCombination> combinations,
+    TagPreferenceSort sort,
+    ValueChanged<TagPreferenceSort> onSortChanged,
   ) {
     final theme = Theme.of(context);
     if (combinations.isEmpty) {
@@ -156,8 +164,34 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
     return SliverList.list(
       children: <Widget>[
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 24, 16, 2),
-          child: Text('Taste Combinations', style: theme.textTheme.titleMedium),
+          padding: const EdgeInsets.fromLTRB(16, 24, 12, 2),
+          child: Row(
+            children: <Widget>[
+              Expanded(
+                child: Text(
+                  'Taste Combinations',
+                  style: theme.textTheme.titleMedium,
+                ),
+              ),
+              SegmentedButton<TagPreferenceSort>(
+                showSelectedIcon: false,
+                style: const ButtonStyle(visualDensity: VisualDensity.compact),
+                segments: const <ButtonSegment<TagPreferenceSort>>[
+                  ButtonSegment<TagPreferenceSort>(
+                    value: TagPreferenceSort.count,
+                    label: Text('Most kept'),
+                  ),
+                  ButtonSegment<TagPreferenceSort>(
+                    value: TagPreferenceSort.affinity,
+                    label: Text('Most distinctive'),
+                  ),
+                ],
+                selected: <TagPreferenceSort>{sort},
+                onSelectionChanged: (selection) =>
+                    onSortChanged(selection.first),
+              ),
+            ],
+          ),
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),

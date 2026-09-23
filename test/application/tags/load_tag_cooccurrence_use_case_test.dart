@@ -2,6 +2,7 @@ import 'package:concept_nhv/application/tags/load_tag_cooccurrence_use_case.dart
 import 'package:concept_nhv/models/collection_type.dart';
 import 'package:concept_nhv/models/local_tag_catalog_entry.dart';
 import 'package:concept_nhv/models/tag_catalog_type.dart';
+import 'package:concept_nhv/models/tag_preference_entry.dart';
 import 'package:concept_nhv/services/local_tag_catalog_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -272,6 +273,39 @@ void main() {
 
       expect(result, isEmpty);
     });
+
+    test(
+      'sorting by count surfaces the combinations kept most often',
+      () async {
+        // "everywhere" is on 20 of 26 comics, so lift caps near 1.3 for it and
+        // it can never top a lift-ranked list — the reason the two sorts exist.
+        for (var i = 0; i < 20; i++) {
+          await keep('common-$i', <int>[10, 20]);
+        }
+        for (var i = 0; i < 6; i++) {
+          await keep('rare-$i', <int>[30, 40]);
+        }
+
+        final useCase = buildUseCase(<LocalTagCatalogEntry>[
+          entry(10, 'everywhere'),
+          entry(20, 'also-common'),
+          entry(30, 'niche-a'),
+          entry(40, 'niche-b'),
+        ]);
+
+        final byLift = await useCase.execute();
+        final byCount = await useCase.execute(sort: TagPreferenceSort.count);
+
+        expect(byLift.first.members.map((m) => m.slug).toSet(), <String>{
+          'niche-a',
+          'niche-b',
+        });
+        expect(byCount.first.members.map((m) => m.slug).toSet(), <String>{
+          'everywhere',
+          'also-common',
+        });
+      },
+    );
 
     test('a pair is search-ready as two AND-ed tag queries', () async {
       for (var i = 0; i < 6; i++) {

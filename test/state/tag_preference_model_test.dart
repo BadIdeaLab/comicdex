@@ -78,6 +78,27 @@ void main() {
       model.dispose();
     });
 
+    test('the combinations sort is independent and remembered', () async {
+      final model = buildModel();
+      await model.loadAnalysis();
+      expect(model.sort, TagPreferenceSort.count);
+      expect(model.combinationSort, TagPreferenceSort.affinity);
+
+      // Changing one must not move the other: "my biggest tags" and "my most
+      // unusual combinations" are different questions.
+      await model.setCombinationSort(TagPreferenceSort.count);
+      expect(model.sort, TagPreferenceSort.count);
+      await model.setSort(TagPreferenceSort.affinity);
+      expect(model.combinationSort, TagPreferenceSort.count);
+      model.dispose();
+
+      final rebuilt = buildModel();
+      await rebuilt.loadAnalysis();
+      expect(rebuilt.sort, TagPreferenceSort.affinity);
+      expect(rebuilt.combinationSort, TagPreferenceSort.count);
+      rebuilt.dispose();
+    });
+
     test('remembers the sort across model instances', () async {
       final model = buildModel();
       await model.load();

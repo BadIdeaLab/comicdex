@@ -24,6 +24,7 @@ class TagPreferenceModel extends ChangeNotifier {
   Map<TagCatalogType, List<TagPreferenceEntry>> _preferences =
       <TagCatalogType, List<TagPreferenceEntry>>{};
   TagPreferenceSort _sort = TagPreferenceSort.count;
+  TagPreferenceSort _combinationSort = TagPreferenceSort.affinity;
   bool _isLoading = false;
   bool _hasLoaded = false;
   List<TagCombination> _combinations = const <TagCombination>[];
@@ -33,6 +34,7 @@ class TagPreferenceModel extends ChangeNotifier {
 
   Map<TagCatalogType, List<TagPreferenceEntry>> get preferences => _preferences;
   TagPreferenceSort get sort => _sort;
+  TagPreferenceSort get combinationSort => _combinationSort;
   bool get isLoading => _isLoading;
   bool get hasLoaded => _hasLoaded;
 
@@ -51,8 +53,13 @@ class TagPreferenceModel extends ChangeNotifier {
     notifyListeners();
     try {
       await load();
+      if (!_hasLoadedAnalysis) {
+        _combinationSort = await tagPreferenceStore.loadCombinationSort();
+      }
       _coverage = await loadTagCoverageUseCase.execute();
-      _combinations = await loadTagCooccurrenceUseCase.execute();
+      _combinations = await loadTagCooccurrenceUseCase.execute(
+        sort: _combinationSort,
+      );
       _hasLoadedAnalysis = true;
     } finally {
       _isAnalysisLoading = false;
@@ -77,6 +84,16 @@ class TagPreferenceModel extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  /// Re-sorts the combinations without touching the ranking.
+  Future<void> setCombinationSort(TagPreferenceSort sort) async {
+    if (sort == _combinationSort) return;
+    _combinationSort = sort;
+    notifyListeners();
+    await tagPreferenceStore.saveCombinationSort(sort);
+    _combinations = await loadTagCooccurrenceUseCase.execute(sort: sort);
+    notifyListeners();
   }
 
   Future<void> setSort(TagPreferenceSort sort) async {
