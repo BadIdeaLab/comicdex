@@ -7,15 +7,26 @@ import 'package:concept_nhv/models/tag_catalog_type.dart';
 import 'package:concept_nhv/screens/analysis_screen.dart';
 import 'package:concept_nhv/services/local_tag_catalog_service.dart';
 import 'package:concept_nhv/services/tag_display_service.dart';
+import 'package:concept_nhv/state/blocked_tags_model.dart';
+import 'package:concept_nhv/state/home_ui_model.dart';
 import 'package:concept_nhv/state/tag_preference_model.dart';
 import 'package:concept_nhv/storage/options_store.dart';
 import 'package:concept_nhv/storage/tag_preference_store.dart';
+import 'package:concept_nhv/application/feed/load_collection_summaries_use_case.dart';
+import 'package:concept_nhv/application/feed/search_comics_use_case.dart';
+import 'package:concept_nhv/application/home/home_shell_controller.dart';
+import 'package:concept_nhv/services/search_query_builder.dart';
+import 'package:concept_nhv/services/tag_search_query_builder.dart';
+import 'package:concept_nhv/state/comic_feed_model.dart';
+import 'package:concept_nhv/storage/search_history_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:provider/single_child_widget.dart';
 
 import '../test_support/fakes/fake_blocked_tags_repository.dart';
+import '../test_support/fakes/fake_nhentai_gateway.dart';
 import '../test_support/storage/sqlite_test_harness.dart';
 
 void main() {
@@ -72,6 +83,12 @@ void main() {
       MultiProvider(
         providers: <SingleChildWidget>[
           ChangeNotifierProvider<TagPreferenceModel>.value(value: model),
+          ChangeNotifierProvider<BlockedTagsModel>(
+            create: (_) => BlockedTagsModel(
+              blockedTagsRepository: FakeBlockedTagsRepository(),
+            ),
+          ),
+          ChangeNotifierProvider<HomeUiModel>(create: (_) => HomeUiModel()),
           Provider<TagDisplayService>.value(
             value: TagDisplayService.fromMap(const <String, String>{
               'full-color': '全彩',
@@ -135,5 +152,85 @@ void main() {
 
     expect(find.textContaining('Nothing kept yet'), findsOneWidget);
     expect(find.text('Kept Together'), findsNothing);
+  });
+
+  testWidgets('tapping a pair searches both tags and returns to home', (
+    tester,
+  ) async {
+    for (var i = 0; i < 6; i++) {
+      await keep('paired-$i', <int>[10, 11]);
+    }
+
+    final model = buildModel();
+    addTearDown(model.dispose);
+    final homeUiModel = HomeUiModel();
+    addTearDown(homeUiModel.dispose);
+    final feedModel = ComicFeedModel(
+      searchComicsUseCase: SearchComicsUseCase(
+        nhentaiGateway: FakeNhentaiGateway(),
+        searchQueryBuilder: const SearchQueryBuilder(),
+      ),
+      loadCollectionSummariesUseCase: LoadCollectionSummariesUseCase(
+        collectionRepository: harness.collectionRepository,
+      ),
+      blockedTagsRepository: FakeBlockedTagsRepository(),
+    );
+    addTearDown(feedModel.dispose);
+    final router = GoRouter(
+      initialLocation: '/analysis',
+      routes: <RouteBase>[
+        GoRoute(
+          name: 'index',
+          path: '/index',
+          builder: (context, state) => const Scaffold(body: Text('home')),
+        ),
+        GoRoute(
+          path: '/analysis',
+          builder: (context, state) => const AnalysisScreen(),
+        ),
+      ],
+    );
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: <SingleChildWidget>[
+          ChangeNotifierProvider<TagPreferenceModel>.value(value: model),
+          ChangeNotifierProvider<HomeUiModel>.value(value: homeUiModel),
+          ChangeNotifierProvider<ComicFeedModel>.value(value: feedModel),
+          ChangeNotifierProvider<BlockedTagsModel>(
+            create: (_) => BlockedTagsModel(
+              blockedTagsRepository: FakeBlockedTagsRepository(),
+            ),
+          ),
+          Provider<HomeShellController>(
+            create: (_) => HomeShellController(
+              searchHistoryRepository: SearchHistoryRepository(
+                localDatabase: harness.localDatabase,
+              ),
+              homeUiModel: homeUiModel,
+              feedModel: feedModel,
+              tagSearchQueryBuilder: const TagSearchQueryBuilder(),
+            ),
+          ),
+          Provider<TagDisplayService>.value(
+            value: TagDisplayService.fromMap(const <String, String>{
+              'full-color': '全彩',
+            }),
+          ),
+        ],
+        child: MaterialApp.router(routerConfig: router),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('全彩 + schoolgirl'));
+    await tester.pumpAndSettle();
+
+    // Both halves matter: the search runs, and the page gets out of the way.
+    // Submitting alone only switched the tab behind this page (P81 fix).
+    expect(homeUiModel.searchController.text, contains('tag:full-color'));
+    expect(homeUiModel.searchController.text, contains('tag:schoolgirl'));
+    expect(find.text('home'), findsOneWidget);
   });
 }

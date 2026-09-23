@@ -8,6 +8,7 @@ import 'package:concept_nhv/widgets/glass_container.dart';
 import 'package:concept_nhv/widgets/tag_actions_sheet.dart';
 import 'package:concept_nhv/widgets/tag_preference_sliver.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 /// The full tag analysis: coverage, the complete ranking, and the tag pairs
@@ -59,9 +60,8 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
               onSortChanged: model.setSort,
               // No cap here: this page exists to show the whole list.
               collapsedCount: null,
-              onTagTap: (tag, displayName) => context
-                  .read<HomeShellController>()
-                  .submitTagSearch(<String>[tag.query]),
+              onTagTap: (tag, displayName) =>
+                  _searchOnHome(context, <String>[tag.query]),
               onTagLongPress: (tag, displayName) =>
                   showTagActionsSheet(context, tag, displayName),
             ),
@@ -69,6 +69,15 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
         ],
       ),
     );
+  }
+
+  /// Submits the search *and* returns to the shell's home route. This page
+  /// lives inside the app shell, so submitting alone only switches the tab
+  /// underneath while the analysis page stays on screen — which reads as
+  /// "the tap did nothing".
+  Future<void> _searchOnHome(BuildContext context, List<String> queries) async {
+    await context.read<HomeShellController>().submitTagSearch(queries);
+    if (context.mounted) context.goNamed('index');
   }
 
   Widget _buildCoverage(BuildContext context, TagCoverage? coverage) {
@@ -153,9 +162,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
           _PairRow(
             pair: pair,
             fraction: maxLift <= 0 ? 0 : pair.lift / maxLift,
-            onTap: () => context.read<HomeShellController>().submitTagSearch(
-              pair.searchQueries,
-            ),
+            onTap: () => _searchOnHome(context, pair.searchQueries),
           ),
       ],
     );

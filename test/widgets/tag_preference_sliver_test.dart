@@ -81,6 +81,12 @@ void main() {
     await tester.tap(find.text('Show 2 more'));
     await tester.pumpAndSettle();
 
+    // The list builds lazily, so the newly revealed tail is off-screen until
+    // scrolled to — that laziness is what keeps the uncapped analysis page
+    // from building every tag at once.
+    await tester.scrollUntilVisible(find.text('Show less'), 200);
+    await tester.pumpAndSettle();
+
     expect(find.text('tag-11'), findsOneWidget);
     expect(find.text('Show less'), findsOneWidget);
   });

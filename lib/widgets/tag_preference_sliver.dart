@@ -54,22 +54,37 @@ class _TagPreferenceSliverState extends State<TagPreferenceSliver> {
 
   @override
   Widget build(BuildContext context) {
+    // Flattened into rows and handed to a builder rather than built as one
+    // list of children: uncapped, this is every tag in the library, and
+    // SliverList.list would construct all of them before the first frame.
+    final rows = _buildRowSpecs();
+
+    return SliverList.builder(
+      itemCount: rows.length,
+      itemBuilder: (context, index) => rows[index].build(context),
+    );
+  }
+
+  List<_RowSpec> _buildRowSpecs() {
     final sections = widget.preferences.entries
         .where((entry) => entry.value.isNotEmpty)
         .toList(growable: false);
 
-    return SliverList.list(
-      children: <Widget>[
-        const SizedBox(height: 24),
-        _buildHeader(context),
-        if (sections.isEmpty)
-          _buildEmptyState(context)
-        else
-          for (final section in sections)
-            _buildSection(context, section.key, section.value),
-        const SizedBox(height: 16),
-      ],
-    );
+    final rows = <_RowSpec>[
+      _RowSpec((context) => const SizedBox(height: 24)),
+      _RowSpec(_buildHeader),
+    ];
+
+    if (sections.isEmpty) {
+      rows.add(_RowSpec(_buildEmptyState));
+    } else {
+      for (final section in sections) {
+        rows.addAll(_sectionRows(section.key, section.value));
+      }
+    }
+
+    rows.add(_RowSpec((context) => const SizedBox(height: 16)));
+    return rows;
   }
 
   Widget _buildHeader(BuildContext context) {
@@ -126,12 +141,10 @@ class _TagPreferenceSliverState extends State<TagPreferenceSliver> {
     );
   }
 
-  Widget _buildSection(
-    BuildContext context,
+  List<_RowSpec> _sectionRows(
     TagCatalogType type,
     List<TagPreferenceEntry> entries,
   ) {
-    final theme = Theme.of(context);
     final collapsedCount = widget.collapsedCount;
     final isExpanded = collapsedCount == null || _expanded.contains(type);
     final visible = isExpanded
@@ -141,10 +154,10 @@ class _TagPreferenceSliverState extends State<TagPreferenceSliver> {
     // sections with smaller numbers stay readable instead of flat.
     final maxValue = _sortValue(entries.first);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Padding(
+    return <_RowSpec>[
+      _RowSpec((context) {
+        final theme = Theme.of(context);
+        return Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
           child: Text(
             _sectionTitles[type] ?? type.apiValue,
@@ -152,17 +165,21 @@ class _TagPreferenceSliverState extends State<TagPreferenceSliver> {
               color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
-        ),
-        for (final entry in visible)
-          _TagPreferenceRow(
+        );
+      }),
+      for (final entry in visible)
+        _RowSpec(
+          (context) => _TagPreferenceRow(
             entry: entry,
             fraction: maxValue <= 0 ? 0 : _sortValue(entry) / maxValue,
             onTap: () => widget.onTagTap(entry.tag, _displayName(entry)),
             onLongPress: () =>
                 widget.onTagLongPress(entry.tag, _displayName(entry)),
           ),
-        if (collapsedCount != null && entries.length > collapsedCount)
-          Padding(
+        ),
+      if (collapsedCount != null && entries.length > collapsedCount)
+        _RowSpec(
+          (context) => Padding(
             padding: const EdgeInsets.only(left: 8),
             child: TextButton(
               onPressed: () => setState(() {
@@ -179,8 +196,8 @@ class _TagPreferenceSliverState extends State<TagPreferenceSliver> {
               ),
             ),
           ),
-      ],
-    );
+        ),
+    ];
   }
 
   double _sortValue(TagPreferenceEntry entry) {
@@ -269,4 +286,11 @@ class _TagPreferenceRow extends StatelessWidget {
       ),
     );
   }
+}
+
+/// One row of the flattened list, built only when it scrolls into view.
+class _RowSpec {
+  const _RowSpec(this.build);
+
+  final Widget Function(BuildContext context) build;
 }

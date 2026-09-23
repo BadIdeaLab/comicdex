@@ -2,6 +2,7 @@ import 'package:concept_nhv/application/search/blocked_tags_repository.dart';
 import 'package:concept_nhv/application/tags/load_tag_preferences_use_case.dart';
 import 'package:concept_nhv/application/tags/preference_statistics.dart';
 import 'package:concept_nhv/models/local_tag_catalog_entry.dart';
+import 'package:concept_nhv/models/tag_catalog_type.dart';
 import 'package:concept_nhv/models/tag_pair_preference.dart';
 import 'package:concept_nhv/services/local_tag_catalog_service.dart';
 import 'package:concept_nhv/storage/comic_tag_repository.dart';
@@ -42,6 +43,8 @@ class LoadTagCooccurrenceUseCase {
       final second = _rankableTag(pair.tagB, blocked);
       if (first == null || second == null) continue;
 
+      if (_isStructuralPair(first, second)) continue;
+
       final countA = counts[pair.tagA] ?? 0;
       final countB = counts[pair.tagB] ?? 0;
       if (countA <= 0 || countB <= 0) continue;
@@ -65,6 +68,24 @@ class LoadTagCooccurrenceUseCase {
       return byLift != 0 ? byLift : b.comicCount.compareTo(a.comicCount);
     });
     return ranked.take(limit).toList(growable: false);
+  }
+
+  /// Pairs that say something about how the site is organised rather than
+  /// about taste, and would otherwise dominate the list:
+  ///
+  /// * the same name twice — an artist and the group or parody they share a
+  ///   name with, which pairs a tag with itself in all but id;
+  /// * a parody with one of its own characters, an artist with the parody
+  ///   they work on: a character belongs to its series by definition, so the
+  ///   two travel together no matter what the user likes.
+  ///
+  /// Requiring one side to be a content tag keeps "content + who/what"
+  /// combinations, which is where preference actually shows.
+  bool _isStructuralPair(LocalTagCatalogEntry a, LocalTagCatalogEntry b) {
+    final slugA = a.slug.toLowerCase();
+    final slugB = b.slug.toLowerCase();
+    if (slugA.contains(slugB) || slugB.contains(slugA)) return true;
+    return a.type != TagCatalogType.tag && b.type != TagCatalogType.tag;
   }
 
   /// Null when the tag has no catalog entry (`group`/`category`, which the

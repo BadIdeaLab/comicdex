@@ -53,34 +53,34 @@ void main() {
       await harness.dispose();
     });
 
-    test('ranks a tightly bound pair above one that co-occurs by chance', () async {
-      // 10 and 11 always travel together (8 comics). 20 is on almost
-      // everything, so pairing with it says nothing.
-      for (var i = 0; i < 8; i++) {
-        await keep('bound-$i', <int>[10, 11, 20]);
-      }
-      for (var i = 0; i < 12; i++) {
-        await keep('loose-$i', <int>[20, 30]);
-      }
-      for (var i = 0; i < 6; i++) {
-        await keep('other-$i', <int>[30, 40]);
-      }
+    test(
+      'ranks a tightly bound pair above one that co-occurs by chance',
+      () async {
+        // 10 and 11 always travel together (8 comics). 20 is on almost
+        // everything, so pairing with it says nothing.
+        for (var i = 0; i < 8; i++) {
+          await keep('bound-$i', <int>[10, 11, 20]);
+        }
+        for (var i = 0; i < 12; i++) {
+          await keep('loose-$i', <int>[20, 30]);
+        }
+        for (var i = 0; i < 6; i++) {
+          await keep('other-$i', <int>[30, 40]);
+        }
 
-      final result = await buildUseCase(<LocalTagCatalogEntry>[
-        entry(10, 'a'),
-        entry(11, 'b'),
-        entry(20, 'everywhere'),
-        entry(30, 'common'),
-        entry(40, 'tail'),
-      ]).execute();
+        final result = await buildUseCase(<LocalTagCatalogEntry>[
+          entry(10, 'a'),
+          entry(11, 'b'),
+          entry(20, 'everywhere'),
+          entry(30, 'common'),
+          entry(40, 'tail'),
+        ]).execute();
 
-      expect(
-        '${result.first.first.slug}+${result.first.second.slug}',
-        'a+b',
-      );
-      expect(result.first.comicCount, 8);
-      expect(result.first.lift, greaterThan(1));
-    });
+        expect('${result.first.first.slug}+${result.first.second.slug}', 'a+b');
+        expect(result.first.comicCount, 8);
+        expect(result.first.lift, greaterThan(1));
+      },
+    );
 
     test('drops pairs below the support floor', () async {
       // Only 3 comics carry both — under the 5-comic floor.
@@ -103,29 +103,72 @@ void main() {
       );
     });
 
-    test('excludes languages, blocked tags and ids the catalog omits', () async {
+    test(
+      'excludes languages, blocked tags and ids the catalog omits',
+      () async {
+        for (var i = 0; i < 6; i++) {
+          await keep('comic-$i', <int>[10, 11, 12, 13, 14]);
+        }
+        await blockedTags.saveBlockedTags(<String>['tag:blocked']);
+
+        final result = await buildUseCase(<LocalTagCatalogEntry>[
+          entry(10, 'a'),
+          entry(11, 'b'),
+          entry(12, 'blocked'),
+          entry(13, 'english', type: TagCatalogType.language),
+          // 14 has no catalog entry at all (a group/category id).
+        ]).execute();
+
+        expect(
+          result.map((pair) => '${pair.first.slug}+${pair.second.slug}'),
+          <String>['a+b'],
+        );
+      },
+    );
+
+    test('drops pairs that only reflect how the site is organised', () async {
+      // 10 tag, 11 parody, 12 its character, 13 the artist, 14 a group whose
+      // name matches the artist's.
       for (var i = 0; i < 6; i++) {
         await keep('comic-$i', <int>[10, 11, 12, 13, 14]);
       }
-      await blockedTags.saveBlockedTags(<String>['tag:blocked']);
 
       final result = await buildUseCase(<LocalTagCatalogEntry>[
-        entry(10, 'a'),
-        entry(11, 'b'),
-        entry(12, 'blocked'),
-        entry(13, 'english', type: TagCatalogType.language),
-        // 14 has no catalog entry at all (a group/category id).
+        entry(10, 'schoolgirl'),
+        entry(11, 'some-series', type: TagCatalogType.parody),
+        entry(12, 'some-character', type: TagCatalogType.character),
+        entry(13, 'artist-name', type: TagCatalogType.artist),
+        entry(14, 'artist-name-2', type: TagCatalogType.artist),
       ]).execute();
 
+      final labels = result
+          .map((pair) => '${pair.first.slug}+${pair.second.slug}')
+          .toSet();
+      // Kept: content tag paired with who/what made or stars in it.
+      expect(labels, <String>{
+        'schoolgirl+some-series',
+        'schoolgirl+some-character',
+        'schoolgirl+artist-name',
+        'schoolgirl+artist-name-2',
+      });
+      // Dropped: parody with its own character, artist with the parody, and
+      // the two artists whose slugs contain one another.
       expect(
-        result.map((pair) => '${pair.first.slug}+${pair.second.slug}'),
-        <String>['a+b'],
+        labels.any((l) => l.contains('some-series+some-character')),
+        isFalse,
+      );
+      expect(
+        labels.any((l) => l.contains('artist-name+artist-name-2')),
+        isFalse,
       );
     });
 
     test('ignores tags on comics that were never kept', () async {
       for (var i = 0; i < 6; i++) {
-        await harness.comicTagRepository.replaceTagIds('seen-$i', <int>[10, 11]);
+        await harness.comicTagRepository.replaceTagIds('seen-$i', <int>[
+          10,
+          11,
+        ]);
         await harness.collectionRepository.addComicToCollection(
           collectionType: CollectionType.history,
           comicId: 'seen-$i',
