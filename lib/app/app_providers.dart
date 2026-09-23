@@ -20,6 +20,7 @@ import 'package:concept_nhv/application/reader/open_comic_use_case.dart';
 import 'package:concept_nhv/application/reader/reader_launcher.dart';
 import 'package:concept_nhv/application/reader/reader_settings_repository.dart';
 import 'package:concept_nhv/application/tags/check_tag_catalog_update_use_case.dart';
+import 'package:concept_nhv/application/tags/load_tag_preferences_use_case.dart';
 import 'package:concept_nhv/application/tags/load_comic_meta_use_case.dart';
 import 'package:concept_nhv/application/tags/update_local_tag_catalog_use_case.dart';
 import 'package:concept_nhv/services/image_url_resolver.dart';
@@ -54,9 +55,11 @@ import 'package:concept_nhv/state/download_manager_model.dart';
 import 'package:concept_nhv/state/favorite_sync_model.dart';
 import 'package:concept_nhv/state/home_ui_model.dart';
 import 'package:concept_nhv/state/tag_catalog_browser_model.dart';
+import 'package:concept_nhv/state/tag_preference_model.dart';
 import 'package:concept_nhv/storage/collection_repository.dart';
 import 'package:concept_nhv/storage/comic_repository.dart';
 import 'package:concept_nhv/storage/comic_tag_repository.dart';
+import 'package:concept_nhv/storage/tag_preference_store.dart';
 import 'package:concept_nhv/storage/download_queue_repository.dart';
 import 'package:concept_nhv/storage/blocked_tags_store.dart';
 import 'package:concept_nhv/storage/download_settings_store.dart';
@@ -129,6 +132,9 @@ List<SingleChildWidget> _buildStorageProviders() {
     ),
     Provider(
       create: (context) => ComicTagRepository(localDatabase: context.read()),
+    ),
+    Provider(
+      create: (context) => TagPreferenceStore(optionsStore: context.read()),
     ),
     Provider(
       create: (context) =>
@@ -281,6 +287,13 @@ List<SingleChildWidget> _buildUseCaseProviders() {
       create: (context) => LoadComicMetaUseCase(nhentaiGateway: context.read()),
     ),
     Provider(
+      create: (context) => LoadTagPreferencesUseCase(
+        comicTagRepository: context.read(),
+        localTagCatalogService: context.read(),
+        blockedTagsRepository: context.read(),
+      ),
+    ),
+    Provider(
       create: (context) => CheckTagCatalogUpdateUseCase(
         remoteAssetFetcher: context.read(),
         localTagCatalogService: context.read(),
@@ -351,6 +364,12 @@ List<SingleChildWidget> _buildStateProviders() {
       },
     ),
     ChangeNotifierProvider(
+      create: (context) => TagPreferenceModel(
+        loadTagPreferencesUseCase: context.read(),
+        tagPreferenceStore: context.read(),
+      ),
+    ),
+    ChangeNotifierProvider(
       create: (context) => TagCatalogBrowserModel(
         localTagCatalogService: context.read(),
         tagDisplayService: context.read(),
@@ -397,7 +416,9 @@ List<SingleChildWidget> _buildStateProviders() {
     // outside the reader can be woken by a page turn.
     ChangeNotifierProvider(
       create: (context) {
-        final model = ReaderSettingsModel(readerSettingsRepository: context.read());
+        final model = ReaderSettingsModel(
+          readerSettingsRepository: context.read(),
+        );
         model.loadSettings();
         return model;
       },
@@ -429,9 +450,7 @@ List<SingleChildWidget> _buildCoordinatorProviders() {
       ),
     ),
     Provider(
-      create: (context) => ReaderLauncher(
-        downloadManagerModel: context.read(),
-      ),
+      create: (context) => ReaderLauncher(downloadManagerModel: context.read()),
     ),
     Provider(
       create: (context) => ComicCardActionCoordinator(

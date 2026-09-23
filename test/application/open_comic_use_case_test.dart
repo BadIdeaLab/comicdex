@@ -40,14 +40,37 @@ void main() {
 
     // Degraded metadata (rebuilt from a download) must not overwrite the
     // stored comic row, but its tag list is complete and still gets stored.
-    test('records tag ids even for degraded metadata over a stored comic', () async {
-      await harness.comicRepository.upsertComic(
-        StoredComic.fromComic(sampleComic(id: '5')),
+    test(
+      'records tag ids even for degraded metadata over a stored comic',
+      () async {
+        await harness.comicRepository.upsertComic(
+          StoredComic.fromComic(sampleComic(id: '5')),
+        );
+
+        await useCase.execute(sampleComic(id: '5'), isDegradedMetadata: true);
+
+        expect(await harness.comicTagRepository.loadTagIds('5'), <int>{1});
+      },
+    );
+
+    test('counts each open and keeps the history timestamp fresh', () async {
+      await useCase.execute(sampleComic(id: '5'));
+      await useCase.execute(sampleComic(id: '5'));
+      await useCase.execute(sampleComic(id: '5'));
+
+      final row = await harness.localDatabase
+          .customSelect(
+            "SELECT read_count, dateCreated FROM Collection "
+            "WHERE name = 'History' AND comicid = '5'",
+          )
+          .getSingle();
+      expect(row.read<int>('read_count'), 3);
+      expect(
+        DateTime.parse(
+          row.read<String>('dateCreated'),
+        ).isAfter(DateTime.now().subtract(const Duration(minutes: 1))),
+        isTrue,
       );
-
-      await useCase.execute(sampleComic(id: '5'), isDegradedMetadata: true);
-
-      expect(await harness.comicTagRepository.loadTagIds('5'), <int>{1});
     });
 
     test('a comic without tags leaves previously stored ids alone', () async {

@@ -11,20 +11,39 @@ class CollectionRepository {
 
   final LocalDatabase localDatabase;
 
+  /// Adds [comicId] to [collectionType], or refreshes the row that is
+  /// already there.
+  ///
+  /// An upsert, not `insertOrReplace`: replacing the whole row blanked every
+  /// column this method does not pass, which silently dropped `favoriteRank`
+  /// (sending that favorite to the end of the list, since NULL sorts last)
+  /// and would do the same to [Collections.readCount].
+  ///
+  /// [incrementReadCount] bumps the read counter — the history path.
   Future<int> addComicToCollection({
     required CollectionType collectionType,
     required String comicId,
     String? dateCreated,
+    bool incrementReadCount = false,
   }) async {
+    final timestamp = dateCreated ?? DateTime.now().toIso8601String();
     return localDatabase
         .into(localDatabase.collections)
         .insert(
           CollectionsCompanion.insert(
             name: collectionType.storageName,
             comicid: comicId,
-            dateCreated: dateCreated ?? DateTime.now().toIso8601String(),
+            dateCreated: timestamp,
+            readCount: drift.Value(incrementReadCount ? 1 : 0),
           ),
-          mode: drift.InsertMode.insertOrReplace,
+          onConflict: drift.DoUpdate(
+            (old) => incrementReadCount
+                ? CollectionsCompanion.custom(
+                    dateCreated: drift.Variable<String>(timestamp),
+                    readCount: old.readCount + const drift.Constant<int>(1),
+                  )
+                : CollectionsCompanion(dateCreated: drift.Value(timestamp)),
+          ),
         );
   }
 

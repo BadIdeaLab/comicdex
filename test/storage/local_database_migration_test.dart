@@ -39,12 +39,38 @@ void main() {
   }
 
   /// Rewinds a freshly created database to what schema 9 looked like: no
-  /// ComicTagId table, user_version 9. Everything else is unchanged by P76.
+  /// ComicTagId table, no Collection.read_count, user_version 9.
   Future<void> rewindToSchema9(LocalDatabase database) async {
     await database.customStatement('DROP INDEX idx_comic_tag_id_tag');
     await database.customStatement('DROP TABLE ComicTagId');
+    await database.customStatement(
+      'ALTER TABLE Collection DROP COLUMN read_count',
+    );
     await database.customStatement('PRAGMA user_version = 9');
   }
+
+  test(
+    'upgrading from 9 adds read_count, defaulting existing rows to 0',
+    () async {
+      final v9 = open();
+      await v9.initialize();
+      await v9.customStatement(
+        "INSERT INTO Collection (name, comicid, dateCreated) "
+        "VALUES ('History', '1', '2026-01-01')",
+      );
+      await rewindToSchema9(v9);
+      await v9.close();
+
+      final upgraded = open();
+      await upgraded.initialize();
+      final row = await upgraded
+          .customSelect('SELECT read_count FROM Collection')
+          .getSingle();
+      await upgraded.close();
+
+      expect(row.read<int>('read_count'), 0);
+    },
+  );
 
   test('upgrading from 9 copies downloaded tag ids into ComicTagId', () async {
     final v9 = open();

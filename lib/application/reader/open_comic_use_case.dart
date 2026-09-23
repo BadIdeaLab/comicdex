@@ -38,6 +38,7 @@ class OpenComicUseCase {
     await collectionRepository.addComicToCollection(
       collectionType: CollectionType.history,
       comicId: comic.id,
+      incrementReadCount: true,
     );
   }
 }

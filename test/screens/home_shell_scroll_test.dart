@@ -26,14 +26,17 @@ import 'package:concept_nhv/services/search_query_builder.dart';
 import 'package:concept_nhv/services/tag_display_service.dart';
 import 'package:concept_nhv/services/tag_search_query_builder.dart';
 import 'package:concept_nhv/state/blocked_tags_model.dart';
+import 'package:concept_nhv/application/tags/load_tag_preferences_use_case.dart';
 import 'package:concept_nhv/state/comic_feed_model.dart';
+import 'package:concept_nhv/state/tag_preference_model.dart';
+import 'package:concept_nhv/storage/options_store.dart';
+import 'package:concept_nhv/storage/tag_preference_store.dart';
 import 'package:concept_nhv/state/download_manager_model.dart';
 import 'package:concept_nhv/state/favorite_sync_model.dart';
 import 'package:concept_nhv/state/home_ui_model.dart';
 import 'package:concept_nhv/state/tag_catalog_browser_model.dart';
 import 'package:concept_nhv/storage/download_settings_store.dart';
 import 'package:concept_nhv/storage/nhentai_api_key_store.dart';
-import 'package:concept_nhv/storage/options_store.dart';
 import 'package:concept_nhv/storage/search_history_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -191,6 +194,22 @@ void main() {
               blockedTagsRepository: FakeBlockedTagsRepository(),
             ),
           ),
+          ChangeNotifierProvider<TagPreferenceModel>(
+            create: (_) => TagPreferenceModel(
+              loadTagPreferencesUseCase: LoadTagPreferencesUseCase(
+                comicTagRepository: harness.comicTagRepository,
+                localTagCatalogService: LocalTagCatalogService.fromEntries(
+                  const [],
+                ),
+                blockedTagsRepository: FakeBlockedTagsRepository(),
+              ),
+              tagPreferenceStore: TagPreferenceStore(
+                optionsStore: OptionsStore(
+                  localDatabase: harness.localDatabase,
+                ),
+              ),
+            ),
+          ),
           ChangeNotifierProvider<TagCatalogBrowserModel>(
             create: (_) => TagCatalogBrowserModel(
               localTagCatalogService: LocalTagCatalogService.fromEntries(
@@ -269,7 +288,11 @@ void main() {
       expect(offset(tester), 0, reason: 'Downloads starts at the top');
 
       await selectDestination(tester, 0);
-      expect(offset(tester), homeOffset, reason: 'the home feed kept its place');
+      expect(
+        offset(tester),
+        homeOffset,
+        reason: 'the home feed kept its place',
+      );
     });
 
     testWidgets('keeps the home offset after Downloads is scrolled too', (
@@ -399,21 +422,23 @@ DownloadListItemSnapshot _completedItem({
 }
 
 class _ScrollableDownloadsModel extends DownloadManagerModel {
-  _ScrollableDownloadsModel({required SqliteTestHarness harness, required this.items})
-    : super(
-        nhentaiGateway: FakeNhentaiGateway(),
-        cdnConfigService: NhentaiCdnConfigService(),
-        downloadQueueRepository: harness.downloadQueueRepository,
-        downloadedLibraryRepository: harness.downloadedLibraryRepository,
-        downloadSettingsRepository: DownloadSettingsStore(
-          optionsStore: OptionsStore(localDatabase: harness.localDatabase),
-        ),
-        downloadAssetStore: DownloadAssetStore(
-          directoryResolver: () async => throw UnimplementedError(),
-        ),
-        imageCompressionService: FakeImageCompressionService(),
-        remoteAssetFetcher: FakeRemoteAssetFetcher(),
-      );
+  _ScrollableDownloadsModel({
+    required SqliteTestHarness harness,
+    required this.items,
+  }) : super(
+         nhentaiGateway: FakeNhentaiGateway(),
+         cdnConfigService: NhentaiCdnConfigService(),
+         downloadQueueRepository: harness.downloadQueueRepository,
+         downloadedLibraryRepository: harness.downloadedLibraryRepository,
+         downloadSettingsRepository: DownloadSettingsStore(
+           optionsStore: OptionsStore(localDatabase: harness.localDatabase),
+         ),
+         downloadAssetStore: DownloadAssetStore(
+           directoryResolver: () async => throw UnimplementedError(),
+         ),
+         imageCompressionService: FakeImageCompressionService(),
+         remoteAssetFetcher: FakeRemoteAssetFetcher(),
+       );
 
   final List<DownloadListItemSnapshot> items;
 

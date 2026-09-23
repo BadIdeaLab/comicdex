@@ -17,6 +17,35 @@ void main() {
       await harness.dispose();
     });
 
+    // Regression: the old insertOrReplace blanked every column it did not
+    // pass, so re-adding a favorite dropped its rank to NULL (last place).
+    test('adding an existing favorite keeps its rank and read count', () async {
+      await harness.collectionRepository.replaceCollectionCache(
+        collectionType: CollectionType.favorite,
+        comics: <StoredComic>[
+          _storedComic(id: 'a', mediaId: 'm', title: 'A'),
+          _storedComic(id: 'b', mediaId: 'm', title: 'B'),
+        ],
+      );
+
+      await harness.collectionRepository.addComicToCollection(
+        collectionType: CollectionType.favorite,
+        comicId: 'b',
+      );
+
+      final row = await harness.localDatabase
+          .customSelect(
+            "SELECT favorite_rank FROM Collection "
+            "WHERE name = 'Favorite' AND comicid = 'b'",
+          )
+          .getSingle();
+      expect(row.read<int?>('favorite_rank'), 1);
+      expect(
+        await harness.collectionRepository.loadFavoriteIdsInOrder(),
+        <String>['a', 'b'],
+      );
+    });
+
     group('mergeFavoritePrefix', () {
       StoredComic comic(String id) => _storedComic(
         id: id,
@@ -36,9 +65,11 @@ void main() {
       test('puts new favorites first and keeps the rest in order', () async {
         await seedFavorites(<String>['a', 'b', 'c']);
 
-        await harness.collectionRepository.mergeFavoritePrefix(
-          <StoredComic>[comic('x'), comic('y'), comic('a')],
-        );
+        await harness.collectionRepository.mergeFavoritePrefix(<StoredComic>[
+          comic('x'),
+          comic('y'),
+          comic('a'),
+        ]);
 
         expect(
           await harness.collectionRepository.loadFavoriteIdsInOrder(),
@@ -53,9 +84,11 @@ void main() {
       test('moves a re-favorited old comic to the front', () async {
         await seedFavorites(<String>['a', 'b', 'c']);
 
-        await harness.collectionRepository.mergeFavoritePrefix(
-          <StoredComic>[comic('c'), comic('a'), comic('b')],
-        );
+        await harness.collectionRepository.mergeFavoritePrefix(<StoredComic>[
+          comic('c'),
+          comic('a'),
+          comic('b'),
+        ]);
 
         expect(
           await harness.collectionRepository.loadFavoriteIdsInOrder(),
@@ -70,9 +103,10 @@ void main() {
           comic: comic('t'),
         );
 
-        await harness.collectionRepository.mergeFavoritePrefix(
-          <StoredComic>[comic('t'), comic('a')],
-        );
+        await harness.collectionRepository.mergeFavoritePrefix(<StoredComic>[
+          comic('t'),
+          comic('a'),
+        ]);
 
         expect(
           await harness.collectionRepository.loadFavoriteIdsInOrder(),
@@ -94,9 +128,9 @@ void main() {
           comicId: 'a',
         );
 
-        await harness.collectionRepository.mergeFavoritePrefix(
-          <StoredComic>[comic('x')],
-        );
+        await harness.collectionRepository.mergeFavoritePrefix(<StoredComic>[
+          comic('x'),
+        ]);
 
         expect(
           await harness.collectionRepository.loadCollectedComicIds(

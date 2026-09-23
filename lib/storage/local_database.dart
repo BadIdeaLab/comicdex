@@ -52,6 +52,11 @@ class Collections extends Table {
   /// Only populated for the `favorite` collection; null for all others.
   IntColumn get favoriteRank => integer().named('favorite_rank').nullable()();
 
+  /// Times the comic was opened, counted from P78 onwards; rows that predate
+  /// it start at 0. Only meaningful for the `history` collection.
+  IntColumn get readCount =>
+      integer().named('read_count').withDefault(const Constant(0))();
+
   @override
   Set<Column<Object>> get primaryKey => <Column<Object>>{name, comicid};
 }
@@ -177,7 +182,7 @@ class LocalDatabase extends _$LocalDatabase {
   final DatabasePathResolver _databasePathResolver;
 
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 11;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -283,6 +288,12 @@ class LocalDatabase extends _$LocalDatabase {
         await migrator.createTable(comicTagIds);
         await migrator.createIndex(idxComicTagIdTag);
         await _backfillDownloadedComicTagIds();
+      }
+      if (from < 11) {
+        await customStatement(
+          'ALTER TABLE Collection '
+          'ADD COLUMN read_count INTEGER NOT NULL DEFAULT 0',
+        );
       }
     },
   );

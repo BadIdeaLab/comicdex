@@ -65,6 +65,10 @@ class ComicTagRepository {
         .customSelect(
           'SELECT t.tag_id, '
           'SUM(EXISTS(SELECT 1 FROM Collection c '
+          'WHERE c.comicid = t.comic_id AND c.name = ?1) '
+          'OR EXISTS(SELECT 1 FROM DownloadedComic d '
+          'WHERE d.comic_id = t.comic_id)) AS collected_count, '
+          'SUM(EXISTS(SELECT 1 FROM Collection c '
           'WHERE c.comicid = t.comic_id AND c.name = ?1)) AS favorite_count, '
           'SUM(EXISTS(SELECT 1 FROM DownloadedComic d '
           'WHERE d.comic_id = t.comic_id)) AS downloaded_count, '
@@ -88,6 +92,7 @@ class ComicTagRepository {
         .map(
           (row) => TagSourceCount(
             tagId: row.read<int>('tag_id'),
+            collectedCount: row.read<int>('collected_count'),
             favoriteCount: row.read<int>('favorite_count'),
             downloadedCount: row.read<int>('downloaded_count'),
             historyCount: row.read<int>('history_count'),

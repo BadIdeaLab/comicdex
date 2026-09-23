@@ -1,10 +1,13 @@
 import 'package:concept_nhv/models/collection_summary.dart';
 import 'package:concept_nhv/models/comic_card_data.dart';
+import 'package:concept_nhv/models/local_tag_catalog_entry.dart';
 import 'package:concept_nhv/application/home/home_shell_controller.dart';
 import 'package:concept_nhv/application/reader/reader_launcher.dart';
+import 'package:concept_nhv/state/blocked_tags_model.dart';
 import 'package:concept_nhv/state/comic_feed_model.dart';
 import 'package:concept_nhv/state/download_manager_model.dart';
 import 'package:concept_nhv/state/home_ui_model.dart';
+import 'package:concept_nhv/state/tag_preference_model.dart';
 import 'package:concept_nhv/widgets/collection_grid_sliver.dart';
 import 'package:concept_nhv/widgets/comic_grid_sliver.dart';
 import 'package:concept_nhv/widgets/download_job_list_sliver.dart';
@@ -12,6 +15,7 @@ import 'package:concept_nhv/widgets/loading_indicator_bar.dart';
 import 'package:concept_nhv/widgets/page_jump_bar.dart';
 import 'package:concept_nhv/widgets/glass_container.dart';
 import 'package:concept_nhv/widgets/search_suggestions_panel.dart';
+import 'package:concept_nhv/widgets/tag_preference_sliver.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -391,7 +395,82 @@ class _CollectionOverviewScreenState extends State<CollectionOverviewScreen> {
       if (feedModel.collectionSummariesFuture == null) {
         feedModel.refreshCollections();
       }
+      // Recomputed on every visit: favorites and downloads change underneath
+      // it, and the query is cheap enough not to warrant a cache (P78).
+      context.read<TagPreferenceModel>().load();
     });
+  }
+
+  Widget _buildTagPreferences(BuildContext context) {
+    final model = context.watch<TagPreferenceModel>();
+    if (!model.hasLoaded) {
+      return const SliverToBoxAdapter(child: SizedBox.shrink());
+    }
+    return TagPreferenceSliver(
+      preferences: model.preferences,
+      sort: model.sort,
+      onSortChanged: model.setSort,
+      onTagTap: (tag, displayName) => context
+          .read<HomeShellController>()
+          .submitTagSearch(<String>[tag.query]),
+      onTagLongPress: (tag, displayName) =>
+          _showTagPreferenceMenu(context, tag, displayName),
+    );
+  }
+
+  Future<void> _showTagPreferenceMenu(
+    BuildContext context,
+    LocalTagCatalogEntry tag,
+    String displayName,
+  ) {
+    final blockedTagsModel = context.read<BlockedTagsModel>();
+    final homeUiModel = context.read<HomeUiModel>();
+    final messenger = ScaffoldMessenger.of(context);
+    final isBlocked = blockedTagsModel.blockedTags.contains(tag.query);
+
+    return showModalBottomSheet<void>(
+      context: context,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            ListTile(
+              leading: Icon(
+                isBlocked ? Icons.check_circle_outline : Icons.block,
+              ),
+              title: Text(
+                isBlocked ? 'Unblock "$displayName"' : 'Block "$displayName"',
+              ),
+              onTap: () {
+                Navigator.of(sheetContext).pop();
+                if (isBlocked) {
+                  blockedTagsModel.removeTag(tag.query);
+                } else {
+                  blockedTagsModel.addTag(tag.query);
+                }
+                messenger.showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      isBlocked
+                          ? '"${tag.query}" removed from blocked tags'
+                          : '"${tag.query}" added to blocked tags',
+                    ),
+                  ),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.download_outlined),
+              title: Text('Search "$displayName" in Downloads'),
+              onTap: () {
+                Navigator.of(sheetContext).pop();
+                homeUiModel.searchInDownloads(displayName);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -426,7 +505,12 @@ class _CollectionOverviewScreenState extends State<CollectionOverviewScreen> {
         if (!snapshot.hasData) {
           return const SliverFillRemaining(hasScrollBody: false);
         }
-        return CollectionGridSliver(collections: snapshot.requireData);
+        return SliverMainAxisGroup(
+          slivers: <Widget>[
+            CollectionGridSliver(collections: snapshot.requireData),
+            _buildTagPreferences(context),
+          ],
+        );
       },
     );
   }
