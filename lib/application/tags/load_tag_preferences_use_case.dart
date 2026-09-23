@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:concept_nhv/application/search/blocked_tags_repository.dart';
 import 'package:concept_nhv/models/tag_catalog_type.dart';
 import 'package:concept_nhv/models/tag_preference_entry.dart';
@@ -21,6 +23,16 @@ class LoadTagPreferencesUseCase {
   /// Tags on fewer comics than this are noise, not preference.
   final int minimumComics;
 
+  /// Added to a tag's site-wide count before dividing, so a tag that barely
+  /// exists site-wide cannot top the ranking on three comics.
+  ///
+  /// The Wilson bound only discounts *the user's* small sample; the divisor
+  /// is a small sample too. An artist with five galleries site-wide is a
+  /// genuine find when the user kept all five, and noise when they kept
+  /// three — this asks rare tags for more evidence instead of cutting them
+  /// off at a threshold.
+  static const int siteWidePrior = 30;
+
   /// Types worth ranking. `language` says nothing about taste, and
   /// `group`/`category` ids resolve to nothing because the catalog omits them.
   static const List<TagCatalogType> rankedTypes = <TagCatalogType>[
@@ -30,10 +42,32 @@ class LoadTagPreferencesUseCase {
     TagCatalogType.character,
   ];
 
+  /// Lower bound of the Wilson score interval for `successes / trials`.
+  ///
+  /// The point estimate alone lets a tag on 3 of 650 comics beat one on 30
+  /// once divided by a small site-wide count; the lower bound answers "how
+  /// much does this share hold up given how little evidence there is", which
+  /// is exactly the penalty small samples need. Additive smoothing cannot do
+  /// this job here: it shifts every tag by the same constant and leaves the
+  /// order untouched.
+  static double wilsonLowerBound(int successes, int trials, {double z = 1.96}) {
+    if (trials <= 0 || successes <= 0) return 0;
+    final n = trials.toDouble();
+    final observed = successes / n;
+    final zSquared = z * z;
+    final denominator = 1 + zSquared / n;
+    final centre = observed + zSquared / (2 * n);
+    final margin =
+        z * math.sqrt((observed * (1 - observed) + zSquared / (4 * n)) / n);
+    final lower = (centre - margin) / denominator;
+    return lower < 0 ? 0 : lower;
+  }
+
   Future<Map<TagCatalogType, List<TagPreferenceEntry>>> execute({
     TagPreferenceSort sort = TagPreferenceSort.count,
   }) async {
     final counts = await comicTagRepository.loadTagSourceCounts();
+    final keptComics = await comicTagRepository.loadKeptComicCount();
     final blocked = (await blockedTagsRepository.loadBlockedTags()).toSet();
 
     final grouped = <TagCatalogType, List<TagPreferenceEntry>>{
@@ -53,6 +87,10 @@ class LoadTagPreferencesUseCase {
           comicCount: count.collectedCount,
           favoriteCount: count.favoriteCount,
           downloadedCount: count.downloadedCount,
+          affinity: tag.count <= 0
+              ? 0
+              : wilsonLowerBound(count.collectedCount, keptComics) /
+                    (tag.count + siteWidePrior),
         ),
       );
     }

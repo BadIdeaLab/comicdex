@@ -7,6 +7,7 @@ class TagPreferenceEntry {
     required this.comicCount,
     required this.favoriteCount,
     required this.downloadedCount,
+    required this.affinity,
   });
 
   final LocalTagCatalogEntry tag;
@@ -18,12 +19,13 @@ class TagPreferenceEntry {
   final int favoriteCount;
   final int downloadedCount;
 
-  /// How over-represented the tag is compared to the whole site: the share
-  /// of galleries carrying it site-wide is [LocalTagCatalogEntry.count], so
-  /// dividing ranks a tag the user keeps unusually often above one that is
-  /// simply common everywhere. Within a type this orders the same way as a
-  /// proper share-vs-share lift, since both denominators are constants.
-  double get affinity => tag.count <= 0 ? 0 : comicCount / tag.count;
+  /// How over-represented the tag is compared to the whole site, computed by
+  /// [LoadTagPreferencesUseCase]: a conservative estimate of the user's share
+  /// (Wilson lower bound) divided by the tag's site-wide count plus a prior,
+  /// so neither a tag seen on three comics nor one that barely exists
+  /// site-wide can top the ranking on thin evidence (P79). The site-wide
+  /// grand total cancels out, which is just as well — it is not available.
+  final double affinity;
 }
 
 enum TagPreferenceSort {

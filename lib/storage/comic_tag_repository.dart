@@ -55,6 +55,28 @@ class ComicTagRepository {
     return rows.map((row) => row.tagId).toSet();
   }
 
+  /// How many comics the user kept: favorited or downloaded, counted once
+  /// when both. The sample size behind every tag's share (P79).
+  Future<int> loadKeptComicCount() async {
+    final row = await localDatabase
+        .customSelect(
+          'SELECT COUNT(*) AS kept FROM ('
+          'SELECT comicid AS comic_id FROM Collection WHERE name = ?1 '
+          'UNION '
+          'SELECT comic_id FROM DownloadedComic'
+          ')',
+          variables: <drift.Variable<Object>>[
+            drift.Variable.withString(CollectionType.favorite.storageName),
+          ],
+          readsFrom: <drift.ResultSetImplementation<dynamic, dynamic>>{
+            localDatabase.collections,
+            localDatabase.downloadedComics,
+          },
+        )
+        .getSingle();
+    return row.read<int>('kept');
+  }
+
   /// Per-tag comic counts across favorites, downloads and history.
   ///
   /// Membership is decided by joining through `Collection` and

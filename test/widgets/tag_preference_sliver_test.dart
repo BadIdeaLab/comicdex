@@ -19,6 +19,7 @@ void main() {
     comicCount: count,
     favoriteCount: count,
     downloadedCount: count,
+    affinity: count / 1000,
   );
 
   Future<void> pump(

@@ -117,6 +117,57 @@ void main() {
       },
     );
 
+    test('a tiny sample no longer outranks a well-evidenced tag', () async {
+      // "niche" is on 3 comics out of 40 site-wide; "liked" is on 20 out of
+      // 400. Raw lift ties them at 0.05 — the point estimate says nothing
+      // about how little evidence the first one has.
+      for (var i = 0; i < 20; i++) {
+        await favorite('$i', i < 3 ? <int>[10, 20] : <int>[20]);
+      }
+
+      final result = await buildUseCase(<LocalTagCatalogEntry>[
+        entry(10, 'niche', count: 40),
+        entry(20, 'liked', count: 400),
+      ]).execute(sort: TagPreferenceSort.affinity);
+
+      expect(result[TagCatalogType.tag]!.map((e) => e.tag.slug), <String>[
+        'liked',
+        'niche',
+      ]);
+    });
+
+    test('a tag that barely exists site-wide needs more evidence', () async {
+      // 3 of a tag with 5 galleries site-wide vs 20 of one with 400: the raw
+      // ratio puts the first far ahead purely because its divisor is tiny.
+      for (var i = 0; i < 20; i++) {
+        await favorite('$i', i < 3 ? <int>[10, 20] : <int>[20]);
+      }
+
+      final result = await buildUseCase(<LocalTagCatalogEntry>[
+        entry(10, 'barely-exists', count: 5),
+        entry(20, 'liked', count: 400),
+      ]).execute(sort: TagPreferenceSort.affinity);
+
+      expect(result[TagCatalogType.tag]!.map((e) => e.tag.slug), <String>[
+        'liked',
+        'barely-exists',
+      ]);
+    });
+
+    test('but keeping most of a rare tag still ranks it first', () async {
+      // Same rare tag, now the user kept 5 of its 5.
+      for (var i = 0; i < 20; i++) {
+        await favorite('$i', i < 5 ? <int>[10, 20] : <int>[20]);
+      }
+
+      final result = await buildUseCase(<LocalTagCatalogEntry>[
+        entry(10, 'barely-exists', count: 5),
+        entry(20, 'liked', count: 400),
+      ]).execute(sort: TagPreferenceSort.affinity);
+
+      expect(result[TagCatalogType.tag]!.first.tag.slug, 'barely-exists');
+    });
+
     test('sorts by comic count, then by affinity when asked', () async {
       // "common" is on more comics, but "niche" is far rarer site-wide.
       for (final id in <String>['1', '2', '3', '4']) {
@@ -156,6 +207,30 @@ void main() {
       expect(result[TagCatalogType.tag]!.single.tag.slug, 'kept');
       expect(result[TagCatalogType.artist]!.single.tag.slug, 'artist-a');
       expect(result[TagCatalogType.parody], isEmpty);
+    });
+  });
+
+  group('wilsonLowerBound', () {
+    test('is zero without evidence', () {
+      expect(LoadTagPreferencesUseCase.wilsonLowerBound(0, 650), 0);
+      expect(LoadTagPreferencesUseCase.wilsonLowerBound(5, 0), 0);
+    });
+
+    test('discounts a small sample far more than a large one', () {
+      // Same observed share (10%), 100x the evidence.
+      final small = LoadTagPreferencesUseCase.wilsonLowerBound(1, 10);
+      final large = LoadTagPreferencesUseCase.wilsonLowerBound(100, 1000);
+
+      expect(small, lessThan(0.1));
+      expect(large, lessThan(0.1));
+      expect(large, greaterThan(small));
+    });
+
+    test('approaches the observed share as evidence grows', () {
+      final bound = LoadTagPreferencesUseCase.wilsonLowerBound(1000, 10000);
+
+      expect(bound, greaterThan(0.09));
+      expect(bound, lessThan(0.1));
     });
   });
 }
