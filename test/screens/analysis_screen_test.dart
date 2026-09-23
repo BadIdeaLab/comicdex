@@ -222,7 +222,9 @@ void main() {
     return homeUiModel;
   }
 
-  testWidgets('long-pressing a tag can search it in Downloads', (tester) async {
+  testWidgets('long-pressing a tag filters Downloads by its id', (
+    tester,
+  ) async {
     for (var i = 0; i < 6; i++) {
       await keep('paired-$i', <int>[10, 11]);
     }
@@ -231,13 +233,29 @@ void main() {
 
     await tester.longPress(find.text('全彩'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Search "全彩" in Downloads'));
+    await tester.tap(find.text('Filter Downloads by "全彩"'));
     await tester.pumpAndSettle();
 
-    // Same trap as the tap-to-search fix: filling the query alone leaves the
+    // Same trap as the tap-to-search fix: setting the filter alone leaves the
     // analysis page on screen, so the action appears to do nothing.
-    expect(homeUiModel.downloadsSearchQuery, '全彩');
+    expect(homeUiModel.downloadsTagIds, <int>[10]);
     expect(homeUiModel.navigationIndex, 1);
+    expect(find.text('home'), findsOneWidget);
+  });
+
+  testWidgets('long-pressing a pair filters Downloads by both tags', (
+    tester,
+  ) async {
+    for (var i = 0; i < 6; i++) {
+      await keep('paired-$i', <int>[10, 11]);
+    }
+
+    final homeUiModel = await pumpRoutedScreen(tester);
+
+    await tester.longPress(find.text('全彩 + schoolgirl'));
+    await tester.pumpAndSettle();
+
+    expect(homeUiModel.downloadsTagIds, <int>[10, 11]);
     expect(find.text('home'), findsOneWidget);
   });
 

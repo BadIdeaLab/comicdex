@@ -3,6 +3,7 @@ import 'package:concept_nhv/application/tags/load_tag_cooccurrence_use_case.dart
 import 'package:concept_nhv/application/tags/load_tag_coverage_use_case.dart';
 import 'package:concept_nhv/models/tag_pair_preference.dart';
 import 'package:concept_nhv/services/tag_display_service.dart';
+import 'package:concept_nhv/state/home_ui_model.dart';
 import 'package:concept_nhv/state/tag_preference_model.dart';
 import 'package:concept_nhv/widgets/glass_container.dart';
 import 'package:concept_nhv/widgets/tag_actions_sheet.dart';
@@ -80,6 +81,14 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
     if (context.mounted) context.goNamed('index');
   }
 
+  /// Sends the whole combination to the Downloads tab as tag chips (P82) —
+  /// the local counterpart of tapping, which searches the site.
+  void _filterDownloads(BuildContext context, List<int> tagIds) {
+    if (tagIds.isEmpty) return;
+    context.read<HomeUiModel>().filterDownloadsByTags(tagIds);
+    context.goNamed('index');
+  }
+
   Widget _buildCoverage(BuildContext context, TagCoverage? coverage) {
     final theme = Theme.of(context);
     if (coverage == null || coverage.keptComics == 0) {
@@ -152,7 +161,8 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
           child: Text(
             'Tag pairs that show up together more often than each tag on its '
-            'own would suggest. Tap to search both.',
+            'own would suggest. Tap to search both; long-press to filter '
+            'Downloads by them.',
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
@@ -163,6 +173,10 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
             pair: pair,
             fraction: maxLift <= 0 ? 0 : pair.lift / maxLift,
             onTap: () => _searchOnHome(context, pair.searchQueries),
+            onLongPress: () => _filterDownloads(context, <int>[
+              if (pair.first.id != null) pair.first.id!,
+              if (pair.second.id != null) pair.second.id!,
+            ]),
           ),
       ],
     );
@@ -174,11 +188,13 @@ class _PairRow extends StatelessWidget {
     required this.pair,
     required this.fraction,
     required this.onTap,
+    required this.onLongPress,
   });
 
   final TagPairPreference pair;
   final double fraction;
   final VoidCallback onTap;
+  final VoidCallback onLongPress;
 
   @override
   Widget build(BuildContext context) {
@@ -198,6 +214,7 @@ class _PairRow extends StatelessWidget {
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
+          onLongPress: onLongPress,
           child: Stack(
             children: <Widget>[
               Positioned.fill(

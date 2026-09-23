@@ -90,7 +90,10 @@ class GlassContainer extends StatelessWidget {
     return ClipRRect(
       borderRadius: borderRadius,
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: effectiveSigma, sigmaY: effectiveSigma),
+        filter: ImageFilter.blur(
+          sigmaX: effectiveSigma,
+          sigmaY: effectiveSigma,
+        ),
         child: Container(
           decoration: BoxDecoration(
             color: colorScheme.surfaceContainer.withValues(alpha: opacity),

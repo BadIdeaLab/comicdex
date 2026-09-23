@@ -17,6 +17,7 @@ Future<T?> showGlassModalBottomSheet<T>({
     isScrollControlled: isScrollControlled,
     useRootNavigator: useRootNavigator,
     useSafeArea: useSafeArea,
-    builder: (sheetContext) => GlassContainer.sheet(child: builder(sheetContext)),
+    builder: (sheetContext) =>
+        GlassContainer.sheet(child: builder(sheetContext)),
   );
 }

@@ -18,19 +18,51 @@ class HomeUiModel extends ChangeNotifier {
 
   bool _isLoading = false;
 
+  /// Tag ids the Downloads tab filters by, ANDed together (P82).
+  ///
+  /// Ids rather than text: tag names contain spaces (`sole female`), so
+  /// splitting the search box on whitespace would match nothing, and a
+  /// substring filter cannot tell `full color` from `full colors`.
+  final List<int> _downloadsTagIds = <int>[];
+
   int get navigationIndex => _navigationIndex;
   bool get isLoading => _isLoading;
   String get downloadsSearchQuery => downloadsSearchController.text;
+  List<int> get downloadsTagIds => List<int>.unmodifiable(_downloadsTagIds);
 
   /// Filters the Downloads tab by [label] and switches to it.
   ///
   /// [label] must be the tag's **displayed** name, not its `type:slug` query.
-  /// The Downloads filter is a plain substring match over titles and tag names
-  /// (see `DownloadJobListSliver`), so `tag:full-color` would match nothing
-  /// while looking perfectly reasonable in the box.
+  /// The Downloads text filter is a plain substring match over titles and tag
+  /// names (see `DownloadJobListSliver`), so `tag:full-color` would match
+  /// nothing while looking perfectly reasonable in the box.
   void searchInDownloads(String label) {
     downloadsSearchController.text = label;
     _navigationIndex = 1;
+    notifyListeners();
+  }
+
+  /// Adds tag ids to the Downloads filter and switches to that tab (P82).
+  /// Ids already present are ignored, so tapping the same tag twice does not
+  /// stack up chips.
+  void filterDownloadsByTags(Iterable<int> tagIds) {
+    for (final tagId in tagIds) {
+      if (_downloadsTagIds.contains(tagId)) continue;
+      _downloadsTagIds.add(tagId);
+    }
+    // Always notifies: even when every id was already there, the tab index
+    // moved and the listener has to act on it.
+    _navigationIndex = 1;
+    notifyListeners();
+  }
+
+  void removeDownloadsTagFilter(int tagId) {
+    if (_downloadsTagIds.remove(tagId)) notifyListeners();
+  }
+
+  void clearDownloadsTagFilters() {
+    if (_downloadsTagIds.isEmpty) return;
+    _downloadsTagIds.clear();
     notifyListeners();
   }
 

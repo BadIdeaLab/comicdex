@@ -9,6 +9,7 @@ import 'package:concept_nhv/state/tag_preference_model.dart';
 import 'package:concept_nhv/widgets/collection_grid_sliver.dart';
 import 'package:concept_nhv/widgets/comic_grid_sliver.dart';
 import 'package:concept_nhv/widgets/download_job_list_sliver.dart';
+import 'package:concept_nhv/widgets/downloads_tag_filter_chips.dart';
 import 'package:concept_nhv/widgets/loading_indicator_bar.dart';
 import 'package:concept_nhv/widgets/page_jump_bar.dart';
 import 'package:concept_nhv/widgets/glass_container.dart';
@@ -235,12 +236,18 @@ class _HomeShellState extends State<HomeShell> {
   Widget _buildBody(BuildContext context, int navigationIndex) {
     switch (navigationIndex) {
       case 1:
-        return DownloadJobListSliver(
-          searchQuery: context.select<HomeUiModel, String>(
-            (m) => m.downloadsSearchQuery,
-          ),
-          onOpenOfflineReader: (comicId) =>
-              _handleOpenOfflineReader(context, comicId),
+        return SliverMainAxisGroup(
+          slivers: <Widget>[
+            const SliverToBoxAdapter(child: DownloadsTagFilterChips()),
+            DownloadJobListSliver(
+              searchQuery: context.select<HomeUiModel, String>(
+                (m) => m.downloadsSearchQuery,
+              ),
+              filterTagIds: context.watch<HomeUiModel>().downloadsTagIds,
+              onOpenOfflineReader: (comicId) =>
+                  _handleOpenOfflineReader(context, comicId),
+            ),
+          ],
         );
       case 2:
         return const CollectionOverviewScreen();

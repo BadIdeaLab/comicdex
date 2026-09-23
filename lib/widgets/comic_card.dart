@@ -59,7 +59,9 @@ class ComicCard extends StatelessWidget {
                   onTap: inSelectionMode
                       ? onSelectionToggle
                       : () => _openReader(context),
-                  onLongPress: inSelectionMode ? null : () => _showTagSheet(context),
+                  onLongPress: inSelectionMode
+                      ? null
+                      : () => _showTagSheet(context),
                   child: FallbackCachedNetworkImage(
                     url: comic.thumbnailUrl,
                     width: comic.thumbnailWidth,
@@ -70,7 +72,11 @@ class ComicCard extends StatelessWidget {
                   ComicLanguageBadge(label: languageCode),
                 if (isSelected)
                   IgnorePointer(
-                    child: Container(color: Theme.of(context).colorScheme.primary.withAlpha(64)),
+                    child: Container(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.primary.withAlpha(64),
+                    ),
                   ),
                 if (inSelectionMode)
                   Positioned(
@@ -78,7 +84,9 @@ class ComicCard extends StatelessWidget {
                     right: 6,
                     child: IgnorePointer(
                       child: Icon(
-                        isSelected ? Icons.check_circle : Icons.radio_button_unchecked,
+                        isSelected
+                            ? Icons.check_circle
+                            : Icons.radio_button_unchecked,
                         color: isSelected
                             ? Theme.of(context).colorScheme.primary
                             : Colors.white,
@@ -175,7 +183,8 @@ class ComicCard extends StatelessWidget {
       tags: comic.tags,
       comicId: comic.id,
       comicUploadDate: comic.uploadDate,
-      loadMeta: () => context.read<ComicCardActionCoordinator>().loadComicMeta(comic),
+      loadMeta: () =>
+          context.read<ComicCardActionCoordinator>().loadComicMeta(comic),
       onSearchSelected: (queries) => onTagSelected?.call(queries),
       downloadSlot: _buildDownloadSlot(
         context,
@@ -263,14 +272,15 @@ class ComicCard extends StatelessWidget {
 
     if (shouldRemove != true || !context.mounted) return;
 
-    final result = await context.read<ComicCardActionCoordinator>().removeFromCollection(
-      comic: comic,
-      collectionType: collectionType!,
-    );
+    final result = await context
+        .read<ComicCardActionCoordinator>()
+        .removeFromCollection(comic: comic, collectionType: collectionType!);
     if (!context.mounted) return;
     if (result.triggerHaptic) HapticFeedback.lightImpact();
     if (result.message != null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result.message!)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(result.message!)));
     }
     if (result.shouldRefreshCollection) onCollectionChanged?.call();
   }
@@ -279,37 +289,43 @@ class ComicCard extends StatelessWidget {
     BuildContext context,
     CollectionType targetCollection,
   ) async {
-    final result = await context.read<ComicCardActionCoordinator>().saveToCollection(
-      comic: comic,
-      targetCollection: targetCollection,
-    );
+    final result = await context
+        .read<ComicCardActionCoordinator>()
+        .saveToCollection(comic: comic, targetCollection: targetCollection);
     if (!context.mounted) return;
     if (result.triggerHaptic) HapticFeedback.lightImpact();
     if (result.message != null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result.message!)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(result.message!)));
     }
   }
 
   Future<void> _toggleFavorite(BuildContext context) async {
-    final result = await context.read<ComicCardActionCoordinator>().toggleFavorite(
-      comic: comic,
-      collectionType: collectionType,
-    );
+    final result = await context
+        .read<ComicCardActionCoordinator>()
+        .toggleFavorite(comic: comic, collectionType: collectionType);
     if (!context.mounted) return;
     if (result.triggerHaptic) HapticFeedback.lightImpact();
     if (result.message != null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result.message!)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(result.message!)));
     }
     if (result.shouldRefreshCollection) onCollectionChanged?.call();
   }
 
   Future<void> _enqueueDownload(BuildContext context) async {
-    final result = await context.read<ComicCardActionCoordinator>().enqueueDownload(comic);
+    final result = await context
+        .read<ComicCardActionCoordinator>()
+        .enqueueDownload(comic);
     if (!context.mounted) return;
     if (result.success) Navigator.of(context, rootNavigator: true).pop();
     if (result.triggerHaptic) HapticFeedback.lightImpact();
     if (result.message != null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result.message!)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(result.message!)));
     }
   }
 

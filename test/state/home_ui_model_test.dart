@@ -58,4 +58,50 @@ void main() {
       expect(notificationCount, 1);
     });
   });
+
+  group('downloads tag filters (P82)', () {
+    test('adds ids once and switches to the Downloads tab', () {
+      final model = HomeUiModel();
+      addTearDown(model.dispose);
+
+      model.filterDownloadsByTags(<int>[10, 11]);
+      model.filterDownloadsByTags(<int>[10]);
+
+      expect(model.downloadsTagIds, <int>[10, 11]);
+      expect(model.navigationIndex, 1);
+    });
+
+    test('removing and clearing narrow back down', () {
+      final model = HomeUiModel();
+      addTearDown(model.dispose);
+      model.filterDownloadsByTags(<int>[10, 11]);
+
+      model.removeDownloadsTagFilter(10);
+      expect(model.downloadsTagIds, <int>[11]);
+
+      model.clearDownloadsTagFilters();
+      expect(model.downloadsTagIds, isEmpty);
+    });
+
+    test('the exposed list cannot be mutated from outside', () {
+      final model = HomeUiModel();
+      addTearDown(model.dispose);
+      model.filterDownloadsByTags(<int>[10]);
+
+      expect(() => model.downloadsTagIds.add(11), throwsUnsupportedError);
+    });
+
+    test('notifies on every change', () {
+      final model = HomeUiModel();
+      addTearDown(model.dispose);
+      var notifications = 0;
+      model.addListener(() => notifications++);
+
+      model.filterDownloadsByTags(<int>[10]);
+      model.removeDownloadsTagFilter(10);
+      model.clearDownloadsTagFilters(); // already empty: no notification
+
+      expect(notifications, 2);
+    });
+  });
 }

@@ -59,18 +59,19 @@ Future<void> showTagActionsSheet(
                 openFavoritesFilteredByTag(context, tagId);
               },
             ),
-          ListTile(
-            leading: const Icon(Icons.download_outlined),
-            title: Text('Search "$displayName" in Downloads'),
-            onTap: () {
-              Navigator.of(sheetContext).pop();
-              homeUiModel.searchInDownloads(displayName);
-              // Filling the query only switches the tab *inside* the shell;
-              // from a pushed route (the analysis page) the shell keeps
-              // showing that route, so the action looks like it did nothing.
-              router.goNamed('index');
-            },
-          ),
+          if (tagId != null)
+            ListTile(
+              leading: const Icon(Icons.download_outlined),
+              title: Text('Filter Downloads by "$displayName"'),
+              onTap: () {
+                Navigator.of(sheetContext).pop();
+                homeUiModel.filterDownloadsByTags(<int>[tagId]);
+                // Adding the filter only switches the tab *inside* the shell;
+                // from a pushed route (the analysis page) the shell keeps
+                // showing that route, so the action looks like it did nothing.
+                router.goNamed('index');
+              },
+            ),
         ],
       ),
     ),

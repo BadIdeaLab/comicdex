@@ -40,9 +40,7 @@ class _DownloadsSortBottomSheetState extends State<DownloadsSortBottomSheet> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.viewInsetsOf(context).bottom,
-      ),
+      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -54,10 +52,9 @@ class _DownloadsSortBottomSheetState extends State<DownloadsSortBottomSheet> {
                 width: 36,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .onSurfaceVariant
-                      .withAlpha(80),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurfaceVariant.withAlpha(80),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -79,27 +76,32 @@ class _DownloadsSortBottomSheetState extends State<DownloadsSortBottomSheet> {
                 Wrap(
                   spacing: 8,
                   runSpacing: 4,
-                  children: DownloadsSortMode.values.map((mode) {
-                    return FilterChip(
-                      label: Text(mode.label),
-                      selected: _selectedMode == mode,
-                      onSelected: (_) => _handleModeSelected(mode),
-                      showCheckmark: true,
-                    );
-                  }).toList(growable: false),
+                  children: DownloadsSortMode.values
+                      .map((mode) {
+                        return FilterChip(
+                          label: Text(mode.label),
+                          selected: _selectedMode == mode,
+                          onSelected: (_) => _handleModeSelected(mode),
+                          showCheckmark: true,
+                        );
+                      })
+                      .toList(growable: false),
                 ),
                 const SizedBox(height: 12),
                 Wrap(
                   spacing: 8,
                   runSpacing: 4,
-                  children: DownloadsSortDirection.values.map((direction) {
-                    return FilterChip(
-                      label: Text(direction.label),
-                      selected: _selectedDirection == direction,
-                      onSelected: (_) => _handleDirectionSelected(direction),
-                      showCheckmark: true,
-                    );
-                  }).toList(growable: false),
+                  children: DownloadsSortDirection.values
+                      .map((direction) {
+                        return FilterChip(
+                          label: Text(direction.label),
+                          selected: _selectedDirection == direction,
+                          onSelected: (_) =>
+                              _handleDirectionSelected(direction),
+                          showCheckmark: true,
+                        );
+                      })
+                      .toList(growable: false),
                 ),
               ],
             ),
@@ -141,9 +143,9 @@ class _DownloadsSortBottomSheetState extends State<DownloadsSortBottomSheet> {
 
   void _handleApply() {
     context.read<DownloadManagerModel>().setDownloadsSortMode(_selectedMode);
-    context
-        .read<DownloadManagerModel>()
-        .setDownloadsSortDirection(_selectedDirection);
+    context.read<DownloadManagerModel>().setDownloadsSortDirection(
+      _selectedDirection,
+    );
     Navigator.of(context).pop(true);
   }
 

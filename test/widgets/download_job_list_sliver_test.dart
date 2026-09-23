@@ -273,6 +273,95 @@ void main() {
       },
     );
 
+    group('tag id filters (P82)', () {
+      DownloadManagerModel buildModel() => _FakeDownloadManagerModel(
+        harness: harness,
+        itemsOverride: <DownloadListItemSnapshot>[
+          _itemFromDownloadedComic(
+            comicId: 'both',
+            title: 'Colored Schoolgirl',
+            requestedAt: DateTime(2026, 4, 10),
+            tags: <ComicTag>[
+              ComicTag(
+                id: 10,
+                type: 'tag',
+                name: 'full-color',
+                url: '/tag/full-color/',
+              ),
+              ComicTag(
+                id: 11,
+                type: 'tag',
+                name: 'schoolgirl',
+                url: '/tag/schoolgirl/',
+              ),
+            ],
+          ),
+          _itemFromDownloadedComic(
+            comicId: 'one',
+            title: 'Colored Only',
+            requestedAt: DateTime(2026, 4, 11),
+            tags: <ComicTag>[
+              ComicTag(
+                id: 10,
+                type: 'tag',
+                name: 'full-color',
+                url: '/tag/full-color/',
+              ),
+            ],
+          ),
+        ],
+      );
+
+      testWidgets('two tag ids are ANDed, not ORed', (tester) async {
+        await tester.pumpWidget(
+          _buildTestWidget(
+            model: buildModel(),
+            filterTagIds: const <int>[10, 11],
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Colored Schoolgirl'), findsOneWidget);
+        expect(find.text('Colored Only'), findsNothing);
+      });
+
+      testWidgets('one tag id keeps everything carrying it', (tester) async {
+        await tester.pumpWidget(
+          _buildTestWidget(model: buildModel(), filterTagIds: const <int>[10]),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Colored Schoolgirl'), findsOneWidget);
+        expect(find.text('Colored Only'), findsOneWidget);
+      });
+
+      testWidgets('text and tag filters are ANDed together', (tester) async {
+        await tester.pumpWidget(
+          _buildTestWidget(
+            model: buildModel(),
+            filterTagIds: const <int>[10],
+            searchQuery: 'Schoolgirl',
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Colored Schoolgirl'), findsOneWidget);
+        expect(find.text('Colored Only'), findsNothing);
+      });
+
+      testWidgets('an unmatched tag filter says so, not "no downloads"', (
+        tester,
+      ) async {
+        await tester.pumpWidget(
+          _buildTestWidget(model: buildModel(), filterTagIds: const <int>[99]),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('No downloads carry those tags'), findsOneWidget);
+        expect(find.text('No downloads yet'), findsNothing);
+      });
+    });
+
     testWidgets('filters by the label the tag sheet writes', (tester) async {
       // The two halves of this feature sit in different files: the tag sheet
       // writes a string, this list interprets it. Writing the tag's
@@ -528,6 +617,7 @@ Widget _buildTestWidget({
   required DownloadManagerModel model,
   HomeShellController? controller,
   String searchQuery = '',
+  List<int> filterTagIds = const <int>[],
   ValueChanged<String>? onOpenOfflineReader,
   Map<String, String> tagDisplayMap = const <String, String>{},
 }) {
@@ -560,6 +650,7 @@ Widget _buildTestWidget({
               slivers: <Widget>[
                 DownloadJobListSliver(
                   searchQuery: searchQuery,
+                  filterTagIds: filterTagIds,
                   onOpenOfflineReader: onOpenOfflineReader ?? (_) {},
                 ),
               ],

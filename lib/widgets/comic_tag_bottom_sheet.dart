@@ -43,7 +43,9 @@ class ComicTagBottomSheet extends StatefulWidget {
 
   /// Optional async loader that fetches the full tag list and favorite count.
   /// When null, [initialTags] is used directly.
-  final Future<({List<ComicTag> tags, int? numFavorites, int? uploadDate})> Function()? loadMeta;
+  final Future<({List<ComicTag> tags, int? numFavorites, int? uploadDate})>
+  Function()?
+  loadMeta;
 
   /// Called with the sorted list of selected tag query strings when the user
   /// confirms the search. The sheet is dismissed before this is invoked.
@@ -65,7 +67,9 @@ class ComicTagBottomSheet extends StatefulWidget {
     String? comicId,
     int? comicUploadDate,
     int? comicNumFavorites,
-    Future<({List<ComicTag> tags, int? numFavorites, int? uploadDate})> Function()? loadMeta,
+    Future<({List<ComicTag> tags, int? numFavorites, int? uploadDate})>
+    Function()?
+    loadMeta,
     Widget? downloadSlot,
     Widget? actionSlot,
   }) {
@@ -128,7 +132,10 @@ class _ComicTagBottomSheetState extends State<ComicTagBottomSheet> {
           children: <Widget>[
             _buildHandle(context),
             _buildTitle(context),
-            if (_numFavorites != null || widget.comicId != null || _loadedUploadDate != null || widget.comicUploadDate != null)
+            if (_numFavorites != null ||
+                widget.comicId != null ||
+                _loadedUploadDate != null ||
+                widget.comicUploadDate != null)
               _buildInfoRow(context),
             const Divider(height: 1),
             Expanded(
@@ -183,7 +190,11 @@ class _ComicTagBottomSheetState extends State<ComicTagBottomSheet> {
       child: Row(
         children: <Widget>[
           if (_numFavorites != null) ...<Widget>[
-            Icon(Icons.favorite, size: 13, color: Theme.of(context).colorScheme.error),
+            Icon(
+              Icons.favorite,
+              size: 13,
+              color: Theme.of(context).colorScheme.error,
+            ),
             const SizedBox(width: 4),
             Text(_formatFavorites(_numFavorites), style: style),
             const SizedBox(width: 12),
@@ -193,7 +204,10 @@ class _ComicTagBottomSheetState extends State<ComicTagBottomSheet> {
             const SizedBox(width: 12),
           ],
           if (_loadedUploadDate != null || widget.comicUploadDate != null)
-            Text(_formatDate((_loadedUploadDate ?? widget.comicUploadDate)!), style: style),
+            Text(
+              _formatDate((_loadedUploadDate ?? widget.comicUploadDate)!),
+              style: style,
+            ),
         ],
       ),
     );
@@ -254,7 +268,8 @@ class _ComicTagBottomSheetState extends State<ComicTagBottomSheet> {
                 }
               });
             },
-            onLongPressTag: (tag) => _showTagContextMenu(context, tag, blockedTagsModel),
+            onLongPressTag: (tag) =>
+                _showTagContextMenu(context, tag, blockedTagsModel),
           ),
           const SizedBox(height: 12),
         ],
@@ -325,11 +340,22 @@ class _ComicTagBottomSheetState extends State<ComicTagBottomSheet> {
                 ),
               ListTile(
                 leading: const Icon(Icons.download_outlined),
-                title: Text('Search "$label" in Downloads'),
+                title: Text(
+                  tag.id == null
+                      ? 'Search "$label" in Downloads'
+                      : 'Filter Downloads by "$label"',
+                ),
                 onTap: () {
                   Navigator.of(sheetContext).pop();
                   Navigator.of(context).pop();
-                  homeUiModel.searchInDownloads(label);
+                  // With an id the filter is exact; without one (listing
+                  // payloads carry no ids) the text filter is all there is.
+                  final tagId = tag.id;
+                  if (tagId == null) {
+                    homeUiModel.searchInDownloads(label);
+                  } else {
+                    homeUiModel.filterDownloadsByTags(<int>[tagId]);
+                  }
                 },
               ),
             ],
@@ -358,7 +384,8 @@ class _ComicTagBottomSheetState extends State<ComicTagBottomSheet> {
                   children: (_selectedQueries.toList()..sort()).map((query) {
                     return Chip(
                       label: Text(query),
-                      onDeleted: () => setState(() => _selectedQueries.remove(query)),
+                      onDeleted: () =>
+                          setState(() => _selectedQueries.remove(query)),
                     );
                   }).toList(),
                 ),
@@ -448,7 +475,13 @@ class _ComicTagBottomSheetState extends State<ComicTagBottomSheet> {
 
   List<String> _sortedTypeKeys(List<String> keys) {
     const priority = <String>[
-      'parody', 'character', 'tag', 'artist', 'group', 'language', 'category',
+      'parody',
+      'character',
+      'tag',
+      'artist',
+      'group',
+      'language',
+      'category',
     ];
     final prioritized = keys.where(priority.contains).toList()
       ..sort((a, b) => priority.indexOf(a) - priority.indexOf(b));
@@ -498,12 +531,13 @@ class _TagTypeSection extends StatelessWidget {
               onLongPress: () => onLongPressTag(tag),
               child: FilterChip(
                 label: Text(
-                  context.read<TagDisplayService>().displayName(tag.slug, tag.name ?? ''),
+                  context.read<TagDisplayService>().displayName(
+                    tag.slug,
+                    tag.name ?? '',
+                  ),
                 ),
                 selected: selectedQueries.contains(tag.query),
-                avatar: isBlocked
-                    ? const Icon(Icons.block, size: 14)
-                    : null,
+                avatar: isBlocked ? const Icon(Icons.block, size: 14) : null,
                 onSelected: (_) => onToggleTag(tag),
               ),
             );

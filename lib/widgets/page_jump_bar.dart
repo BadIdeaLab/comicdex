@@ -75,7 +75,9 @@ class _PageJumpBarState extends State<PageJumpBar> {
       children: <Widget>[
         IconButton(
           visualDensity: VisualDensity.compact,
-          onPressed: (_isJumping || atFirst) ? null : () => _jump(widget.currentPage - 1),
+          onPressed: (_isJumping || atFirst)
+              ? null
+              : () => _jump(widget.currentPage - 1),
           icon: const Icon(Icons.chevron_left),
           tooltip: 'Previous page',
         ),
@@ -101,14 +103,13 @@ class _PageJumpBarState extends State<PageJumpBar> {
         if (total != null)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: Text(
-              '/ $total',
-              style: theme.textTheme.bodySmall,
-            ),
+            child: Text('/ $total', style: theme.textTheme.bodySmall),
           ),
         IconButton(
           visualDensity: VisualDensity.compact,
-          onPressed: (_isJumping || atLast) ? null : () => _jump(widget.currentPage + 1),
+          onPressed: (_isJumping || atLast)
+              ? null
+              : () => _jump(widget.currentPage + 1),
           icon: const Icon(Icons.chevron_right),
           tooltip: 'Next page',
         ),

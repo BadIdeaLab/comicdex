@@ -21,9 +21,15 @@ class DownloadJobListSliver extends StatefulWidget {
     super.key,
     required this.searchQuery,
     required this.onOpenOfflineReader,
+    this.filterTagIds = const <int>[],
   });
 
   final String searchQuery;
+
+  /// Tag ids every shown download must carry — ANDed with each other and
+  /// with [searchQuery] (P82). Matched by id, so `full color` cannot match
+  /// `full colors` the way the text filter would.
+  final List<int> filterTagIds;
 
   /// Called when the user taps a completed download card to open the reader.
   final ValueChanged<String> onOpenOfflineReader;
@@ -58,6 +64,11 @@ class _DownloadJobListSliverState extends State<DownloadJobListSliver> {
         final tagDisplayService = context.read<TagDisplayService>();
         final filteredItems = model.sortedDownloadItems
             .where((item) {
+              // An in-progress job has no tags yet, so a tag filter cannot
+              // match it — deliberately, since it has nothing to match on.
+              for (final tagId in widget.filterTagIds) {
+                if (!item.tags.any((tag) => tag.id == tagId)) return false;
+              }
               if (query.isEmpty) return true;
               if (item.title.toLowerCase().contains(query)) return true;
               return item.tags.any((tag) {
@@ -79,12 +90,15 @@ class _DownloadJobListSliverState extends State<DownloadJobListSliver> {
             .toList(growable: false);
 
         if (filteredItems.isEmpty) {
+          final hasFilter = query.isNotEmpty || widget.filterTagIds.isNotEmpty;
           return SliverFillRemaining(
             hasScrollBody: false,
             child: Center(
               child: Text(
-                widget.searchQuery.trim().isEmpty
+                !hasFilter
                     ? 'No downloads yet'
+                    : query.isEmpty
+                    ? 'No downloads carry those tags'
                     : 'No downloads match "${widget.searchQuery.trim()}"',
               ),
             ),

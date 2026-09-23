@@ -51,9 +51,7 @@ class _SortFilterBottomSheetState extends State<SortFilterBottomSheet> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.viewInsetsOf(context).bottom,
-      ),
+      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -66,7 +64,9 @@ class _SortFilterBottomSheetState extends State<SortFilterBottomSheet> {
                 width: 36,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant.withAlpha(80),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurfaceVariant.withAlpha(80),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
