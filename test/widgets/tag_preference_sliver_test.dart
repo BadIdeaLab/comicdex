@@ -28,6 +28,7 @@ void main() {
     void Function(LocalTagCatalogEntry tag, String displayName)? onTagTap,
     void Function(LocalTagCatalogEntry tag, String displayName)? onLongPress,
     ValueChanged<TagPreferenceSort>? onSortChanged,
+    VoidCallback? onOpenFullAnalysis,
   }) {
     return tester.pumpWidget(
       Provider<TagDisplayService>.value(
@@ -43,6 +44,7 @@ void main() {
                 onSortChanged: onSortChanged ?? (_) {},
                 onTagTap: onTagTap ?? (_, _) {},
                 onTagLongPress: onLongPress ?? (_, _) {},
+                onOpenFullAnalysis: onOpenFullAnalysis,
               ),
             ],
           ),
@@ -125,5 +127,33 @@ void main() {
     );
 
     expect(find.textContaining('No tag data yet'), findsOneWidget);
+  });
+
+  testWidgets('the header fits a phone and its action stays tappable', (
+    tester,
+  ) async {
+    // A phone, not the tablet-sized default test surface: the single-row
+    // header overflowed here, drew the sort toggle over the title and the
+    // "Full analysis" link, and swallowed that link's taps.
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+
+    var opened = 0;
+    await pump(
+      tester,
+      preferences: <TagCatalogType, List<TagPreferenceEntry>>{
+        TagCatalogType.tag: <TagPreferenceEntry>[entry('tag-1', 42)],
+      },
+      onOpenFullAnalysis: () => opened++,
+    );
+
+    expect(find.text('Tag Preferences'), findsOneWidget);
+    expect(find.text('Most kept'), findsOneWidget);
+
+    await tester.tap(find.text('Full analysis ›'));
+    await tester.pumpAndSettle();
+
+    expect(opened, 1);
   });
 }

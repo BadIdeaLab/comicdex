@@ -277,4 +277,22 @@ void main() {
     expect(homeUiModel.searchController.text, contains('tag:schoolgirl'));
     expect(find.text('home'), findsOneWidget);
   });
+
+  testWidgets('the combinations header fits a phone', (tester) async {
+    // Same overflow the ranking header had: the sort toggle plus a title do
+    // not fit one row at phone width.
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+
+    for (var i = 0; i < 6; i++) {
+      await keep('paired-$i', <int>[10, 11]);
+    }
+
+    await pumpScreen(tester);
+
+    expect(find.text('Taste Combinations'), findsOneWidget);
+    expect(find.text('Most distinctive'), findsWidgets);
+    expect(find.text('全彩 + schoolgirl'), findsOneWidget);
+  });
 }

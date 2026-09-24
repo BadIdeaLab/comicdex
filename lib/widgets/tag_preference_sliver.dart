@@ -2,6 +2,7 @@ import 'package:concept_nhv/models/local_tag_catalog_entry.dart';
 import 'package:concept_nhv/models/tag_catalog_type.dart';
 import 'package:concept_nhv/models/tag_preference_entry.dart';
 import 'package:concept_nhv/services/tag_display_service.dart';
+import 'package:concept_nhv/widgets/sort_section_header.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -88,42 +89,12 @@ class _TagPreferenceSliverState extends State<TagPreferenceSliver> {
   }
 
   Widget _buildHeader(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 12, 8),
-      child: Row(
-        children: <Widget>[
-          Expanded(
-            child: Row(
-              children: <Widget>[
-                Text('Tag Preferences', style: theme.textTheme.titleMedium),
-                if (widget.onOpenFullAnalysis != null)
-                  TextButton(
-                    onPressed: widget.onOpenFullAnalysis,
-                    child: const Text('Full analysis ›'),
-                  ),
-              ],
-            ),
-          ),
-          SegmentedButton<TagPreferenceSort>(
-            showSelectedIcon: false,
-            style: const ButtonStyle(visualDensity: VisualDensity.compact),
-            segments: const <ButtonSegment<TagPreferenceSort>>[
-              ButtonSegment<TagPreferenceSort>(
-                value: TagPreferenceSort.count,
-                label: Text('Most kept'),
-              ),
-              ButtonSegment<TagPreferenceSort>(
-                value: TagPreferenceSort.affinity,
-                label: Text('Most distinctive'),
-              ),
-            ],
-            selected: <TagPreferenceSort>{widget.sort},
-            onSelectionChanged: (selection) =>
-                widget.onSortChanged(selection.first),
-          ),
-        ],
-      ),
+    return SortSectionHeader(
+      title: 'Tag Preferences',
+      sort: widget.sort,
+      onSortChanged: widget.onSortChanged,
+      actionLabel: widget.onOpenFullAnalysis == null ? null : 'Full analysis ›',
+      onAction: widget.onOpenFullAnalysis,
     );
   }
 

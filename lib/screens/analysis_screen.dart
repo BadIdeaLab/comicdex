@@ -6,6 +6,7 @@ import 'package:concept_nhv/services/tag_display_service.dart';
 import 'package:concept_nhv/state/home_ui_model.dart';
 import 'package:concept_nhv/state/tag_preference_model.dart';
 import 'package:concept_nhv/widgets/glass_container.dart';
+import 'package:concept_nhv/widgets/sort_section_header.dart';
 import 'package:concept_nhv/widgets/tag_actions_sheet.dart';
 import 'package:concept_nhv/widgets/tag_preference_sliver.dart';
 import 'package:flutter/material.dart';
@@ -163,35 +164,11 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
 
     return SliverList.list(
       children: <Widget>[
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 24, 12, 2),
-          child: Row(
-            children: <Widget>[
-              Expanded(
-                child: Text(
-                  'Taste Combinations',
-                  style: theme.textTheme.titleMedium,
-                ),
-              ),
-              SegmentedButton<TagPreferenceSort>(
-                showSelectedIcon: false,
-                style: const ButtonStyle(visualDensity: VisualDensity.compact),
-                segments: const <ButtonSegment<TagPreferenceSort>>[
-                  ButtonSegment<TagPreferenceSort>(
-                    value: TagPreferenceSort.count,
-                    label: Text('Most kept'),
-                  ),
-                  ButtonSegment<TagPreferenceSort>(
-                    value: TagPreferenceSort.affinity,
-                    label: Text('Most distinctive'),
-                  ),
-                ],
-                selected: <TagPreferenceSort>{sort},
-                onSelectionChanged: (selection) =>
-                    onSortChanged(selection.first),
-              ),
-            ],
-          ),
+        const SizedBox(height: 24),
+        SortSectionHeader(
+          title: 'Taste Combinations',
+          sort: sort,
+          onSortChanged: onSortChanged,
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
