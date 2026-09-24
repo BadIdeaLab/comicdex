@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:concept_nhv/application/tags/tag_preference_vector.dart';
 import 'package:concept_nhv/models/comic.dart';
 import 'package:concept_nhv/models/comic_card_data.dart';
 import 'package:concept_nhv/models/comic_images.dart';
@@ -748,6 +749,138 @@ void main() {
       expect(
         manager.sortedDownloadItems.map((item) => item.comicId),
         <String>['916', '913', '914', '915'],
+      );
+
+      manager.dispose();
+    });
+
+    test('sorts completed items by preference score', () async {
+      // Weights, not the ranking that produces them: this test is about the
+      // comparator.
+      const vector = TagPreferenceVector(
+        weights: <int, double>{10: 1.0, 11: 0.5},
+        goldThreshold: 0.8,
+        platinumThreshold: 1.2,
+      );
+      Comic tagged(String id, String mediaId, List<int> tagIds) {
+        return sampleComic(id: id, mediaId: mediaId).copyWith(
+          tags: <ComicTag>[
+            for (final tagId in tagIds) ComicTag(id: tagId, type: 'tag'),
+          ],
+        );
+      }
+
+      final best = tagged('930', '800', <int>[10, 11]);
+      final middling = tagged('931', '801', <int>[11]);
+      final unscored = tagged('932', '802', <int>[]);
+
+      final manager = DownloadManagerModel(
+        nhentaiGateway: FakeNhentaiGateway(detailComic: best),
+        cdnConfigService: _FakeCdnConfigService(),
+        downloadQueueRepository: harness.downloadQueueRepository,
+        downloadedLibraryRepository: harness.downloadedLibraryRepository,
+        downloadSettingsRepository: DownloadSettingsStore(
+          optionsStore: OptionsStore(localDatabase: harness.localDatabase),
+        ),
+        downloadAssetStore: DownloadAssetStore(
+          directoryResolver: () async => tempDirectory,
+        ),
+        imageCompressionService: FakeImageCompressionService(),
+        remoteAssetFetcher: FakeRemoteAssetFetcher(),
+      );
+
+      // Downloaded newest first, so the expected order cannot come from the
+      // default sort by accident.
+      var downloadedAt = DateTime(2026, 6, 1, 9);
+      for (final comic in <Comic>[best, middling, unscored]) {
+        await harness.downloadQueueRepository.upsertJobManifest(
+          comic: comic,
+          title: comic.id,
+          requestedAt: downloadedAt,
+        );
+        await harness.downloadQueueRepository.markJobCompleted(
+          comic.id,
+          completedAt: downloadedAt,
+        );
+        await harness.downloadedLibraryRepository.saveDownloadedComic(
+          comic: comic,
+          rootDirectoryPath: '/downloads/${comic.id}',
+          coverLocalPath: null,
+          downloadedAt: downloadedAt,
+        );
+        downloadedAt = downloadedAt.subtract(const Duration(hours: 1));
+      }
+
+      await manager.refresh();
+      manager.setPreferenceVector(vector);
+      manager.setDownloadsSortMode(DownloadsSortMode.preference);
+      manager.setDownloadsSortDirection(DownloadsSortDirection.descending);
+
+      expect(
+        manager.sortedDownloadItems.map((item) => item.comicId),
+        <String>['930', '931', '932'],
+      );
+
+      manager.setDownloadsSortDirection(DownloadsSortDirection.ascending);
+
+      expect(
+        manager.sortedDownloadItems.map((item) => item.comicId),
+        <String>['932', '931', '930'],
+      );
+
+      manager.dispose();
+    });
+
+    test('leaves the order alone until a preference vector arrives', () async {
+      final first = sampleComic(id: '940', mediaId: '810').copyWith(
+        tags: <ComicTag>[ComicTag(id: 10, type: 'tag')],
+      );
+      final second = sampleComic(id: '941', mediaId: '811');
+
+      final manager = DownloadManagerModel(
+        nhentaiGateway: FakeNhentaiGateway(detailComic: first),
+        cdnConfigService: _FakeCdnConfigService(),
+        downloadQueueRepository: harness.downloadQueueRepository,
+        downloadedLibraryRepository: harness.downloadedLibraryRepository,
+        downloadSettingsRepository: DownloadSettingsStore(
+          optionsStore: OptionsStore(localDatabase: harness.localDatabase),
+        ),
+        downloadAssetStore: DownloadAssetStore(
+          directoryResolver: () async => tempDirectory,
+        ),
+        imageCompressionService: FakeImageCompressionService(),
+        remoteAssetFetcher: FakeRemoteAssetFetcher(),
+      );
+
+      var downloadedAt = DateTime(2026, 6, 2, 9);
+      for (final comic in <Comic>[first, second]) {
+        await harness.downloadQueueRepository.upsertJobManifest(
+          comic: comic,
+          title: comic.id,
+          requestedAt: downloadedAt,
+        );
+        await harness.downloadQueueRepository.markJobCompleted(
+          comic.id,
+          completedAt: downloadedAt,
+        );
+        await harness.downloadedLibraryRepository.saveDownloadedComic(
+          comic: comic,
+          rootDirectoryPath: '/downloads/${comic.id}',
+          coverLocalPath: null,
+          downloadedAt: downloadedAt,
+        );
+        downloadedAt = downloadedAt.subtract(const Duration(hours: 1));
+      }
+
+      await manager.refresh();
+      manager.setDownloadsSortMode(DownloadsSortMode.preference);
+      manager.setDownloadsSortDirection(DownloadsSortDirection.descending);
+
+      // Every score is zero, so the fallback decides: newest first, rather
+      // than whatever order the rows happened to arrive in.
+      expect(
+        manager.sortedDownloadItems.map((item) => item.comicId),
+        <String>['940', '941'],
       );
 
       manager.dispose();

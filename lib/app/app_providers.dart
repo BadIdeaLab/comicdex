@@ -1,5 +1,7 @@
 import 'package:concept_nhv/application/downloads/download_settings_repository.dart';
 import 'package:concept_nhv/application/search/blocked_tags_repository.dart';
+import 'package:concept_nhv/application/tags/build_tag_preference_vector_use_case.dart';
+import 'package:concept_nhv/application/tags/tag_preference_vector.dart';
 import 'package:concept_nhv/application/favorites/clear_favorite_auth_use_case.dart';
 import 'package:concept_nhv/application/favorites/initialize_favorites_use_case.dart';
 import 'package:concept_nhv/application/favorites/save_api_key_use_case.dart';
@@ -56,6 +58,7 @@ import 'package:concept_nhv/state/reader_settings_model.dart';
 import 'package:concept_nhv/state/download_manager_model.dart';
 import 'package:concept_nhv/state/favorite_sync_model.dart';
 import 'package:concept_nhv/state/home_ui_model.dart';
+import 'package:concept_nhv/state/preference_score_model.dart';
 import 'package:concept_nhv/state/tag_catalog_browser_model.dart';
 import 'package:concept_nhv/state/tag_preference_model.dart';
 import 'package:concept_nhv/storage/collection_repository.dart';
@@ -296,6 +299,12 @@ List<SingleChildWidget> _buildUseCaseProviders() {
       ),
     ),
     Provider(
+      create: (context) => BuildTagPreferenceVectorUseCase(
+        loadTagPreferencesUseCase: context.read(),
+        comicTagRepository: context.read(),
+      ),
+    ),
+    Provider(
       create: (context) => LoadTagCooccurrenceUseCase(
         comicTagRepository: context.read(),
         localTagCatalogService: context.read(),
@@ -412,6 +421,23 @@ List<SingleChildWidget> _buildStateProviders() {
     ),
     ChangeNotifierProvider(
       create: (context) {
+        final model = PreferenceScoreModel(
+          buildTagPreferenceVectorUseCase: context.read(),
+        );
+        model.ensureLoaded();
+        return model;
+      },
+    ),
+    // Republished as plain data so a comic card can read the vector without
+    // depending on the model that loads it.
+    ProxyProvider<PreferenceScoreModel, TagPreferenceVector>(
+      update: (_, preferenceScores, _) => preferenceScores.vector,
+    ),
+    // Proxied rather than plain so the preference vector reaches the sort
+    // comparator as soon as it is computed: the downloads list is built
+    // before the first scoring pass finishes.
+    ChangeNotifierProxyProvider<PreferenceScoreModel, DownloadManagerModel>(
+      create: (context) {
         final model = DownloadManagerModel(
           nhentaiGateway: context.read(),
           cdnConfigService: context.read(),
@@ -425,6 +451,8 @@ List<SingleChildWidget> _buildStateProviders() {
         model.initialize();
         return model;
       },
+      update: (_, preferenceScores, model) =>
+          model!..setPreferenceVector(preferenceScores.vector),
     ),
     // Only the *preferences* are app-scoped. The state of an open comic lives
     // on the reader screen that shows it (ReaderSessionModel), so nothing

@@ -3,7 +3,12 @@ enum DownloadsSortMode {
   lastRead('Last Read'),
   mostFavorited('Most Favorited'),
   title('Title'),
-  author('Author');
+  author('Author'),
+
+  /// Ranked by how well the comic's tags match the user's taste (P84).
+  /// Local data only, so unlike the home tab there is no pagination to make
+  /// the order misleading.
+  preference('Preference');
 
   const DownloadsSortMode(this.label);
 

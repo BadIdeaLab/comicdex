@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:concept_nhv/application/downloads/download_settings_repository.dart';
+import 'package:concept_nhv/application/tags/tag_preference_vector.dart';
 import 'package:concept_nhv/models/comic.dart';
 import 'package:concept_nhv/models/comic_card_data.dart';
 import 'package:concept_nhv/models/comic_images.dart';
@@ -59,6 +60,7 @@ class DownloadManagerModel extends ChangeNotifier with WidgetsBindingObserver {
   List<DownloadListItemSnapshot> _downloadItems =
       const <DownloadListItemSnapshot>[];
   DownloadsSortMode _downloadsSortMode = DownloadsSortMode.latestDownloaded;
+  TagPreferenceVector _preferenceVector = const TagPreferenceVector.empty();
   DownloadsSortDirection _downloadsSortDirection =
       DownloadsSortDirection.descending;
   int _completedAnchorPage = 1;
@@ -203,6 +205,17 @@ class DownloadManagerModel extends ChangeNotifier with WidgetsBindingObserver {
     await downloadSettingsRepository.saveCompletedViewIsGrid(isGrid);
   }
 
+  /// Pushed in by `PreferenceScoreModel` (P84). Kept as plain data rather
+  /// than a dependency so this model still sorts — by everything except
+  /// preference — with no preference data loaded at all.
+  void setPreferenceVector(TagPreferenceVector vector) {
+    if (identical(_preferenceVector, vector)) return;
+    _preferenceVector = vector;
+    if (_downloadsSortMode == DownloadsSortMode.preference) {
+      notifyListeners();
+    }
+  }
+
   void setDownloadsSortMode(DownloadsSortMode mode) {
     if (_downloadsSortMode == mode) {
       return;
@@ -300,7 +313,32 @@ class DownloadManagerModel extends ChangeNotifier with WidgetsBindingObserver {
         b.title.toLowerCase(),
       ),
       DownloadsSortMode.author => _compareAuthorItems(a, b),
+      DownloadsSortMode.preference => _comparePreferenceItems(a, b),
     };
+  }
+
+  int _comparePreferenceItems(
+    DownloadListItemSnapshot a,
+    DownloadListItemSnapshot b,
+  ) {
+    final comparison = _compareByDirection(
+      _preferenceScore(a),
+      _preferenceScore(b),
+    );
+    if (comparison != 0) return comparison;
+    // Everything unscored — a library with no preference data, or comics
+    // downloaded before tag ids were stored — would otherwise come back in
+    // whatever order the rows arrived in.
+    return (b.downloadedAt ?? b.updatedAt).compareTo(
+      a.downloadedAt ?? a.updatedAt,
+    );
+  }
+
+  double _preferenceScore(DownloadListItemSnapshot item) {
+    return _preferenceVector.scoreComic(<int>[
+      for (final tag in item.tags)
+        if (tag.id != null) tag.id!,
+    ]);
   }
 
   int _compareAuthorItems(
