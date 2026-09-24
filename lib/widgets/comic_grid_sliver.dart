@@ -17,6 +17,7 @@ class ComicGridSliver extends StatelessWidget {
     this.onTagSelected,
     this.selectedIds = const <String>{},
     this.onToggleSelection,
+    this.showsPreferenceBadges = false,
   });
 
   final List<ComicCardData> comics;
@@ -29,6 +30,9 @@ class ComicGridSliver extends StatelessWidget {
 
   final Set<String> selectedIds;
   final void Function(ComicCardData comic)? onToggleSelection;
+
+  /// Forwarded to each [ComicCard]; only the home feed sets it (P84).
+  final bool showsPreferenceBadges;
 
   @override
   Widget build(BuildContext context) {
@@ -64,6 +68,7 @@ class ComicGridSliver extends StatelessWidget {
 
         final comic = comics[index];
         return ComicCard(
+          showsPreferenceBadge: showsPreferenceBadges,
           key: ValueKey<String>(comic.id),
           comic: comic,
           collectionType: collectionType,

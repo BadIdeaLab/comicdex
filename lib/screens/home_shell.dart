@@ -5,6 +5,7 @@ import 'package:concept_nhv/application/reader/reader_launcher.dart';
 import 'package:concept_nhv/state/comic_feed_model.dart';
 import 'package:concept_nhv/state/download_manager_model.dart';
 import 'package:concept_nhv/state/home_ui_model.dart';
+import 'package:concept_nhv/state/preference_score_model.dart';
 import 'package:concept_nhv/state/tag_preference_model.dart';
 import 'package:concept_nhv/widgets/collection_grid_sliver.dart';
 import 'package:concept_nhv/widgets/comic_grid_sliver.dart';
@@ -298,6 +299,7 @@ class _HomeShellState extends State<HomeShell> {
                 ),
               ),
             ComicGridSliver(
+              showsPreferenceBadges: true,
               comics: comics.map(ComicCardData.fromComic).toList(),
               pageLoaded: feedModel.pageLoaded,
               onTagSelected: (tagQueries) =>
@@ -404,6 +406,12 @@ class _CollectionOverviewScreenState extends State<CollectionOverviewScreen> {
       // Recomputed on every visit: favorites and downloads change underneath
       // it, and the query is cheap enough not to warrant a cache (P78).
       context.read<TagPreferenceModel>().load();
+      // The badges and the Downloads preference sort read the same ranking,
+      // so this is the natural place to refresh them: the user is looking at
+      // their taste, which is exactly when it has just changed (P84).
+      // Optional, like the badge itself — this screen has to build with no
+      // preference data above it.
+      context.read<PreferenceScoreModel?>()?.refresh();
     });
   }
 

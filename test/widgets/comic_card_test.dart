@@ -1,4 +1,6 @@
+import 'package:concept_nhv/application/tags/tag_preference_vector.dart';
 import 'package:concept_nhv/widgets/comic_card.dart';
+import 'package:concept_nhv/widgets/preference_badge.dart';
 import 'package:concept_nhv/widgets/comic_language_badge.dart';
 import 'package:concept_nhv/application/favorites/clear_favorite_auth_use_case.dart';
 import 'package:concept_nhv/application/favorites/initialize_favorites_use_case.dart';
@@ -276,6 +278,127 @@ void main() {
         expect(find.byKey(languageBadgeKey), findsNothing);
       });
     });
+
+    group('preference badge', () {
+      // Scores are averaged over the matched tags and dampened by sqrt of
+      // their count, so two full-weight tags reach 1.41 and one reaches 1.0.
+      const vector = TagPreferenceVector(
+        weights: <int, double>{10: 1.0, 11: 1.0, 12: 0.2},
+        goldThreshold: 0.9,
+        platinumThreshold: 1.3,
+      );
+
+      Future<void> pumpCard(
+        WidgetTester tester, {
+        List<int>? tagIds,
+        TagPreferenceVector? preferenceVector,
+        bool showsPreferenceBadge = true,
+      }) async {
+        await tester.pumpWidget(
+          _buildCardTestWidget(
+            favoriteSyncModel: favoriteSyncModel,
+            downloadManagerModel: _FakeDownloadManagerModel(
+              harness: harness,
+              jobs: const <DownloadJobSnapshot>[],
+            ),
+            tagIds: tagIds,
+            preferenceVector: preferenceVector,
+            showsPreferenceBadge: showsPreferenceBadge,
+          ),
+        );
+        await tester.pump();
+      }
+
+      testWidgets('marks a top-scoring comic platinum', (tester) async {
+        await pumpCard(
+          tester,
+          tagIds: <int>[10, 11],
+          preferenceVector: vector,
+        );
+
+        expect(find.byKey(platinumBadgeKey), findsOneWidget);
+        expect(find.byKey(goldBadgeKey), findsNothing);
+      });
+
+      testWidgets('marks a good comic gold', (tester) async {
+        await pumpCard(tester, tagIds: <int>[10], preferenceVector: vector);
+
+        expect(find.byKey(goldBadgeKey), findsOneWidget);
+        expect(find.byKey(platinumBadgeKey), findsNothing);
+      });
+
+      testWidgets('leaves an ordinary comic unmarked', (tester) async {
+        await pumpCard(tester, tagIds: <int>[12], preferenceVector: vector);
+
+        expect(find.byKey(goldBadgeKey), findsNothing);
+        expect(find.byKey(platinumBadgeKey), findsNothing);
+      });
+
+      testWidgets('awards nothing while the thresholds are unknown', (
+        tester,
+      ) async {
+        // A library too small to cut percentiles from: scoring still works,
+        // but no badge may claim rarity.
+        await pumpCard(
+          tester,
+          tagIds: <int>[10, 11],
+          preferenceVector: const TagPreferenceVector(
+            weights: <int, double>{10: 1.0, 11: 1.0},
+            goldThreshold: null,
+            platinumThreshold: null,
+          ),
+        );
+
+        expect(find.byKey(goldBadgeKey), findsNothing);
+        expect(find.byKey(platinumBadgeKey), findsNothing);
+      });
+
+      testWidgets('builds without any preference data above it', (
+        tester,
+      ) async {
+        await pumpCard(tester, tagIds: <int>[10, 11]);
+
+        expect(find.byKey(platinumBadgeKey), findsNothing);
+        expect(tester.takeException(), isNull);
+      });
+
+      testWidgets('stays off outside the home feed', (tester) async {
+        // The threshold is calibrated against the feed, so in a library view
+        // — where every comic is one the user already kept — nearly every
+        // cover would carry a badge, which says nothing.
+        await pumpCard(
+          tester,
+          tagIds: <int>[10, 11],
+          preferenceVector: vector,
+          showsPreferenceBadge: false,
+        );
+
+        expect(find.byKey(platinumBadgeKey), findsNothing);
+        expect(find.byKey(goldBadgeKey), findsNothing);
+      });
+
+      testWidgets('leaves the language badge visible', (tester) async {
+        // Opposite corners by design — the two badges must never compete for
+        // the same spot.
+        await tester.pumpWidget(
+          _buildCardTestWidget(
+            favoriteSyncModel: favoriteSyncModel,
+            downloadManagerModel: _FakeDownloadManagerModel(
+              harness: harness,
+              jobs: const <DownloadJobSnapshot>[],
+            ),
+            tags: <ComicTag>[_languageTag('japanese')],
+            tagIds: <int>[10, 11],
+            preferenceVector: vector,
+            showsPreferenceBadge: true,
+          ),
+        );
+        await tester.pump();
+
+        expect(find.byKey(languageBadgeKey), findsOneWidget);
+        expect(find.byKey(platinumBadgeKey), findsOneWidget);
+      });
+    });
   });
 }
 
@@ -284,6 +407,8 @@ Widget _buildCardTestWidget({
   required DownloadManagerModel downloadManagerModel,
   List<ComicTag>? tags,
   List<int>? tagIds,
+  TagPreferenceVector? preferenceVector,
+  bool showsPreferenceBadge = false,
   double width = 180,
 }) {
   var comic = sampleComic(id: 'card-1');
@@ -299,12 +424,17 @@ Widget _buildCardTestWidget({
       ChangeNotifierProvider<DownloadManagerModel>.value(
         value: downloadManagerModel,
       ),
+      if (preferenceVector != null)
+        Provider<TagPreferenceVector>.value(value: preferenceVector),
     ],
     child: MaterialApp(
       home: Scaffold(
         body: SizedBox(
           width: width,
-          child: ComicCard(comic: ComicCardData.fromComic(comic)),
+          child: ComicCard(
+            comic: ComicCardData.fromComic(comic),
+            showsPreferenceBadge: showsPreferenceBadge,
+          ),
         ),
       ),
     ),

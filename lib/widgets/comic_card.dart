@@ -5,6 +5,7 @@ import 'package:concept_nhv/models/comic_language.dart';
 import 'package:concept_nhv/models/comic_card_data.dart';
 import 'package:concept_nhv/models/download_job_status.dart';
 import 'package:concept_nhv/state/download_manager_model.dart';
+import 'package:concept_nhv/application/tags/tag_preference_vector.dart';
 import 'package:concept_nhv/state/favorite_sync_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -12,6 +13,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'comic_language_badge.dart';
+import 'preference_badge.dart';
 import 'comic_tag_bottom_sheet.dart';
 import 'fallback_cached_network_image.dart';
 
@@ -24,6 +26,7 @@ class ComicCard extends StatelessWidget {
     this.onTagSelected,
     this.isSelected = false,
     this.onSelectionToggle,
+    this.showsPreferenceBadge = false,
   });
 
   final ComicCardData comic;
@@ -39,6 +42,13 @@ class ComicCard extends StatelessWidget {
   final bool isSelected;
   final VoidCallback? onSelectionToggle;
 
+  /// Whether to mark a comic that scores well against the user's taste
+  /// (P84). Off everywhere but the home feed: the badge says "you might like
+  /// this", which is worth nothing on a comic already favorited or
+  /// downloaded, and its threshold is calibrated against the feed, so in a
+  /// library view almost every cover would carry one.
+  final bool showsPreferenceBadge;
+
   @override
   Widget build(BuildContext context) {
     final inSelectionMode = onSelectionToggle != null;
@@ -46,6 +56,16 @@ class ComicCard extends StatelessWidget {
       tags: comic.tags,
       tagIds: comic.tagIds,
     );
+    // The vector rather than the model that owns it: the card needs the
+    // numbers, not the loading. Nullable, because the badge is an extra and
+    // every screen that already builds cards must keep working without any
+    // preference data above it.
+    final tier = !showsPreferenceBadge
+        ? PreferenceTier.none
+        : context.watch<TagPreferenceVector?>()?.tierFor(
+                comic.effectiveTagIds,
+              ) ??
+              PreferenceTier.none;
     return Column(
       children: <Widget>[
         Expanded(
@@ -70,6 +90,7 @@ class ComicCard extends StatelessWidget {
                 ),
                 if (languageCode != null)
                   ComicLanguageBadge(label: languageCode),
+                PreferenceBadge(tier: tier),
                 if (isSelected)
                   IgnorePointer(
                     child: Container(
