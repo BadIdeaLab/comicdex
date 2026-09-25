@@ -1,3 +1,4 @@
+import 'package:concept_nhv/l10n/app_localizations.dart';
 import 'package:concept_nhv/models/collection_type.dart';
 import 'package:concept_nhv/models/comic_card_data.dart';
 import 'package:concept_nhv/state/comic_feed_model.dart';
@@ -6,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'comic_card.dart';
+import 'feed_failure_message.dart';
 
 class ComicGridSliver extends StatelessWidget {
   const ComicGridSliver({
@@ -63,6 +65,19 @@ class ComicGridSliver extends StatelessWidget {
             );
             await feedModel.fetchNextPage(page: pageLoaded! + 1);
             homeUiModel.setLoading(false);
+
+            // Scrolling is deliberately still alive after a failure, so the
+            // only way the reader learns a page did not arrive is being told.
+            final failure = feedModel.feedFailure;
+            if (failure != null && context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    feedFailureMessage(AppLocalizations.of(context)!, failure),
+                  ),
+                ),
+              );
+            }
           });
         }
 

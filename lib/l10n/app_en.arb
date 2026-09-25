@@ -638,5 +638,10 @@
       }
     }
   },
-  "retryButton": "Retry"
+  "retryButton": "Retry",
+  "feedErrorNetwork": "No connection. Check the network and try again.",
+  "feedErrorForbidden": "Authentication issue (403).",
+  "feedErrorNotFound": "The site had nothing at that address (404).",
+  "feedErrorServer": "The site is not responding right now. It was tried a few times already — give it a moment.",
+  "feedErrorUnknown": "Failed to load comics from the site."
 }

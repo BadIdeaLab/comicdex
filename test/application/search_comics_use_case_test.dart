@@ -1,3 +1,4 @@
+import 'package:concept_nhv/application/feed/feed_load_result.dart';
 import 'package:concept_nhv/application/feed/search_comics_use_case.dart';
 import 'package:concept_nhv/models/comic.dart';
 import 'package:concept_nhv/models/comic_search_response.dart';
@@ -26,11 +27,55 @@ void main() {
 
     expect(result.statusCode, 404);
     expect(result.comics, isEmpty);
-    expect(result.errorMessage, 'Website API issue (404).');
-    expect(result.noMorePage, isTrue);
+    expect(result.failure, FeedLoadFailure.notFound);
+    // Never `true` on a failure: that flag means "the end of the results",
+    // and conflating them ended infinite scrolling for the session (P89).
+    expect(result.noMorePage, isFalse);
     expect(gateway.searchedUris, hasLength(1));
     expect(gateway.searchedUris.single.queryParameters['query'], 'tag:test');
     expect(gateway.searchedUris.single.queryParameters['sort'], 'popular-month');
+  });
+
+  test('retries a gateway timeout and returns the page that arrives', () async {
+    // The site answers 504 often enough that failing the reader on the first
+    // attempt loses a page that works a moment later.
+    final gateway = _SequenceNhentaiGateway(<Object>[
+      _badResponseException(504),
+      ComicSearchResponse(
+        result: <dynamic>[sampleComic()].cast(),
+        numPages: 3,
+      ),
+    ]);
+    final useCase = SearchComicsUseCase(
+      nhentaiGateway: gateway,
+      searchQueryBuilder: const SearchQueryBuilder(),
+      retrySleep: (_) async {},
+    );
+
+    final result = await useCase.execute(query: '', page: 1);
+
+    expect(result.hasFailed, isFalse);
+    expect(result.comics, hasLength(1));
+    expect(gateway.searchedUris, hasLength(2), reason: 'it should have retried');
+  });
+
+  test('reports a server failure without ending pagination', () async {
+    final gateway = _SequenceNhentaiGateway(<Object>[
+      _badResponseException(504),
+      _badResponseException(504),
+      _badResponseException(504),
+    ]);
+    final useCase = SearchComicsUseCase(
+      nhentaiGateway: gateway,
+      searchQueryBuilder: const SearchQueryBuilder(),
+      retrySleep: (_) async {},
+    );
+
+    final result = await useCase.execute(query: '', page: 4);
+
+    expect(result.failure, FeedLoadFailure.server);
+    expect(result.noMorePage, isFalse);
+    expect(result.pageLoaded, 4);
   });
 
   test('appends blocked tag exclusions to search uri', () async {
@@ -70,8 +115,8 @@ void main() {
 
     expect(result.statusCode, 403);
     expect(result.comics, isEmpty);
-    expect(result.errorMessage, 'Authentication issue (403).');
-    expect(result.noMorePage, isTrue);
+    expect(result.failure, FeedLoadFailure.forbidden);
+    expect(result.noMorePage, isFalse);
   });
 }
 

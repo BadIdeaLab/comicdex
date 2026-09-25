@@ -2,6 +2,7 @@ import 'package:concept_nhv/application/feed/feed_load_result.dart';
 import 'package:concept_nhv/models/comic.dart';
 import 'package:concept_nhv/models/popular_sort_type.dart';
 import 'package:concept_nhv/services/nhentai_api_client.dart';
+import 'package:concept_nhv/services/request_retry.dart';
 import 'package:concept_nhv/services/search_query_builder.dart';
 import 'package:dio/dio.dart';
 
@@ -9,10 +10,15 @@ class SearchComicsUseCase {
   const SearchComicsUseCase({
     required this.nhentaiGateway,
     required this.searchQueryBuilder,
+    this.retrySleep,
   });
 
   final NhentaiGateway nhentaiGateway;
   final SearchQueryBuilder searchQueryBuilder;
+
+  /// Overrides the wait between retries. Only tests pass it: otherwise a
+  /// test covering the 504 path would sit through the real backoff.
+  final Future<void> Function(Duration duration)? retrySleep;
 
   Future<FeedLoadResult> execute({
     required String query,
@@ -28,7 +34,12 @@ class SearchComicsUseCase {
     );
 
     try {
-      final freshComics = await nhentaiGateway.searchComics(uri);
+      // Retried, because the site answers 504 often enough that a single
+      // attempt fails the user for something that works a second later.
+      final freshComics = await withRequestRetry(
+        () => nhentaiGateway.searchComics(uri),
+        sleep: retrySleep,
+      );
       return FeedLoadResult(
         comics: freshComics.result,
         pageLoaded: page,
@@ -40,30 +51,27 @@ class SearchComicsUseCase {
       return FeedLoadResult(
         comics: const <Comic>[],
         pageLoaded: page,
-        noMorePage: true,
+        // Emphatically not `true`: this request failed, which says nothing
+        // about whether more pages exist. Reporting the end of the results
+        // here is what used to switch off infinite scrolling (P89).
+        noMorePage: false,
         statusCode: error.response?.statusCode ?? 200,
-        errorMessage: _mapDioError(error),
+        failure: _classify(error),
       );
     }
   }
 
-  String _mapDioError(DioException error) {
+  FeedLoadFailure _classify(DioException error) {
+    if (isTransientFailure(error)) return FeedLoadFailure.server;
     if (error.type == DioExceptionType.connectionError ||
-        error.type == DioExceptionType.connectionTimeout ||
-        error.type == DioExceptionType.receiveTimeout ||
-        error.type == DioExceptionType.sendTimeout ||
         error.type == DioExceptionType.unknown) {
-      return 'Network error. Check the emulator/device internet connection and DNS.';
+      return FeedLoadFailure.network;
     }
 
-    final statusCode = error.response?.statusCode;
-    if (statusCode == 403) {
-      return 'Authentication issue (403).';
-    }
-    if (statusCode == 404) {
-      return 'Website API issue (404).';
-    }
-
-    return 'Failed to load comics from website.';
+    return switch (error.response?.statusCode) {
+      403 => FeedLoadFailure.forbidden,
+      404 => FeedLoadFailure.notFound,
+      _ => FeedLoadFailure.unknown,
+    };
   }
 }

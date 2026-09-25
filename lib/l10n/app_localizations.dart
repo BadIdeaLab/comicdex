@@ -1604,6 +1604,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Retry'**
   String get retryButton;
+
+  /// No description provided for @feedErrorNetwork.
+  ///
+  /// In en, this message translates to:
+  /// **'No connection. Check the network and try again.'**
+  String get feedErrorNetwork;
+
+  /// No description provided for @feedErrorForbidden.
+  ///
+  /// In en, this message translates to:
+  /// **'Authentication issue (403).'**
+  String get feedErrorForbidden;
+
+  /// No description provided for @feedErrorNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'The site had nothing at that address (404).'**
+  String get feedErrorNotFound;
+
+  /// No description provided for @feedErrorServer.
+  ///
+  /// In en, this message translates to:
+  /// **'The site is not responding right now. It was tried a few times already — give it a moment.'**
+  String get feedErrorServer;
+
+  /// No description provided for @feedErrorUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load comics from the site.'**
+  String get feedErrorUnknown;
 }
 
 class _AppLocalizationsDelegate

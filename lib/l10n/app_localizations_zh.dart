@@ -900,6 +900,23 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get retryButton => 'Retry';
+
+  @override
+  String get feedErrorNetwork =>
+      'No connection. Check the network and try again.';
+
+  @override
+  String get feedErrorForbidden => 'Authentication issue (403).';
+
+  @override
+  String get feedErrorNotFound => 'The site had nothing at that address (404).';
+
+  @override
+  String get feedErrorServer =>
+      'The site is not responding right now. It was tried a few times already — give it a moment.';
+
+  @override
+  String get feedErrorUnknown => 'Failed to load comics from the site.';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -1765,4 +1782,19 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get retryButton => '重試';
+
+  @override
+  String get feedErrorNetwork => '沒有連線。請檢查網路後再試。';
+
+  @override
+  String get feedErrorForbidden => '驗證有問題（403）。';
+
+  @override
+  String get feedErrorNotFound => '網站在那個位址上沒有東西（404）。';
+
+  @override
+  String get feedErrorServer => '網站目前沒有回應。已經自動重試過幾次，請稍等一下。';
+
+  @override
+  String get feedErrorUnknown => '無法從網站載入漫畫。';
 }

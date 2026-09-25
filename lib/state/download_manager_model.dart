@@ -21,7 +21,7 @@ import 'package:concept_nhv/services/image_compression_service.dart';
 import 'package:concept_nhv/services/nhentai_api_client.dart';
 import 'package:concept_nhv/services/nhentai_cdn_config_service.dart';
 import 'package:concept_nhv/services/remote_asset_fetcher.dart';
-import 'package:concept_nhv/services/rate_limit_retry.dart';
+import 'package:concept_nhv/services/request_retry.dart';
 import 'package:concept_nhv/storage/download_queue_repository.dart';
 import 'package:concept_nhv/storage/downloaded_library_repository.dart';
 import 'package:flutter/widgets.dart';
@@ -571,7 +571,7 @@ class DownloadManagerModel extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<Comic> _loadComicDetailWithRetry(String comicId) {
-    return withRateLimitRetry(() => nhentaiGateway.loadComicDetail(comicId));
+    return withRequestRetry(() => nhentaiGateway.loadComicDetail(comicId));
   }
 
   Future<void> pause(String comicId) async {

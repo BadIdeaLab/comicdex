@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:concept_nhv/services/nhentai_api_client.dart';
 import 'package:dio/dio.dart';
 
 abstract class RemoteAssetFetcher {
@@ -7,7 +8,7 @@ abstract class RemoteAssetFetcher {
 }
 
 class DioRemoteAssetFetcher implements RemoteAssetFetcher {
-  DioRemoteAssetFetcher({Dio? dio}) : _dio = dio ?? Dio();
+  DioRemoteAssetFetcher({Dio? dio}) : _dio = dio ?? Dio(nhentaiRequestOptions);
 
   final Dio _dio;
 

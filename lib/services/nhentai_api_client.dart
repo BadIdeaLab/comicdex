@@ -8,6 +8,15 @@ import 'package:concept_nhv/services/nhentai_cdn_config_service.dart';
 import 'package:concept_nhv/storage/nhentai_api_key_store.dart';
 import 'package:dio/dio.dart';
 
+/// Without these a stalled server leaves the request hanging forever, and
+/// the reader just watches a spinner. Long enough for a slow page, short
+/// enough that a dead connection becomes a retryable timeout (P89).
+final BaseOptions nhentaiRequestOptions = BaseOptions(
+  connectTimeout: const Duration(seconds: 15),
+  receiveTimeout: const Duration(seconds: 30),
+  sendTimeout: const Duration(seconds: 30),
+);
+
 abstract class NhentaiGateway {
   Future<void> pingHomepage();
 
@@ -25,7 +34,7 @@ class NhentaiApiClient implements NhentaiGateway {
     required this.apiKeyStore,
     required this.cdnConfigService,
     Dio? dio,
-  }) : _dio = dio ?? Dio();
+  }) : _dio = dio ?? Dio(nhentaiRequestOptions);
 
   final NhentaiApiKeyStore apiKeyStore;
   final NhentaiCdnConfigService cdnConfigService;

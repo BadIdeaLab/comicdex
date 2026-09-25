@@ -5,7 +5,7 @@ import 'package:concept_nhv/models/comic_search_response.dart';
 import 'package:concept_nhv/models/comic_tag.dart';
 import 'package:concept_nhv/models/comic_title.dart';
 import 'package:concept_nhv/services/nhentai_auth_service.dart';
-import 'package:concept_nhv/services/rate_limit_retry.dart';
+import 'package:concept_nhv/services/request_retry.dart';
 import 'package:concept_nhv/storage/nhentai_api_key_store.dart';
 import 'package:dio/dio.dart';
 
@@ -111,7 +111,7 @@ class NhentaiApiRemoteFavoriteGateway implements RemoteFavoriteGateway {
     final uri = Uri.https('nhentai.net', '/api/v2/favorites', <String, String>{
       'page': '$page',
     });
-    return withRateLimitRetry(
+    return withRequestRetry(
       () => _withAuthRequest<Map<String, dynamic>>(uri),
       onRateLimit: onRateLimit,
     );

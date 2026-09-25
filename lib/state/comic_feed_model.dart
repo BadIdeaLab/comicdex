@@ -1,4 +1,5 @@
 import 'package:concept_nhv/application/feed/load_collection_summaries_use_case.dart';
+import 'package:concept_nhv/application/feed/feed_load_result.dart';
 import 'package:concept_nhv/application/feed/search_comics_use_case.dart';
 import 'package:concept_nhv/application/search/blocked_tags_repository.dart';
 import 'package:concept_nhv/models/collection_summary.dart';
@@ -24,7 +25,7 @@ class ComicFeedModel extends ChangeNotifier {
   List<String> _sessionBlockedTags = const <String>[];
   bool _noMorePage = false;
   String _lastQuery = '';
-  String? _feedErrorMessage;
+  FeedLoadFailure? _feedFailure;
   bool _includePersistentTagFiltersForCurrentQuery = true;
   PopularSortType? sortByPopularType;
   List<String> _tagFilters = <String>[];
@@ -39,7 +40,7 @@ class ComicFeedModel extends ChangeNotifier {
   bool get noMorePage => _noMorePage;
   int? get numPages => _numPages;
   int get comicsLoaded => _comics.length;
-  String? get feedErrorMessage => _feedErrorMessage;
+  FeedLoadFailure? get feedFailure => _feedFailure;
   List<String> get tagFilters => List<String>.unmodifiable(_tagFilters);
 
   void toggleSort(PopularSortType type) {
@@ -98,7 +99,15 @@ class ComicFeedModel extends ChangeNotifier {
       blockedTagQueries: _sessionBlockedTags,
     );
 
-    _feedErrorMessage = result.errorMessage;
+    _feedFailure = result.failure;
+    if (result.hasFailed) {
+      // Leave the pagination state exactly as it was: advancing `pageLoaded`
+      // would skip the page that failed, and setting `noMorePage` would end
+      // infinite scrolling over one bad request (P89).
+      notifyListeners();
+      return result.statusCode;
+    }
+
     _noMorePage = result.noMorePage;
     if (!_noMorePage) {
       _comics.addAll(result.comics);

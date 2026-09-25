@@ -5,7 +5,10 @@ import 'package:concept_nhv/application/reader/reader_launcher.dart';
 import 'package:concept_nhv/state/comic_feed_model.dart';
 import 'package:concept_nhv/state/download_manager_model.dart';
 import 'package:concept_nhv/state/home_ui_model.dart';
+import 'package:concept_nhv/application/feed/feed_load_result.dart';
+import 'package:concept_nhv/l10n/app_localizations.dart';
 import 'package:concept_nhv/state/preference_score_model.dart';
+import 'package:concept_nhv/widgets/feed_failure_message.dart';
 import 'package:concept_nhv/state/tag_preference_model.dart';
 import 'package:concept_nhv/widgets/collection_grid_sliver.dart';
 import 'package:concept_nhv/widgets/comic_grid_sliver.dart';
@@ -265,9 +268,9 @@ class _HomeShellState extends State<HomeShell> {
 
         // No data yet — show error or empty placeholder.
         if (comics == null) {
-          final errorMessage = feedModel.feedErrorMessage;
-          if (errorMessage != null) {
-            return _buildFeedError(context, errorMessage);
+          final failure = feedModel.feedFailure;
+          if (failure != null) {
+            return _buildFeedError(context, failure);
           }
           return SliverList(
             delegate: SliverChildListDelegate(const <Widget>[]),
@@ -311,7 +314,8 @@ class _HomeShellState extends State<HomeShell> {
     );
   }
 
-  Widget _buildFeedError(BuildContext context, String errorMessage) {
+  Widget _buildFeedError(BuildContext context, FeedLoadFailure failure) {
+    final l10n = AppLocalizations.of(context)!;
     return SliverFillRemaining(
       hasScrollBody: false,
       child: Center(
@@ -320,11 +324,11 @@ class _HomeShellState extends State<HomeShell> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              Text(errorMessage, textAlign: TextAlign.center),
+              Text(feedFailureMessage(l10n, failure), textAlign: TextAlign.center),
               const SizedBox(height: 12),
               FilledButton(
                 onPressed: () => _retryHomeFeed(context),
-                child: const Text('Retry'),
+                child: Text(l10n.retryButton),
               ),
             ],
           ),

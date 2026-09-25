@@ -928,4 +928,21 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get retryButton => 'Retry';
+
+  @override
+  String get feedErrorNetwork =>
+      'No connection. Check the network and try again.';
+
+  @override
+  String get feedErrorForbidden => 'Authentication issue (403).';
+
+  @override
+  String get feedErrorNotFound => 'The site had nothing at that address (404).';
+
+  @override
+  String get feedErrorServer =>
+      'The site is not responding right now. It was tried a few times already — give it a moment.';
+
+  @override
+  String get feedErrorUnknown => 'Failed to load comics from the site.';
 }
