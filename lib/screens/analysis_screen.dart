@@ -1,5 +1,6 @@
 import 'package:concept_nhv/application/home/home_shell_controller.dart';
 import 'package:concept_nhv/application/tags/load_tag_coverage_use_case.dart';
+import 'package:concept_nhv/l10n/app_localizations.dart';
 import 'package:concept_nhv/models/tag_combination.dart';
 import 'package:concept_nhv/models/tag_preference_entry.dart';
 import 'package:concept_nhv/services/tag_display_service.dart';
@@ -34,6 +35,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final model = context.watch<TagPreferenceModel>();
 
     return Scaffold(
@@ -46,7 +48,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
             flexibleSpace: GlassContainer.bar(child: const SizedBox.expand()),
             floating: true,
             snap: true,
-            title: const Text('Tag Analysis'),
+            title: Text(l10n.analysisTitle),
           ),
           if (!model.hasLoadedAnalysis)
             const SliverFillRemaining(
@@ -96,13 +98,13 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
   }
 
   Widget _buildCoverage(BuildContext context, TagCoverage? coverage) {
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     if (coverage == null || coverage.keptComics == 0) {
       return Padding(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
         child: Text(
-          'Nothing kept yet. Favorite or download some comics and this page '
-          'fills in.',
+          l10n.analysisNothingKept,
           style: theme.textTheme.bodyMedium?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
           ),
@@ -120,12 +122,12 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               Text(
-                '${coverage.keptComics} comics kept',
+                l10n.analysisComicsKept(coverage.keptComics),
                 style: theme.textTheme.titleMedium,
               ),
               const SizedBox(height: 4),
               Text(
-                '${coverage.taggedComics} of them carry tags ($percent%)',
+                l10n.analysisTaggedRatio(coverage.taggedComics, percent),
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
@@ -136,8 +138,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                 // tagged subset only: a low number means the ranking speaks
                 // for part of the library, not all of it.
                 Text(
-                  'Everything below is based on the tagged ones. Sync '
-                  'favorites from Settings to fill in the rest.',
+                  l10n.analysisCoverageHint,
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
@@ -156,6 +157,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
     TagPreferenceSort sort,
     ValueChanged<TagPreferenceSort> onSortChanged,
   ) {
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     if (combinations.isEmpty) {
       return const SliverToBoxAdapter(child: SizedBox.shrink());
@@ -166,16 +168,14 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
       children: <Widget>[
         const SizedBox(height: 24),
         SortSectionHeader(
-          title: 'Taste Combinations',
+          title: l10n.analysisCombinationsTitle,
           sort: sort,
           onSortChanged: onSortChanged,
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
           child: Text(
-            'Two or three tags that show up together more often than each '
-            'tag on its own would suggest. Tap to search them; long-press to '
-            'filter Downloads by them.',
+            l10n.analysisCombinationsHint,
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),

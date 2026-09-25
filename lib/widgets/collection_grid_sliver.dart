@@ -1,6 +1,7 @@
 import 'package:concept_nhv/models/collection_summary.dart';
 import 'package:concept_nhv/widgets/fallback_cached_network_image.dart';
 import 'package:concept_nhv/widgets/glass_container.dart';
+import 'package:concept_nhv/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -75,7 +76,9 @@ class _CollectionEntryCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        '${collection.collectedCount} collected',
+                        AppLocalizations.of(
+                          context,
+                        )!.collectionCollectedCount(collection.collectedCount),
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                         ),

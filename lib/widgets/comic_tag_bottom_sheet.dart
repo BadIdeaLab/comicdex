@@ -5,6 +5,7 @@ import 'package:concept_nhv/widgets/favorites_tag_filter_route.dart';
 import 'package:concept_nhv/state/blocked_tags_model.dart';
 import 'package:concept_nhv/state/home_ui_model.dart';
 import 'package:concept_nhv/widgets/glass_bottom_sheet.dart';
+import 'package:concept_nhv/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -227,6 +228,7 @@ class _ComicTagBottomSheetState extends State<ComicTagBottomSheet> {
     required List<String> sortedTypes,
     required ScrollController scrollController,
   }) {
+    final l10n = AppLocalizations.of(context)!;
     if (_isLoading && _tags == null) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -237,13 +239,13 @@ class _ComicTagBottomSheetState extends State<ComicTagBottomSheet> {
           children: <Widget>[
             Text(_errorMessage!),
             const SizedBox(height: 8),
-            FilledButton(onPressed: _loadMeta, child: const Text('Retry')),
+            FilledButton(onPressed: _loadMeta, child: Text(l10n.retryButton)),
           ],
         ),
       );
     }
     if ((_tags ?? const <ComicTag>[]).isEmpty) {
-      return const Center(child: Text('No tags'));
+      return Center(child: Text(l10n.tagSheetNoTags));
     }
 
     final blockedTagsModel = context.watch<BlockedTagsModel>();
@@ -286,6 +288,7 @@ class _ComicTagBottomSheetState extends State<ComicTagBottomSheet> {
     if (query.isEmpty) return;
 
     final isBlocked = blockedTagsModel.isBlocked(query);
+    final l10n = AppLocalizations.of(context)!;
     final homeUiModel = context.read<HomeUiModel>();
     // The label the chip shows, which is also what the Downloads filter matches
     // against. Passing `query` here would put "tag:full-color" in the box —
@@ -308,7 +311,9 @@ class _ComicTagBottomSheetState extends State<ComicTagBottomSheet> {
                   isBlocked ? Icons.check_circle_outline : Icons.block,
                 ),
                 title: Text(
-                  isBlocked ? 'Unblock "${tag.name}"' : 'Block "${tag.name}"',
+                  isBlocked
+                      ? l10n.tagActionUnblock(tag.name ?? query)
+                      : l10n.tagActionBlock(tag.name ?? query),
                 ),
                 onTap: () {
                   Navigator.of(sheetContext).pop();
@@ -321,8 +326,8 @@ class _ComicTagBottomSheetState extends State<ComicTagBottomSheet> {
                     SnackBar(
                       content: Text(
                         isBlocked
-                            ? '"$query" removed from blocked tags'
-                            : '"$query" added to blocked tags',
+                            ? l10n.tagActionUnblocked(query)
+                            : l10n.tagActionBlocked(query),
                       ),
                     ),
                   );
@@ -331,7 +336,7 @@ class _ComicTagBottomSheetState extends State<ComicTagBottomSheet> {
               if (tag.id != null)
                 ListTile(
                   leading: const Icon(Icons.favorite_border),
-                  title: Text('Search "$label" in Favorites'),
+                  title: Text(l10n.tagActionSearchFavorites(label)),
                   onTap: () {
                     Navigator.of(sheetContext).pop();
                     Navigator.of(context).pop();
@@ -342,8 +347,8 @@ class _ComicTagBottomSheetState extends State<ComicTagBottomSheet> {
                 leading: const Icon(Icons.download_outlined),
                 title: Text(
                   tag.id == null
-                      ? 'Search "$label" in Downloads'
-                      : 'Filter Downloads by "$label"',
+                      ? l10n.tagActionSearchDownloads(label)
+                      : l10n.tagActionFilterDownloads(label),
                 ),
                 onTap: () {
                   Navigator.of(sheetContext).pop();
@@ -368,6 +373,7 @@ class _ComicTagBottomSheetState extends State<ComicTagBottomSheet> {
   // ── Bottom action area ────────────────────────────────────────────────────
 
   Widget _buildActionArea(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return SafeArea(
       top: false,
       child: Padding(
@@ -399,8 +405,8 @@ class _ComicTagBottomSheetState extends State<ComicTagBottomSheet> {
                 icon: const Icon(Icons.search),
                 label: Text(
                   _selectedQueries.isEmpty
-                      ? 'Select tags to search'
-                      : 'Search ${_selectedQueries.length} tags',
+                      ? l10n.tagSheetSelectToSearch
+                      : l10n.tagSheetSearchSelected(_selectedQueries.length),
                 ),
               ),
             ),
@@ -446,7 +452,7 @@ class _ComicTagBottomSheetState extends State<ComicTagBottomSheet> {
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _errorMessage = 'Failed to load tags.';
+        _errorMessage = AppLocalizations.of(context)!.tagSheetLoadFailed;
         _isLoading = false;
       });
     }

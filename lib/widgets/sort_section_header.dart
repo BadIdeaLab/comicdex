@@ -1,4 +1,5 @@
 import 'package:concept_nhv/models/tag_preference_entry.dart';
+import 'package:concept_nhv/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 
 /// A section title with an optional action link and a sort toggle.
@@ -30,6 +31,7 @@ class SortSectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
 
     final titleRow = Row(
@@ -49,14 +51,14 @@ class SortSectionHeader extends StatelessWidget {
     final toggle = SegmentedButton<TagPreferenceSort>(
       showSelectedIcon: false,
       style: const ButtonStyle(visualDensity: VisualDensity.compact),
-      segments: const <ButtonSegment<TagPreferenceSort>>[
+      segments: <ButtonSegment<TagPreferenceSort>>[
         ButtonSegment<TagPreferenceSort>(
           value: TagPreferenceSort.count,
-          label: Text('Most kept'),
+          label: Text(l10n.sortMostKept),
         ),
         ButtonSegment<TagPreferenceSort>(
           value: TagPreferenceSort.affinity,
-          label: Text('Most distinctive'),
+          label: Text(l10n.sortMostDistinctive),
         ),
       ],
       selected: <TagPreferenceSort>{sort},
@@ -69,7 +71,10 @@ class SortSectionHeader extends StatelessWidget {
           return Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 12, 8),
             child: Row(
-              children: <Widget>[Expanded(child: titleRow), toggle],
+              children: <Widget>[
+                Expanded(child: titleRow),
+                toggle,
+              ],
             ),
           );
         }

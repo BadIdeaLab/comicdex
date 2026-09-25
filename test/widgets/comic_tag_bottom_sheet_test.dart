@@ -5,6 +5,8 @@ import 'package:concept_nhv/state/home_ui_model.dart';
 import 'package:concept_nhv/widgets/comic_tag_bottom_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import '../test_support/helpers/localized_test_app.dart';
 import 'package:provider/provider.dart';
 
 import '../test_support/fakes/fake_blocked_tags_repository.dart';
@@ -21,7 +23,7 @@ Widget _wrap(Widget child) {
         ),
       ),
     ],
-    child: MaterialApp(home: Scaffold(body: child)),
+    child: localizedTestApp(home: Scaffold(body: child)),
   );
 }
 
@@ -292,7 +294,7 @@ void main() {
           ),
           ChangeNotifierProvider<HomeUiModel>.value(value: homeUiModel),
         ],
-        child: MaterialApp(
+        child: localizedTestApp(
           home: Scaffold(
             body: Builder(
               builder: (context) => TextButton(

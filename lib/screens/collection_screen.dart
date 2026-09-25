@@ -1,5 +1,6 @@
 import 'package:concept_nhv/application/library/collection_page_coordinator.dart';
 import 'package:concept_nhv/application/home/home_shell_controller.dart';
+import 'package:concept_nhv/l10n/app_localizations.dart';
 import 'package:concept_nhv/models/collection_type.dart';
 import 'package:concept_nhv/models/comic_card_data.dart';
 import 'package:concept_nhv/services/local_tag_catalog_service.dart';
@@ -8,6 +9,7 @@ import 'package:concept_nhv/state/download_manager_model.dart';
 import 'package:concept_nhv/storage/comic_tag_repository.dart';
 import 'package:concept_nhv/state/favorite_sync_model.dart';
 import 'package:concept_nhv/widgets/comic_grid_sliver.dart';
+import 'package:concept_nhv/widgets/collection_type_label.dart';
 import 'package:concept_nhv/widgets/glass_container.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -60,7 +62,9 @@ class _CollectionScreenState extends State<CollectionScreen> {
 
   String get _tagFilterLabel {
     final entry = context.read<LocalTagCatalogService>().entryById(_tagId!);
-    if (entry == null) return 'Tag #$_tagId';
+    if (entry == null) {
+      return AppLocalizations.of(context)!.collectionUnknownTag(_tagId!);
+    }
     return context.read<TagDisplayService>().displayName(
       entry.slug,
       entry.name,
@@ -132,6 +136,7 @@ class _CollectionScreenState extends State<CollectionScreen> {
   }
 
   Future<void> _downloadSelected(BuildContext context) async {
+    final l10n = AppLocalizations.of(context)!;
     final downloadManagerModel = context.read<DownloadManagerModel>();
     final messenger = ScaffoldMessenger.of(context);
     final comics = _selectedComics.values.toList();
@@ -152,8 +157,8 @@ class _CollectionScreenState extends State<CollectionScreen> {
         SnackBar(
           content: Text(
             alreadyHandled == 0
-                ? 'No comics selected'
-                : 'All $alreadyHandled comic${alreadyHandled > 1 ? 's' : ''} already in Downloads',
+                ? l10n.collectionNoneSelected
+                : l10n.collectionAllAlreadyDownloaded(alreadyHandled),
           ),
         ),
       );
@@ -186,10 +191,11 @@ class _CollectionScreenState extends State<CollectionScreen> {
 
     final skipped = result.skippedCount + alreadyHandled;
     final messageParts = <String>[
-      '${result.queuedCount} comic${result.queuedCount == 1 ? '' : 's'} added to Downloads',
-      if (skipped > 0) '$skipped skipped (already downloaded)',
-      if (result.failedCount > 0) '${result.failedCount} failed',
-      if (result.stoppedEarly) 'stopped early after repeated failures',
+      l10n.collectionBatchQueued(result.queuedCount),
+      if (skipped > 0) l10n.collectionBatchSkipped(skipped),
+      if (result.failedCount > 0)
+        l10n.collectionBatchFailed(result.failedCount),
+      if (result.stoppedEarly) l10n.collectionBatchStoppedEarly,
     ];
     messenger.showSnackBar(SnackBar(content: Text(messageParts.join(', '))));
   }
@@ -197,10 +203,11 @@ class _CollectionScreenState extends State<CollectionScreen> {
   @override
   Widget build(BuildContext context) {
     final collectionType = _collectionType;
+    final l10n = AppLocalizations.of(context)!;
     if (collectionType == null) {
       return Scaffold(
         body: Center(
-          child: Text('Unknown collection: ${widget.collectionName}'),
+          child: Text(l10n.collectionUnknown(widget.collectionName)),
         ),
       );
     }
@@ -219,13 +226,13 @@ class _CollectionScreenState extends State<CollectionScreen> {
             floating: true,
             snap: true,
             title: _selectionMode
-                ? Text('$selectedCount selected')
-                : Text(collectionType.displayName),
+                ? Text(l10n.collectionSelectedCount(selectedCount))
+                : Text(collectionTypeLabel(l10n, collectionType)),
             actions: <Widget>[
               if (_isFavorite && !_selectionMode)
                 IconButton(
                   icon: const Icon(Icons.checklist_outlined),
-                  tooltip: 'Select comics',
+                  tooltip: l10n.collectionSelectComics,
                   onPressed: () => setState(() => _selectionMode = true),
                 ),
               if (_selectionMode)
@@ -233,7 +240,9 @@ class _CollectionScreenState extends State<CollectionScreen> {
                   icon: Icon(
                     _isAllSelected ? Icons.deselect : Icons.select_all,
                   ),
-                  tooltip: _isAllSelected ? 'Deselect all' : 'Select all',
+                  tooltip: _isAllSelected
+                      ? l10n.collectionDeselectAll
+                      : l10n.collectionSelectAll,
                   onPressed: _allComics.isEmpty
                       ? null
                       : (_isAllSelected ? _deselectAll : _selectAll),
@@ -241,7 +250,7 @@ class _CollectionScreenState extends State<CollectionScreen> {
               if (_selectionMode)
                 TextButton(
                   onPressed: _exitSelectionMode,
-                  child: const Text('Done'),
+                  child: Text(l10n.collectionDone),
                 ),
             ],
           ),
@@ -265,7 +274,7 @@ class _CollectionScreenState extends State<CollectionScreen> {
                           if (!favoriteModel.isAuthenticated)
                             TextButton(
                               onPressed: () => context.push('/settings'),
-                              child: const Text('Open Settings'),
+                              child: Text(l10n.collectionOpenSettings),
                             ),
                         ],
                       ),
@@ -315,7 +324,10 @@ class _CollectionScreenState extends State<CollectionScreen> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'Adding $_batchDownloadProcessed/$_batchDownloadTotal to Downloads…',
+                        l10n.collectionBatchProgress(
+                          _batchDownloadProcessed ?? 0,
+                          _batchDownloadTotal ?? 0,
+                        ),
                       ),
                     ),
                   ],
@@ -333,7 +345,7 @@ class _CollectionScreenState extends State<CollectionScreen> {
                         onPressed: () => _downloadSelected(context),
                         icon: const Icon(Icons.download_outlined),
                         label: Text(
-                          'Download $selectedCount comic${selectedCount > 1 ? 's' : ''}',
+                          l10n.collectionDownloadSelected(selectedCount),
                         ),
                       ),
                     ),
@@ -428,6 +440,7 @@ class _CollectionComicSliverState extends State<CollectionComicSliver> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return FutureBuilder<List<ComicCardData>>(
       future: _future,
       builder: (context, snapshot) {
@@ -445,9 +458,9 @@ class _CollectionComicSliverState extends State<CollectionComicSliver> {
         // Selection acts on what is on screen, so it gets the filtered list.
         widget.onComicsLoaded?.call(comics);
         if (comics.isEmpty && loaded.isNotEmpty) {
-          return const SliverFillRemaining(
+          return SliverFillRemaining(
             hasScrollBody: false,
-            child: Center(child: Text('No comics here carry that tag')),
+            child: Center(child: Text(l10n.collectionEmptyForTag)),
           );
         }
         if (comics.isEmpty) {
@@ -460,11 +473,15 @@ class _CollectionComicSliverState extends State<CollectionComicSliver> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
-                  Text('No comics in ${widget.collectionType.displayName}'),
+                  Text(
+                    l10n.collectionEmpty(
+                      collectionTypeLabel(l10n, widget.collectionType),
+                    ),
+                  ),
                   if (isFavoriteCollection && !favoriteModel.isAuthenticated)
                     TextButton(
                       onPressed: () => context.push('/settings'),
-                      child: const Text('Login from Settings'),
+                      child: Text(l10n.collectionLoginFromSettings),
                     ),
                 ],
               ),

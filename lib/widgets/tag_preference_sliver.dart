@@ -3,6 +3,7 @@ import 'package:concept_nhv/models/tag_catalog_type.dart';
 import 'package:concept_nhv/models/tag_preference_entry.dart';
 import 'package:concept_nhv/services/tag_display_service.dart';
 import 'package:concept_nhv/widgets/sort_section_header.dart';
+import 'package:concept_nhv/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -45,13 +46,17 @@ class TagPreferenceSliver extends StatefulWidget {
 class _TagPreferenceSliverState extends State<TagPreferenceSliver> {
   final Set<TagCatalogType> _expanded = <TagCatalogType>{};
 
-  static const Map<TagCatalogType, String> _sectionTitles =
-      <TagCatalogType, String>{
-        TagCatalogType.tag: 'Tags',
-        TagCatalogType.artist: 'Artists',
-        TagCatalogType.parody: 'Parodies',
-        TagCatalogType.character: 'Characters',
-      };
+  /// A method rather than a constant map: the titles are localised, so
+  /// they cannot be built before there is a context to read them from.
+  String _sectionTitle(AppLocalizations l10n, TagCatalogType type) {
+    return switch (type) {
+      TagCatalogType.tag => l10n.tagSectionTags,
+      TagCatalogType.artist => l10n.tagSectionArtists,
+      TagCatalogType.parody => l10n.tagSectionParodies,
+      TagCatalogType.character => l10n.tagSectionCharacters,
+      _ => type.name,
+    };
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -89,22 +94,25 @@ class _TagPreferenceSliverState extends State<TagPreferenceSliver> {
   }
 
   Widget _buildHeader(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return SortSectionHeader(
-      title: 'Tag Preferences',
+      title: l10n.tagPreferencesTitle,
       sort: widget.sort,
       onSortChanged: widget.onSortChanged,
-      actionLabel: widget.onOpenFullAnalysis == null ? null : 'Full analysis ›',
+      actionLabel: widget.onOpenFullAnalysis == null
+          ? null
+          : l10n.tagPreferencesFullAnalysis,
       onAction: widget.onOpenFullAnalysis,
     );
   }
 
   Widget _buildEmptyState(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
       child: Text(
-        'No tag data yet. Sync favorites from Settings, or download a few '
-        'comics, and preferences will build up here.',
+        l10n.tagPreferencesEmpty,
         style: theme.textTheme.bodyMedium?.copyWith(
           color: theme.colorScheme.onSurfaceVariant,
         ),
@@ -131,7 +139,7 @@ class _TagPreferenceSliverState extends State<TagPreferenceSliver> {
         return Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
           child: Text(
-            _sectionTitles[type] ?? type.apiValue,
+            _sectionTitle(AppLocalizations.of(context)!, type),
             style: theme.textTheme.titleSmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
@@ -149,8 +157,9 @@ class _TagPreferenceSliverState extends State<TagPreferenceSliver> {
           ),
         ),
       if (collapsedCount != null && entries.length > collapsedCount)
-        _RowSpec(
-          (context) => Padding(
+        _RowSpec((context) {
+          final l10n = AppLocalizations.of(context)!;
+          return Padding(
             padding: const EdgeInsets.only(left: 8),
             child: TextButton(
               onPressed: () => setState(() {
@@ -162,12 +171,14 @@ class _TagPreferenceSliverState extends State<TagPreferenceSliver> {
               }),
               child: Text(
                 isExpanded
-                    ? 'Show less'
-                    : 'Show ${entries.length - collapsedCount} more',
+                    ? l10n.tagPreferencesShowLess
+                    : l10n.tagPreferencesShowMore(
+                        entries.length - collapsedCount,
+                      ),
               ),
             ),
-          ),
-        ),
+          );
+        }),
     ];
   }
 

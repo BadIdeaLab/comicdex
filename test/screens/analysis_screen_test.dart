@@ -21,6 +21,8 @@ import 'package:concept_nhv/state/comic_feed_model.dart';
 import 'package:concept_nhv/storage/search_history_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import '../test_support/helpers/localized_test_app.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:provider/single_child_widget.dart';
@@ -95,7 +97,7 @@ void main() {
             }),
           ),
         ],
-        child: const MaterialApp(home: AnalysisScreen()),
+        child: localizedTestApp(home: const AnalysisScreen()),
       ),
     );
     await tester.pumpAndSettle();
@@ -215,7 +217,7 @@ void main() {
             }),
           ),
         ],
-        child: MaterialApp.router(routerConfig: router),
+        child: localizedTestRouterApp(routerConfig: router),
       ),
     );
     await tester.pumpAndSettle();

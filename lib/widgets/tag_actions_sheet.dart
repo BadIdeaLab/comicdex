@@ -2,6 +2,7 @@ import 'package:concept_nhv/models/local_tag_catalog_entry.dart';
 import 'package:concept_nhv/state/blocked_tags_model.dart';
 import 'package:concept_nhv/state/home_ui_model.dart';
 import 'package:concept_nhv/widgets/favorites_tag_filter_route.dart';
+import 'package:concept_nhv/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -15,6 +16,7 @@ Future<void> showTagActionsSheet(
   String displayName,
 ) {
   final blockedTagsModel = context.read<BlockedTagsModel>();
+  final l10n = AppLocalizations.of(context)!;
   final homeUiModel = context.read<HomeUiModel>();
   final messenger = ScaffoldMessenger.of(context);
   final isBlocked = blockedTagsModel.blockedTags.contains(tag.query);
@@ -30,7 +32,9 @@ Future<void> showTagActionsSheet(
           ListTile(
             leading: Icon(isBlocked ? Icons.check_circle_outline : Icons.block),
             title: Text(
-              isBlocked ? 'Unblock "$displayName"' : 'Block "$displayName"',
+              isBlocked
+                  ? l10n.tagActionUnblock(displayName)
+                  : l10n.tagActionBlock(displayName),
             ),
             onTap: () {
               Navigator.of(sheetContext).pop();
@@ -43,8 +47,8 @@ Future<void> showTagActionsSheet(
                 SnackBar(
                   content: Text(
                     isBlocked
-                        ? '"${tag.query}" removed from blocked tags'
-                        : '"${tag.query}" added to blocked tags',
+                        ? l10n.tagActionUnblocked(tag.query)
+                        : l10n.tagActionBlocked(tag.query),
                   ),
                 ),
               );
@@ -53,7 +57,7 @@ Future<void> showTagActionsSheet(
           if (tagId != null)
             ListTile(
               leading: const Icon(Icons.favorite_border),
-              title: Text('Search "$displayName" in Favorites'),
+              title: Text(l10n.tagActionSearchFavorites(displayName)),
               onTap: () {
                 Navigator.of(sheetContext).pop();
                 openFavoritesFilteredByTag(context, tagId);
@@ -62,7 +66,7 @@ Future<void> showTagActionsSheet(
           if (tagId != null)
             ListTile(
               leading: const Icon(Icons.download_outlined),
-              title: Text('Filter Downloads by "$displayName"'),
+              title: Text(l10n.tagActionFilterDownloads(displayName)),
               onTap: () {
                 Navigator.of(sheetContext).pop();
                 homeUiModel.filterDownloadsByTags(<int>[tagId]);

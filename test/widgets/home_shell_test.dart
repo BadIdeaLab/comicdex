@@ -3,10 +3,12 @@ import 'package:concept_nhv/widgets/collection_grid_sliver.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../test_support/helpers/localized_test_app.dart';
+
 void main() {
   testWidgets('shows collection overview summaries', (tester) async {
     await tester.pumpWidget(
-      MaterialApp(
+      localizedTestApp(
         home: Scaffold(
           body: CustomScrollView(
             slivers: <Widget>[
