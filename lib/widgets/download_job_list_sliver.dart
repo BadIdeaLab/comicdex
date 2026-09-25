@@ -1,8 +1,10 @@
 import 'dart:io';
 import 'dart:math';
 
+import 'package:concept_nhv/application/downloads/weighted_random_pick.dart';
 import 'package:concept_nhv/application/home/home_shell_controller.dart';
 import 'package:concept_nhv/application/tags/load_comic_meta_use_case.dart';
+import 'package:concept_nhv/l10n/app_localizations.dart';
 import 'package:concept_nhv/models/comic_tag.dart';
 import 'package:concept_nhv/models/download_job_status.dart';
 import 'package:concept_nhv/models/download_list_item_snapshot.dart';
@@ -60,6 +62,7 @@ class _DownloadJobListSliverState extends State<DownloadJobListSliver> {
   Widget build(BuildContext context) {
     return Consumer<DownloadManagerModel>(
       builder: (context, model, _) {
+        final l10n = AppLocalizations.of(context)!;
         final query = widget.searchQuery.trim().toLowerCase();
         final tagDisplayService = context.read<TagDisplayService>();
         final filteredItems = model.sortedDownloadItems
@@ -96,10 +99,10 @@ class _DownloadJobListSliverState extends State<DownloadJobListSliver> {
             child: Center(
               child: Text(
                 !hasFilter
-                    ? 'No downloads yet'
+                    ? l10n.downloadsEmpty
                     : query.isEmpty
-                    ? 'No downloads carry those tags'
-                    : 'No downloads match "${widget.searchQuery.trim()}"',
+                    ? l10n.downloadsEmptyForTags
+                    : l10n.downloadsEmptyForQuery(widget.searchQuery.trim()),
               ),
             ),
           );
@@ -130,8 +133,10 @@ class _DownloadJobListSliverState extends State<DownloadJobListSliver> {
 
         if (activeItems.isNotEmpty) {
           slivers.add(
-            const SliverToBoxAdapter(
-              child: _DownloadsSectionHeader(title: 'Active Downloads'),
+            SliverToBoxAdapter(
+              child: _DownloadsSectionHeader(
+                title: l10n.downloadsSectionActive,
+              ),
             ),
           );
           slivers.add(
@@ -148,7 +153,7 @@ class _DownloadJobListSliverState extends State<DownloadJobListSliver> {
           slivers.add(
             SliverToBoxAdapter(
               child: _DownloadsSectionHeader(
-                title: 'Completed Downloads',
+                title: l10n.downloadsSectionCompleted,
                 isGridView: model.completedViewIsGrid,
                 onViewToggle: () =>
                     model.setCompletedViewIsGrid(!model.completedViewIsGrid),
@@ -259,10 +264,16 @@ class _DownloadJobListSliverState extends State<DownloadJobListSliver> {
   }
 
   void _openRandomCompleted(List<DownloadListItemSnapshot> completedItems) {
-    if (completedItems.isEmpty) {
-      return;
-    }
-    final item = completedItems[_random.nextInt(completedItems.length)];
+    // Weighted rather than uniform: uniform drawing repeats far more often
+    // than it feels like it should (P87). The pool is the whole filtered
+    // list, not the page on screen.
+    final item = pickByReadingStaleness<DownloadListItemSnapshot>(
+      completedItems,
+      lastReadAt: (item) => item.lastReadAt,
+      tieBreaker: (item) => item.comicId,
+      random: _random,
+    );
+    if (item == null) return;
     widget.onOpenOfflineReader(item.comicId);
   }
 
@@ -287,6 +298,7 @@ class _DownloadJobListSliverState extends State<DownloadJobListSliver> {
   }
 
   Future<void> _handleRepairAll(DownloadManagerModel model) async {
+    final l10n = AppLocalizations.of(context)!;
     if (_isRepairingAll) {
       return;
     }
@@ -295,20 +307,16 @@ class _DownloadJobListSliverState extends State<DownloadJobListSliver> {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('Repair all completed downloads?'),
-          content: const Text(
-            'This scans every completed download for missing pages or a missing '
-            'cover and re-downloads anything broken. It may take a while and '
-            'will use network data.',
-          ),
+          title: Text(l10n.downloadsRepairAllTitle),
+          content: Text(l10n.downloadsRepairAllBody),
           actions: <Widget>[
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('Cancel'),
+              child: Text(l10n.cancelButton),
             ),
             FilledButton(
               onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text('Repair All'),
+              child: Text(l10n.downloadsRepairAllConfirm),
             ),
           ],
         );
@@ -343,15 +351,21 @@ class _DownloadJobListSliverState extends State<DownloadJobListSliver> {
         result.failedCount,
         result.stoppedEarly,
       )) {
-        (0, 0, _) => 'All ${result.totalCount} downloads are intact',
-        (_, 0, _) =>
-          'Repaired ${result.repairedCount} of ${result.totalCount} downloads',
-        (_, _, true) =>
-          'Stopped after repeated failures — repaired ${result.repairedCount}, '
-              'failed ${result.failedCount} (of ${result.totalCount} total)',
-        _ =>
-          'Repaired ${result.repairedCount}, failed ${result.failedCount}, '
-              'of ${result.totalCount} downloads',
+        (0, 0, _) => l10n.downloadsRepairAllIntact(result.totalCount),
+        (_, 0, _) => l10n.downloadsRepairAllRepaired(
+          result.repairedCount,
+          result.totalCount,
+        ),
+        (_, _, true) => l10n.downloadsRepairAllStopped(
+          result.repairedCount,
+          result.failedCount,
+          result.totalCount,
+        ),
+        _ => l10n.downloadsRepairAllMixed(
+          result.repairedCount,
+          result.failedCount,
+          result.totalCount,
+        ),
       };
       ScaffoldMessenger.of(
         context,
@@ -360,9 +374,9 @@ class _DownloadJobListSliverState extends State<DownloadJobListSliver> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Repair all failed: $error')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.downloadsRepairAllError('$error'))),
+      );
     } finally {
       if (mounted) {
         setState(() {
@@ -402,6 +416,7 @@ class _DownloadsSectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final hasTrailingActions =
         onViewToggle != null ||
         onRandomCompleted != null ||
@@ -432,7 +447,7 @@ class _DownloadsSectionHeader extends StatelessWidget {
           if (onRandomCompleted != null)
             IconButton(
               icon: const Icon(Icons.shuffle),
-              tooltip: 'Open a random completed download',
+              tooltip: l10n.downloadsRandomTooltip,
               onPressed: onRandomCompleted,
               iconSize: 20,
               visualDensity: VisualDensity.compact,
@@ -446,7 +461,7 @@ class _DownloadsSectionHeader extends StatelessWidget {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(Icons.build_circle_outlined),
-              tooltip: 'Repair all completed downloads',
+              tooltip: l10n.downloadsRepairAllTooltip,
               onPressed: isRepairingAll ? null : onRepairAll,
               iconSize: 20,
               visualDensity: VisualDensity.compact,
@@ -454,7 +469,9 @@ class _DownloadsSectionHeader extends StatelessWidget {
           if (onViewToggle != null)
             IconButton(
               icon: Icon(isGridView ? Icons.list : Icons.grid_view),
-              tooltip: isGridView ? 'List view' : 'Grid view',
+              tooltip: isGridView
+                  ? l10n.downloadsListViewTooltip
+                  : l10n.downloadsGridViewTooltip,
               onPressed: onViewToggle,
               iconSize: 20,
               visualDensity: VisualDensity.compact,
@@ -483,6 +500,7 @@ class _CompletedGridCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Card(
       clipBehavior: Clip.antiAlias,
       margin: EdgeInsets.zero,
@@ -509,7 +527,9 @@ class _CompletedGridCell extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '${item.pageCount ?? item.totalPages}p',
+                    l10n.downloadsPageCountShort(
+                      item.pageCount ?? item.totalPages,
+                    ),
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
@@ -594,6 +614,7 @@ Widget _buildCompletedActionSlotFor(
   DownloadListItemSnapshot item,
   bool isMutating,
 ) {
+  final l10n = AppLocalizations.of(context)!;
   return Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: <Widget>[
@@ -603,7 +624,7 @@ Widget _buildCompletedActionSlotFor(
           side: BorderSide(color: Theme.of(context).colorScheme.error),
         ),
         icon: const Icon(Icons.delete_outline),
-        label: const Text('Delete Download'),
+        label: Text(l10n.downloadsDeleteAction),
         onPressed: isMutating
             ? null
             : () {
@@ -614,7 +635,7 @@ Widget _buildCompletedActionSlotFor(
       const SizedBox(height: 8),
       OutlinedButton.icon(
         icon: const Icon(Icons.refresh),
-        label: const Text('Reload'),
+        label: Text(l10n.downloadsReloadAction),
         onPressed: isMutating
             ? null
             : () {
@@ -625,7 +646,7 @@ Widget _buildCompletedActionSlotFor(
       const SizedBox(height: 8),
       OutlinedButton.icon(
         icon: const Icon(Icons.build_outlined),
-        label: const Text('Repair'),
+        label: Text(l10n.downloadsRepairAction),
         onPressed: isMutating
             ? null
             : () {
@@ -641,22 +662,21 @@ Future<void> _confirmAndDeleteCompleted(
   BuildContext context,
   DownloadListItemSnapshot item,
 ) async {
+  final l10n = AppLocalizations.of(context)!;
   final shouldDelete = await showDialog<bool>(
     context: context,
     builder: (dialogContext) {
       return AlertDialog(
-        title: const Text('Delete downloaded comic?'),
-        content: const Text(
-          'This deletes the saved download, cover, offline snapshot, and the completed job record.',
-        ),
+        title: Text(l10n.downloadsDeleteTitle),
+        content: Text(l10n.downloadsDeleteBody),
         actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancelButton),
           ),
           FilledButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Confirm'),
+            child: Text(l10n.confirmButton),
           ),
         ],
       );
@@ -669,7 +689,7 @@ Future<void> _confirmAndDeleteCompleted(
 
   await _runAction(
     context,
-    successMessage: 'Downloaded comic deleted',
+    successMessage: l10n.downloadsDeletedMessage,
     action: () => context.read<DownloadManagerModel>().deleteJob(item.comicId),
   );
 }
@@ -678,23 +698,21 @@ Future<void> _confirmAndReloadCompleted(
   BuildContext context,
   DownloadListItemSnapshot item,
 ) async {
+  final l10n = AppLocalizations.of(context)!;
   final shouldReload = await showDialog<bool>(
     context: context,
     builder: (dialogContext) {
       return AlertDialog(
-        title: const Text('Reload download?'),
-        content: const Text(
-          'This deletes the saved pages and re-downloads the comic from scratch. '
-          'Reading history and metadata are preserved.',
-        ),
+        title: Text(l10n.downloadsReloadTitle),
+        content: Text(l10n.downloadsReloadBody),
         actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancelButton),
           ),
           FilledButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Reload'),
+            child: Text(l10n.downloadsReloadAction),
           ),
         ],
       );
@@ -707,7 +725,7 @@ Future<void> _confirmAndReloadCompleted(
 
   await _runAction(
     context,
-    successMessage: 'Reload queued',
+    successMessage: l10n.downloadsReloadQueued,
     action: () =>
         context.read<DownloadManagerModel>().reloadCompleted(item.comicId),
   );
@@ -717,10 +735,11 @@ Future<void> _runRepairCompleted(
   BuildContext context,
   DownloadListItemSnapshot item,
 ) async {
+  final l10n = AppLocalizations.of(context)!;
   await _runAction(
     context,
-    successMessage: 'Repair queued',
-    noOpMessage: 'All pages and cover are intact — nothing to repair',
+    successMessage: l10n.downloadsRepairQueued,
+    noOpMessage: l10n.downloadsNothingToRepair,
     action: () async {
       await context.read<DownloadManagerModel>().repairCompleted(item.comicId);
     },
@@ -843,6 +862,7 @@ class _DownloadItemCard extends StatelessWidget {
   }
 
   List<Widget> _buildActionButtons(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final model = context.read<DownloadManagerModel>();
     return switch (item.status) {
       DownloadJobStatus.downloading => <Widget>[
@@ -851,10 +871,10 @@ class _DownloadItemCard extends StatelessWidget {
               ? null
               : () => _runAction(
                   context,
-                  successMessage: 'Download paused',
+                  successMessage: l10n.downloadsPausedMessage,
                   action: () => model.pause(item.comicId),
                 ),
-          child: const Text('Pause'),
+          child: Text(l10n.downloadsPauseAction),
         ),
       ],
       DownloadJobStatus.queued => <Widget>[
@@ -863,10 +883,10 @@ class _DownloadItemCard extends StatelessWidget {
               ? null
               : () => _runAction(
                   context,
-                  successMessage: 'Download paused',
+                  successMessage: l10n.downloadsPausedMessage,
                   action: () => model.pause(item.comicId),
                 ),
-          child: const Text('Pause'),
+          child: Text(l10n.downloadsPauseAction),
         ),
       ],
       DownloadJobStatus.paused => <Widget>[
@@ -875,22 +895,21 @@ class _DownloadItemCard extends StatelessWidget {
               ? null
               : () => _runAction(
                   context,
-                  successMessage: 'Download resumed',
+                  successMessage: l10n.downloadsResumedMessage,
                   action: () => model.resume(item.comicId),
                 ),
-          child: const Text('Resume'),
+          child: Text(l10n.downloadsResumeAction),
         ),
         OutlinedButton(
           onPressed: isMutating
               ? null
               : () => _confirmAndDelete(
                   context,
-                  title: 'Remove download job?',
-                  message:
-                      'This removes the download job and deletes any partial files already saved.',
-                  successMessage: 'Download job removed',
+                  title: l10n.downloadsRemoveJobTitle,
+                  message: l10n.downloadsRemoveJobBody,
+                  successMessage: l10n.downloadsJobRemovedMessage,
                 ),
-          child: const Text('Remove'),
+          child: Text(l10n.downloadsRemoveAction),
         ),
       ],
       DownloadJobStatus.failed => <Widget>[
@@ -899,22 +918,21 @@ class _DownloadItemCard extends StatelessWidget {
               ? null
               : () => _runAction(
                   context,
-                  successMessage: 'Download retried',
+                  successMessage: l10n.downloadsRetriedMessage,
                   action: () => model.retry(item.comicId),
                 ),
-          child: const Text('Retry'),
+          child: Text(l10n.downloadsRetryAction),
         ),
         OutlinedButton(
           onPressed: isMutating
               ? null
               : () => _confirmAndDelete(
                   context,
-                  title: 'Remove failed download?',
-                  message:
-                      'This removes the failed job and deletes any partial files already saved.',
-                  successMessage: 'Failed download removed',
+                  title: l10n.downloadsRemoveFailedTitle,
+                  message: l10n.downloadsRemoveFailedBody,
+                  successMessage: l10n.downloadsFailedRemovedMessage,
                 ),
-          child: const Text('Remove'),
+          child: Text(l10n.downloadsRemoveAction),
         ),
       ],
       DownloadJobStatus.completed => <Widget>[],
@@ -927,6 +945,7 @@ class _DownloadItemCard extends StatelessWidget {
     required String message,
     required String successMessage,
   }) async {
+    final l10n = AppLocalizations.of(context)!;
     final shouldDelete = await showDialog<bool>(
       context: context,
       builder: (dialogContext) {
@@ -936,11 +955,11 @@ class _DownloadItemCard extends StatelessWidget {
           actions: <Widget>[
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('Cancel'),
+              child: Text(l10n.cancelButton),
             ),
             FilledButton(
               onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text('Confirm'),
+              child: Text(l10n.confirmButton),
             ),
           ],
         );
@@ -971,6 +990,7 @@ class _ActiveCardSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final progress = item.totalPages == 0
         ? 0.0
         : (item.completedPages / item.totalPages).clamp(0.0, 1.0);
@@ -985,7 +1005,7 @@ class _ActiveCardSummary extends StatelessWidget {
           style: Theme.of(context).textTheme.titleMedium,
         ),
         const SizedBox(height: 8),
-        Text(_statusLabel(item.status)),
+        Text(_statusLabel(l10n, item.status)),
         const SizedBox(height: 8),
         Text('${item.completedPages} / ${item.totalPages}'),
         const SizedBox(height: 8),
@@ -1002,6 +1022,7 @@ class _CompletedCardSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final pageCount = item.pageCount ?? item.totalPages;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1013,9 +1034,9 @@ class _CompletedCardSummary extends StatelessWidget {
           style: Theme.of(context).textTheme.titleMedium,
         ),
         const SizedBox(height: 8),
-        const Text('Completed'),
+        Text(l10n.downloadsStatusCompleted),
         const SizedBox(height: 8),
-        Text('$pageCount page${pageCount == 1 ? '' : 's'}'),
+        Text(l10n.downloadsPageCount(pageCount)),
       ],
     );
   }
@@ -1064,12 +1085,12 @@ class _DownloadItemCover extends StatelessWidget {
   }
 }
 
-String _statusLabel(DownloadJobStatus status) {
+String _statusLabel(AppLocalizations l10n, DownloadJobStatus status) {
   return switch (status) {
-    DownloadJobStatus.downloading => 'Downloading',
-    DownloadJobStatus.queued => 'Queued',
-    DownloadJobStatus.paused => 'Paused',
-    DownloadJobStatus.failed => 'Failed',
-    DownloadJobStatus.completed => 'Completed',
+    DownloadJobStatus.downloading => l10n.downloadsStatusDownloading,
+    DownloadJobStatus.queued => l10n.downloadsStatusQueued,
+    DownloadJobStatus.paused => l10n.downloadsStatusPaused,
+    DownloadJobStatus.failed => l10n.downloadsStatusFailed,
+    DownloadJobStatus.completed => l10n.downloadsStatusCompleted,
   };
 }

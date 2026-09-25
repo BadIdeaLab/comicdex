@@ -8,6 +8,8 @@ import 'package:concept_nhv/state/download_manager_model.dart';
 import 'package:concept_nhv/widgets/downloads_sort_bottom_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import '../test_support/helpers/localized_test_app.dart';
 import 'package:provider/provider.dart';
 
 import '../test_support/fakes/fake_image_compression_service.dart';
@@ -53,7 +55,7 @@ void main() {
       await tester.pumpWidget(
         ChangeNotifierProvider<DownloadManagerModel>.value(
           value: model,
-          child: MaterialApp(
+          child: localizedTestApp(
             home: Scaffold(
               body: Builder(
                 builder: (context) {

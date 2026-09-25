@@ -6,6 +6,8 @@ import 'package:concept_nhv/state/home_ui_model.dart';
 import 'package:concept_nhv/widgets/downloads_tag_filter_chips.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import '../test_support/helpers/localized_test_app.dart';
 import 'package:provider/provider.dart';
 import 'package:provider/single_child_widget.dart';
 
@@ -44,8 +46,8 @@ void main() {
             }),
           ),
         ],
-        child: const MaterialApp(
-          home: Scaffold(body: DownloadsTagFilterChips()),
+        child: localizedTestApp(
+          home: const Scaffold(body: DownloadsTagFilterChips()),
         ),
       ),
     );

@@ -489,4 +489,443 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get backupControlRestoreError => 'Connection or restore failed';
+
+  @override
+  String get downloadsSortTitle => 'Sort Downloads';
+
+  @override
+  String get downloadsSortLatestDownloaded => 'Latest Downloaded';
+
+  @override
+  String get downloadsSortLastRead => 'Last Read';
+
+  @override
+  String get downloadsSortMostFavorited => 'Most Favorited';
+
+  @override
+  String get downloadsSortByTitle => 'Title';
+
+  @override
+  String get downloadsSortByAuthor => 'Author';
+
+  @override
+  String get downloadsSortByPreference => 'Preference';
+
+  @override
+  String get downloadsSortDescending => 'Descending';
+
+  @override
+  String get downloadsSortAscending => 'Ascending';
+
+  @override
+  String get resetButton => 'Reset';
+
+  @override
+  String get downloadsClearTagFilters => 'Clear tags';
+
+  @override
+  String downloadsUnknownTag(int tagId) {
+    return 'Tag #$tagId';
+  }
+
+  @override
+  String get downloadsEmpty => 'No downloads yet';
+
+  @override
+  String get downloadsEmptyForTags => 'No downloads carry those tags';
+
+  @override
+  String downloadsEmptyForQuery(String query) {
+    return 'No downloads match \"$query\"';
+  }
+
+  @override
+  String get downloadsSectionActive => 'Active Downloads';
+
+  @override
+  String get downloadsSectionCompleted => 'Completed Downloads';
+
+  @override
+  String get downloadsRandomTooltip => 'Open a random completed download';
+
+  @override
+  String get downloadsListViewTooltip => 'List view';
+
+  @override
+  String get downloadsGridViewTooltip => 'Grid view';
+
+  @override
+  String get downloadsRepairAllTooltip => 'Repair all completed downloads';
+
+  @override
+  String get downloadsRepairAllTitle => 'Repair all completed downloads?';
+
+  @override
+  String get downloadsRepairAllBody =>
+      'This scans every completed download for missing pages or a missing cover and re-downloads anything broken. It may take a while and will use network data.';
+
+  @override
+  String get downloadsRepairAllConfirm => 'Repair All';
+
+  @override
+  String downloadsRepairAllIntact(int total) {
+    return 'All $total downloads are intact';
+  }
+
+  @override
+  String downloadsRepairAllRepaired(int repaired, int total) {
+    return 'Repaired $repaired of $total downloads';
+  }
+
+  @override
+  String downloadsRepairAllStopped(int repaired, int failed, int total) {
+    return 'Stopped after repeated failures — repaired $repaired, failed $failed (of $total total)';
+  }
+
+  @override
+  String downloadsRepairAllMixed(int repaired, int failed, int total) {
+    return 'Repaired $repaired, failed $failed, of $total downloads';
+  }
+
+  @override
+  String downloadsRepairAllError(String error) {
+    return 'Repair all failed: $error';
+  }
+
+  @override
+  String get downloadsDeleteAction => 'Delete Download';
+
+  @override
+  String get downloadsReloadAction => 'Reload';
+
+  @override
+  String get downloadsRepairAction => 'Repair';
+
+  @override
+  String get downloadsDeleteTitle => 'Delete downloaded comic?';
+
+  @override
+  String get downloadsDeleteBody =>
+      'This deletes the saved download, cover, offline snapshot, and the completed job record.';
+
+  @override
+  String get downloadsDeletedMessage => 'Downloaded comic deleted';
+
+  @override
+  String get downloadsReloadTitle => 'Reload download?';
+
+  @override
+  String get downloadsReloadBody =>
+      'This deletes the saved pages and re-downloads the comic from scratch. Reading history and metadata are preserved.';
+
+  @override
+  String get downloadsReloadQueued => 'Reload queued';
+
+  @override
+  String get downloadsRepairQueued => 'Repair queued';
+
+  @override
+  String get downloadsNothingToRepair =>
+      'All pages and cover are intact — nothing to repair';
+
+  @override
+  String get downloadsPausedMessage => 'Download paused';
+
+  @override
+  String get downloadsPauseAction => 'Pause';
+
+  @override
+  String get downloadsResumedMessage => 'Download resumed';
+
+  @override
+  String get downloadsResumeAction => 'Resume';
+
+  @override
+  String get downloadsRemoveJobTitle => 'Remove download job?';
+
+  @override
+  String get downloadsRemoveJobBody =>
+      'This removes the download job and deletes any partial files already saved.';
+
+  @override
+  String get downloadsJobRemovedMessage => 'Download job removed';
+
+  @override
+  String get downloadsRemoveAction => 'Remove';
+
+  @override
+  String get downloadsRetriedMessage => 'Download retried';
+
+  @override
+  String get downloadsRetryAction => 'Retry';
+
+  @override
+  String get downloadsRemoveFailedTitle => 'Remove failed download?';
+
+  @override
+  String get downloadsRemoveFailedBody =>
+      'This removes the failed job and deletes any partial files already saved.';
+
+  @override
+  String get downloadsFailedRemovedMessage => 'Failed download removed';
+
+  @override
+  String get downloadsStatusDownloading => 'Downloading';
+
+  @override
+  String get downloadsStatusQueued => 'Queued';
+
+  @override
+  String get downloadsStatusPaused => 'Paused';
+
+  @override
+  String get downloadsStatusFailed => 'Failed';
+
+  @override
+  String get downloadsStatusCompleted => 'Completed';
+
+  @override
+  String downloadsPageCountShort(int count) {
+    return '${count}p';
+  }
+
+  @override
+  String downloadsPageCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count pages',
+      one: '1 page',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get confirmButton => 'Confirm';
+
+  @override
+  String get collectionFavorite => 'Favorites';
+
+  @override
+  String get collectionNext => 'Next';
+
+  @override
+  String get collectionHistory => 'History';
+
+  @override
+  String collectionUnknown(String name) {
+    return 'Unknown collection: $name';
+  }
+
+  @override
+  String get collectionSelectComics => 'Select comics';
+
+  @override
+  String collectionSelectedCount(int count) {
+    return '$count selected';
+  }
+
+  @override
+  String get collectionSelectAll => 'Select all';
+
+  @override
+  String get collectionDeselectAll => 'Deselect all';
+
+  @override
+  String get collectionDone => 'Done';
+
+  @override
+  String get collectionOpenSettings => 'Open Settings';
+
+  @override
+  String get collectionLoginFromSettings => 'Login from Settings';
+
+  @override
+  String get collectionEmptyForTag => 'No comics here carry that tag';
+
+  @override
+  String collectionEmpty(String collection) {
+    return 'No comics in $collection';
+  }
+
+  @override
+  String collectionCollectedCount(int count) {
+    return '$count collected';
+  }
+
+  @override
+  String collectionUnknownTag(int tagId) {
+    return 'Tag #$tagId';
+  }
+
+  @override
+  String get collectionNoneSelected => 'No comics selected';
+
+  @override
+  String collectionAllAlreadyDownloaded(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'All $count comics are already in Downloads',
+      one: 'That comic is already in Downloads',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String collectionDownloadSelected(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Download $count comics',
+      one: 'Download 1 comic',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String collectionBatchProgress(int processed, int total) {
+    return 'Adding $processed/$total to Downloads…';
+  }
+
+  @override
+  String collectionBatchQueued(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count comics added to Downloads',
+      one: '1 comic added to Downloads',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String collectionBatchSkipped(int count) {
+    return '$count skipped (already downloaded)';
+  }
+
+  @override
+  String collectionBatchFailed(int count) {
+    return '$count failed';
+  }
+
+  @override
+  String get collectionBatchStoppedEarly =>
+      'stopped early after repeated failures';
+
+  @override
+  String tagActionBlock(String tag) {
+    return 'Block \"$tag\"';
+  }
+
+  @override
+  String tagActionUnblock(String tag) {
+    return 'Unblock \"$tag\"';
+  }
+
+  @override
+  String tagActionBlocked(String tag) {
+    return '\"$tag\" added to blocked tags';
+  }
+
+  @override
+  String tagActionUnblocked(String tag) {
+    return '\"$tag\" removed from blocked tags';
+  }
+
+  @override
+  String tagActionSearchFavorites(String tag) {
+    return 'Search \"$tag\" in Favorites';
+  }
+
+  @override
+  String tagActionFilterDownloads(String tag) {
+    return 'Filter Downloads by \"$tag\"';
+  }
+
+  @override
+  String get analysisTitle => 'Tag Analysis';
+
+  @override
+  String get analysisNothingKept =>
+      'Nothing kept yet. Favorite or download some comics and this page fills in.';
+
+  @override
+  String analysisComicsKept(int count) {
+    return '$count comics kept';
+  }
+
+  @override
+  String analysisTaggedRatio(int count, int percent) {
+    return '$count of them carry tags ($percent%)';
+  }
+
+  @override
+  String get analysisCoverageHint =>
+      'Everything below is based on the tagged ones. Sync favorites from Settings to fill in the rest.';
+
+  @override
+  String get analysisCombinationsTitle => 'Taste Combinations';
+
+  @override
+  String get analysisCombinationsHint =>
+      'Two or three tags that show up together more often than each tag on its own would suggest. Tap to search them; long-press to filter Downloads by them.';
+
+  @override
+  String get tagPreferencesTitle => 'Tag Preferences';
+
+  @override
+  String get tagPreferencesFullAnalysis => 'Full analysis ›';
+
+  @override
+  String get tagPreferencesEmpty =>
+      'No tag data yet. Sync favorites from Settings, or download a few comics, and preferences will build up here.';
+
+  @override
+  String get tagPreferencesShowLess => 'Show less';
+
+  @override
+  String tagPreferencesShowMore(int count) {
+    return 'Show $count more';
+  }
+
+  @override
+  String get tagSectionTags => 'Tags';
+
+  @override
+  String get tagSectionArtists => 'Artists';
+
+  @override
+  String get tagSectionParodies => 'Parodies';
+
+  @override
+  String get tagSectionCharacters => 'Characters';
+
+  @override
+  String get sortMostKept => 'Most kept';
+
+  @override
+  String get sortMostDistinctive => 'Most distinctive';
+
+  @override
+  String get tagSheetNoTags => 'No tags';
+
+  @override
+  String get tagSheetLoadFailed => 'Failed to load tags.';
+
+  @override
+  String get tagSheetSelectToSearch => 'Select tags to search';
+
+  @override
+  String tagSheetSearchSelected(int count) {
+    return 'Search $count tags';
+  }
+
+  @override
+  String tagActionSearchDownloads(String tag) {
+    return 'Search \"$tag\" in Downloads';
+  }
+
+  @override
+  String get retryButton => 'Retry';
 }

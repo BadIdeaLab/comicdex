@@ -1,3 +1,4 @@
+import 'package:concept_nhv/l10n/app_localizations.dart';
 import 'package:concept_nhv/services/local_tag_catalog_service.dart';
 import 'package:concept_nhv/services/tag_display_service.dart';
 import 'package:concept_nhv/state/home_ui_model.dart';
@@ -16,6 +17,7 @@ class DownloadsTagFilterChips extends StatelessWidget {
 
     final catalog = context.read<LocalTagCatalogService>();
     final display = context.read<TagDisplayService>();
+    final l10n = AppLocalizations.of(context)!;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
@@ -26,13 +28,13 @@ class DownloadsTagFilterChips extends StatelessWidget {
         children: <Widget>[
           for (final tagId in tagIds)
             InputChip(
-              label: Text(_label(catalog, display, tagId)),
+              label: Text(_label(l10n, catalog, display, tagId)),
               onDeleted: () => homeUiModel.removeDownloadsTagFilter(tagId),
             ),
           if (tagIds.length > 1)
             TextButton(
               onPressed: homeUiModel.clearDownloadsTagFilters,
-              child: const Text('Clear tags'),
+              child: Text(l10n.downloadsClearTagFilters),
             ),
         ],
       ),
@@ -42,12 +44,13 @@ class DownloadsTagFilterChips extends StatelessWidget {
   /// Falls back to the raw id: a catalog older than P76 resolves nothing, and
   /// a chip with no label would be a filter the user cannot identify.
   String _label(
+    AppLocalizations l10n,
     LocalTagCatalogService catalog,
     TagDisplayService display,
     int tagId,
   ) {
     final entry = catalog.entryById(tagId);
-    if (entry == null) return 'Tag #$tagId';
+    if (entry == null) return l10n.downloadsUnknownTag(tagId);
     return display.displayName(entry.slug, entry.name);
   }
 }

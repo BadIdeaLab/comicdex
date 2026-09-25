@@ -920,6 +920,690 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Connection or restore failed'**
   String get backupControlRestoreError;
+
+  /// No description provided for @downloadsSortTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort Downloads'**
+  String get downloadsSortTitle;
+
+  /// No description provided for @downloadsSortLatestDownloaded.
+  ///
+  /// In en, this message translates to:
+  /// **'Latest Downloaded'**
+  String get downloadsSortLatestDownloaded;
+
+  /// No description provided for @downloadsSortLastRead.
+  ///
+  /// In en, this message translates to:
+  /// **'Last Read'**
+  String get downloadsSortLastRead;
+
+  /// No description provided for @downloadsSortMostFavorited.
+  ///
+  /// In en, this message translates to:
+  /// **'Most Favorited'**
+  String get downloadsSortMostFavorited;
+
+  /// No description provided for @downloadsSortByTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Title'**
+  String get downloadsSortByTitle;
+
+  /// No description provided for @downloadsSortByAuthor.
+  ///
+  /// In en, this message translates to:
+  /// **'Author'**
+  String get downloadsSortByAuthor;
+
+  /// No description provided for @downloadsSortByPreference.
+  ///
+  /// In en, this message translates to:
+  /// **'Preference'**
+  String get downloadsSortByPreference;
+
+  /// No description provided for @downloadsSortDescending.
+  ///
+  /// In en, this message translates to:
+  /// **'Descending'**
+  String get downloadsSortDescending;
+
+  /// No description provided for @downloadsSortAscending.
+  ///
+  /// In en, this message translates to:
+  /// **'Ascending'**
+  String get downloadsSortAscending;
+
+  /// No description provided for @resetButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset'**
+  String get resetButton;
+
+  /// No description provided for @downloadsClearTagFilters.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear tags'**
+  String get downloadsClearTagFilters;
+
+  /// Fallback chip label when a tag id is not in the local catalog
+  ///
+  /// In en, this message translates to:
+  /// **'Tag #{tagId}'**
+  String downloadsUnknownTag(int tagId);
+
+  /// No description provided for @downloadsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No downloads yet'**
+  String get downloadsEmpty;
+
+  /// No description provided for @downloadsEmptyForTags.
+  ///
+  /// In en, this message translates to:
+  /// **'No downloads carry those tags'**
+  String get downloadsEmptyForTags;
+
+  /// No description provided for @downloadsEmptyForQuery.
+  ///
+  /// In en, this message translates to:
+  /// **'No downloads match \"{query}\"'**
+  String downloadsEmptyForQuery(String query);
+
+  /// No description provided for @downloadsSectionActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Active Downloads'**
+  String get downloadsSectionActive;
+
+  /// No description provided for @downloadsSectionCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed Downloads'**
+  String get downloadsSectionCompleted;
+
+  /// No description provided for @downloadsRandomTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Open a random completed download'**
+  String get downloadsRandomTooltip;
+
+  /// No description provided for @downloadsListViewTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'List view'**
+  String get downloadsListViewTooltip;
+
+  /// No description provided for @downloadsGridViewTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Grid view'**
+  String get downloadsGridViewTooltip;
+
+  /// No description provided for @downloadsRepairAllTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Repair all completed downloads'**
+  String get downloadsRepairAllTooltip;
+
+  /// No description provided for @downloadsRepairAllTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Repair all completed downloads?'**
+  String get downloadsRepairAllTitle;
+
+  /// No description provided for @downloadsRepairAllBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This scans every completed download for missing pages or a missing cover and re-downloads anything broken. It may take a while and will use network data.'**
+  String get downloadsRepairAllBody;
+
+  /// No description provided for @downloadsRepairAllConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Repair All'**
+  String get downloadsRepairAllConfirm;
+
+  /// No description provided for @downloadsRepairAllIntact.
+  ///
+  /// In en, this message translates to:
+  /// **'All {total} downloads are intact'**
+  String downloadsRepairAllIntact(int total);
+
+  /// No description provided for @downloadsRepairAllRepaired.
+  ///
+  /// In en, this message translates to:
+  /// **'Repaired {repaired} of {total} downloads'**
+  String downloadsRepairAllRepaired(int repaired, int total);
+
+  /// No description provided for @downloadsRepairAllStopped.
+  ///
+  /// In en, this message translates to:
+  /// **'Stopped after repeated failures — repaired {repaired}, failed {failed} (of {total} total)'**
+  String downloadsRepairAllStopped(int repaired, int failed, int total);
+
+  /// No description provided for @downloadsRepairAllMixed.
+  ///
+  /// In en, this message translates to:
+  /// **'Repaired {repaired}, failed {failed}, of {total} downloads'**
+  String downloadsRepairAllMixed(int repaired, int failed, int total);
+
+  /// No description provided for @downloadsRepairAllError.
+  ///
+  /// In en, this message translates to:
+  /// **'Repair all failed: {error}'**
+  String downloadsRepairAllError(String error);
+
+  /// No description provided for @downloadsDeleteAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Download'**
+  String get downloadsDeleteAction;
+
+  /// No description provided for @downloadsReloadAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Reload'**
+  String get downloadsReloadAction;
+
+  /// No description provided for @downloadsRepairAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Repair'**
+  String get downloadsRepairAction;
+
+  /// No description provided for @downloadsDeleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete downloaded comic?'**
+  String get downloadsDeleteTitle;
+
+  /// No description provided for @downloadsDeleteBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This deletes the saved download, cover, offline snapshot, and the completed job record.'**
+  String get downloadsDeleteBody;
+
+  /// No description provided for @downloadsDeletedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloaded comic deleted'**
+  String get downloadsDeletedMessage;
+
+  /// No description provided for @downloadsReloadTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reload download?'**
+  String get downloadsReloadTitle;
+
+  /// No description provided for @downloadsReloadBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This deletes the saved pages and re-downloads the comic from scratch. Reading history and metadata are preserved.'**
+  String get downloadsReloadBody;
+
+  /// No description provided for @downloadsReloadQueued.
+  ///
+  /// In en, this message translates to:
+  /// **'Reload queued'**
+  String get downloadsReloadQueued;
+
+  /// No description provided for @downloadsRepairQueued.
+  ///
+  /// In en, this message translates to:
+  /// **'Repair queued'**
+  String get downloadsRepairQueued;
+
+  /// No description provided for @downloadsNothingToRepair.
+  ///
+  /// In en, this message translates to:
+  /// **'All pages and cover are intact — nothing to repair'**
+  String get downloadsNothingToRepair;
+
+  /// No description provided for @downloadsPausedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Download paused'**
+  String get downloadsPausedMessage;
+
+  /// No description provided for @downloadsPauseAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause'**
+  String get downloadsPauseAction;
+
+  /// No description provided for @downloadsResumedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Download resumed'**
+  String get downloadsResumedMessage;
+
+  /// No description provided for @downloadsResumeAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Resume'**
+  String get downloadsResumeAction;
+
+  /// No description provided for @downloadsRemoveJobTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove download job?'**
+  String get downloadsRemoveJobTitle;
+
+  /// No description provided for @downloadsRemoveJobBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This removes the download job and deletes any partial files already saved.'**
+  String get downloadsRemoveJobBody;
+
+  /// No description provided for @downloadsJobRemovedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Download job removed'**
+  String get downloadsJobRemovedMessage;
+
+  /// No description provided for @downloadsRemoveAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get downloadsRemoveAction;
+
+  /// No description provided for @downloadsRetriedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Download retried'**
+  String get downloadsRetriedMessage;
+
+  /// No description provided for @downloadsRetryAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get downloadsRetryAction;
+
+  /// No description provided for @downloadsRemoveFailedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove failed download?'**
+  String get downloadsRemoveFailedTitle;
+
+  /// No description provided for @downloadsRemoveFailedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This removes the failed job and deletes any partial files already saved.'**
+  String get downloadsRemoveFailedBody;
+
+  /// No description provided for @downloadsFailedRemovedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed download removed'**
+  String get downloadsFailedRemovedMessage;
+
+  /// No description provided for @downloadsStatusDownloading.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading'**
+  String get downloadsStatusDownloading;
+
+  /// No description provided for @downloadsStatusQueued.
+  ///
+  /// In en, this message translates to:
+  /// **'Queued'**
+  String get downloadsStatusQueued;
+
+  /// No description provided for @downloadsStatusPaused.
+  ///
+  /// In en, this message translates to:
+  /// **'Paused'**
+  String get downloadsStatusPaused;
+
+  /// No description provided for @downloadsStatusFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed'**
+  String get downloadsStatusFailed;
+
+  /// No description provided for @downloadsStatusCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed'**
+  String get downloadsStatusCompleted;
+
+  /// Compact page count on a grid tile, e.g. "24p"
+  ///
+  /// In en, this message translates to:
+  /// **'{count}p'**
+  String downloadsPageCountShort(int count);
+
+  /// The one string here that genuinely needs a plural: English says "1 page" but "2 pages". Chinese has no plural form, so its translation is a single case.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 page} other{{count} pages}}'**
+  String downloadsPageCount(int count);
+
+  /// No description provided for @confirmButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm'**
+  String get confirmButton;
+
+  /// No description provided for @collectionFavorite.
+  ///
+  /// In en, this message translates to:
+  /// **'Favorites'**
+  String get collectionFavorite;
+
+  /// No description provided for @collectionNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get collectionNext;
+
+  /// No description provided for @collectionHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'History'**
+  String get collectionHistory;
+
+  /// No description provided for @collectionUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown collection: {name}'**
+  String collectionUnknown(String name);
+
+  /// No description provided for @collectionSelectComics.
+  ///
+  /// In en, this message translates to:
+  /// **'Select comics'**
+  String get collectionSelectComics;
+
+  /// No description provided for @collectionSelectedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} selected'**
+  String collectionSelectedCount(int count);
+
+  /// No description provided for @collectionSelectAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Select all'**
+  String get collectionSelectAll;
+
+  /// No description provided for @collectionDeselectAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Deselect all'**
+  String get collectionDeselectAll;
+
+  /// No description provided for @collectionDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get collectionDone;
+
+  /// No description provided for @collectionOpenSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Settings'**
+  String get collectionOpenSettings;
+
+  /// No description provided for @collectionLoginFromSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Login from Settings'**
+  String get collectionLoginFromSettings;
+
+  /// No description provided for @collectionEmptyForTag.
+  ///
+  /// In en, this message translates to:
+  /// **'No comics here carry that tag'**
+  String get collectionEmptyForTag;
+
+  /// No description provided for @collectionEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No comics in {collection}'**
+  String collectionEmpty(String collection);
+
+  /// No description provided for @collectionCollectedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} collected'**
+  String collectionCollectedCount(int count);
+
+  /// No description provided for @collectionUnknownTag.
+  ///
+  /// In en, this message translates to:
+  /// **'Tag #{tagId}'**
+  String collectionUnknownTag(int tagId);
+
+  /// No description provided for @collectionNoneSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'No comics selected'**
+  String get collectionNoneSelected;
+
+  /// No description provided for @collectionAllAlreadyDownloaded.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{That comic is already in Downloads} other{All {count} comics are already in Downloads}}'**
+  String collectionAllAlreadyDownloaded(int count);
+
+  /// No description provided for @collectionDownloadSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Download 1 comic} other{Download {count} comics}}'**
+  String collectionDownloadSelected(int count);
+
+  /// No description provided for @collectionBatchProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Adding {processed}/{total} to Downloads…'**
+  String collectionBatchProgress(int processed, int total);
+
+  /// No description provided for @collectionBatchQueued.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 comic added to Downloads} other{{count} comics added to Downloads}}'**
+  String collectionBatchQueued(int count);
+
+  /// No description provided for @collectionBatchSkipped.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} skipped (already downloaded)'**
+  String collectionBatchSkipped(int count);
+
+  /// No description provided for @collectionBatchFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} failed'**
+  String collectionBatchFailed(int count);
+
+  /// No description provided for @collectionBatchStoppedEarly.
+  ///
+  /// In en, this message translates to:
+  /// **'stopped early after repeated failures'**
+  String get collectionBatchStoppedEarly;
+
+  /// No description provided for @tagActionBlock.
+  ///
+  /// In en, this message translates to:
+  /// **'Block \"{tag}\"'**
+  String tagActionBlock(String tag);
+
+  /// No description provided for @tagActionUnblock.
+  ///
+  /// In en, this message translates to:
+  /// **'Unblock \"{tag}\"'**
+  String tagActionUnblock(String tag);
+
+  /// No description provided for @tagActionBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{tag}\" added to blocked tags'**
+  String tagActionBlocked(String tag);
+
+  /// No description provided for @tagActionUnblocked.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{tag}\" removed from blocked tags'**
+  String tagActionUnblocked(String tag);
+
+  /// No description provided for @tagActionSearchFavorites.
+  ///
+  /// In en, this message translates to:
+  /// **'Search \"{tag}\" in Favorites'**
+  String tagActionSearchFavorites(String tag);
+
+  /// No description provided for @tagActionFilterDownloads.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter Downloads by \"{tag}\"'**
+  String tagActionFilterDownloads(String tag);
+
+  /// No description provided for @analysisTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Tag Analysis'**
+  String get analysisTitle;
+
+  /// No description provided for @analysisNothingKept.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing kept yet. Favorite or download some comics and this page fills in.'**
+  String get analysisNothingKept;
+
+  /// No description provided for @analysisComicsKept.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} comics kept'**
+  String analysisComicsKept(int count);
+
+  /// No description provided for @analysisTaggedRatio.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} of them carry tags ({percent}%)'**
+  String analysisTaggedRatio(int count, int percent);
+
+  /// No description provided for @analysisCoverageHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Everything below is based on the tagged ones. Sync favorites from Settings to fill in the rest.'**
+  String get analysisCoverageHint;
+
+  /// No description provided for @analysisCombinationsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Taste Combinations'**
+  String get analysisCombinationsTitle;
+
+  /// No description provided for @analysisCombinationsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Two or three tags that show up together more often than each tag on its own would suggest. Tap to search them; long-press to filter Downloads by them.'**
+  String get analysisCombinationsHint;
+
+  /// No description provided for @tagPreferencesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Tag Preferences'**
+  String get tagPreferencesTitle;
+
+  /// No description provided for @tagPreferencesFullAnalysis.
+  ///
+  /// In en, this message translates to:
+  /// **'Full analysis ›'**
+  String get tagPreferencesFullAnalysis;
+
+  /// No description provided for @tagPreferencesEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No tag data yet. Sync favorites from Settings, or download a few comics, and preferences will build up here.'**
+  String get tagPreferencesEmpty;
+
+  /// No description provided for @tagPreferencesShowLess.
+  ///
+  /// In en, this message translates to:
+  /// **'Show less'**
+  String get tagPreferencesShowLess;
+
+  /// No description provided for @tagPreferencesShowMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Show {count} more'**
+  String tagPreferencesShowMore(int count);
+
+  /// No description provided for @tagSectionTags.
+  ///
+  /// In en, this message translates to:
+  /// **'Tags'**
+  String get tagSectionTags;
+
+  /// No description provided for @tagSectionArtists.
+  ///
+  /// In en, this message translates to:
+  /// **'Artists'**
+  String get tagSectionArtists;
+
+  /// No description provided for @tagSectionParodies.
+  ///
+  /// In en, this message translates to:
+  /// **'Parodies'**
+  String get tagSectionParodies;
+
+  /// No description provided for @tagSectionCharacters.
+  ///
+  /// In en, this message translates to:
+  /// **'Characters'**
+  String get tagSectionCharacters;
+
+  /// No description provided for @sortMostKept.
+  ///
+  /// In en, this message translates to:
+  /// **'Most kept'**
+  String get sortMostKept;
+
+  /// No description provided for @sortMostDistinctive.
+  ///
+  /// In en, this message translates to:
+  /// **'Most distinctive'**
+  String get sortMostDistinctive;
+
+  /// No description provided for @tagSheetNoTags.
+  ///
+  /// In en, this message translates to:
+  /// **'No tags'**
+  String get tagSheetNoTags;
+
+  /// No description provided for @tagSheetLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load tags.'**
+  String get tagSheetLoadFailed;
+
+  /// No description provided for @tagSheetSelectToSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Select tags to search'**
+  String get tagSheetSelectToSearch;
+
+  /// No description provided for @tagSheetSearchSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Search {count} tags'**
+  String tagSheetSearchSelected(int count);
+
+  /// No description provided for @tagActionSearchDownloads.
+  ///
+  /// In en, this message translates to:
+  /// **'Search \"{tag}\" in Downloads'**
+  String tagActionSearchDownloads(String tag);
+
+  /// No description provided for @retryButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get retryButton;
 }
 
 class _AppLocalizationsDelegate

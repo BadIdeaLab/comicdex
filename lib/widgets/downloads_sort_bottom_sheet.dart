@@ -1,3 +1,4 @@
+import 'package:concept_nhv/l10n/app_localizations.dart';
 import 'package:concept_nhv/models/downloads_sort_mode.dart';
 import 'package:concept_nhv/state/download_manager_model.dart';
 import 'package:concept_nhv/widgets/glass_bottom_sheet.dart';
@@ -39,6 +40,7 @@ class _DownloadsSortBottomSheetState extends State<DownloadsSortBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
       child: Column(
@@ -63,7 +65,7 @@ class _DownloadsSortBottomSheetState extends State<DownloadsSortBottomSheet> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
             child: Text(
-              'Sort Downloads',
+              l10n.downloadsSortTitle,
               style: Theme.of(context).textTheme.titleMedium,
             ),
           ),
@@ -79,7 +81,7 @@ class _DownloadsSortBottomSheetState extends State<DownloadsSortBottomSheet> {
                   children: DownloadsSortMode.values
                       .map((mode) {
                         return FilterChip(
-                          label: Text(mode.label),
+                          label: Text(_modeLabel(l10n, mode)),
                           selected: _selectedMode == mode,
                           onSelected: (_) => _handleModeSelected(mode),
                           showCheckmark: true,
@@ -94,7 +96,7 @@ class _DownloadsSortBottomSheetState extends State<DownloadsSortBottomSheet> {
                   children: DownloadsSortDirection.values
                       .map((direction) {
                         return FilterChip(
-                          label: Text(direction.label),
+                          label: Text(_directionLabel(l10n, direction)),
                           selected: _selectedDirection == direction,
                           onSelected: (_) =>
                               _handleDirectionSelected(direction),
@@ -116,7 +118,7 @@ class _DownloadsSortBottomSheetState extends State<DownloadsSortBottomSheet> {
                   Expanded(
                     child: OutlinedButton(
                       onPressed: _handleReset,
-                      child: const Text('Reset'),
+                      child: Text(l10n.resetButton),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -124,7 +126,7 @@ class _DownloadsSortBottomSheetState extends State<DownloadsSortBottomSheet> {
                     flex: 2,
                     child: FilledButton(
                       onPressed: _handleApply,
-                      child: const Text('Apply'),
+                      child: Text(l10n.applyButton),
                     ),
                   ),
                 ],
@@ -162,4 +164,25 @@ class _DownloadsSortBottomSheetState extends State<DownloadsSortBottomSheet> {
     });
     context.read<DownloadManagerModel>().setDownloadsSortDirection(direction);
   }
+}
+
+String _modeLabel(AppLocalizations l10n, DownloadsSortMode mode) {
+  return switch (mode) {
+    DownloadsSortMode.latestDownloaded => l10n.downloadsSortLatestDownloaded,
+    DownloadsSortMode.lastRead => l10n.downloadsSortLastRead,
+    DownloadsSortMode.mostFavorited => l10n.downloadsSortMostFavorited,
+    DownloadsSortMode.title => l10n.downloadsSortByTitle,
+    DownloadsSortMode.author => l10n.downloadsSortByAuthor,
+    DownloadsSortMode.preference => l10n.downloadsSortByPreference,
+  };
+}
+
+String _directionLabel(
+  AppLocalizations l10n,
+  DownloadsSortDirection direction,
+) {
+  return switch (direction) {
+    DownloadsSortDirection.descending => l10n.downloadsSortDescending,
+    DownloadsSortDirection.ascending => l10n.downloadsSortAscending,
+  };
 }

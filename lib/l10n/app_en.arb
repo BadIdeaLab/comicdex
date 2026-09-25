@@ -249,9 +249,15 @@
   "backupTryingAddress": "Trying {address} ({attempt} of {total})…",
   "@backupTryingAddress": {
     "placeholders": {
-      "address": { "type": "String" },
-      "attempt": { "type": "int" },
-      "total": { "type": "int" }
+      "address": {
+        "type": "String"
+      },
+      "attempt": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
     }
   },
   "backupScanNoCodeFound": "No QR code in that image. Pick a screenshot of the Comicdex backup server window.",
@@ -277,5 +283,360 @@
   "backupControlRestoreDone": "Restore finished · restart required",
   "backupControlRestoreRunning": "The computer started a restore",
   "backupControlRestorePaused": "Restore paused",
-  "backupControlRestoreError": "Connection or restore failed"
+  "backupControlRestoreError": "Connection or restore failed",
+  "downloadsSortTitle": "Sort Downloads",
+  "downloadsSortLatestDownloaded": "Latest Downloaded",
+  "downloadsSortLastRead": "Last Read",
+  "downloadsSortMostFavorited": "Most Favorited",
+  "downloadsSortByTitle": "Title",
+  "downloadsSortByAuthor": "Author",
+  "downloadsSortByPreference": "Preference",
+  "downloadsSortDescending": "Descending",
+  "downloadsSortAscending": "Ascending",
+  "resetButton": "Reset",
+  "downloadsClearTagFilters": "Clear tags",
+  "downloadsUnknownTag": "Tag #{tagId}",
+  "@downloadsUnknownTag": {
+    "description": "Fallback chip label when a tag id is not in the local catalog",
+    "placeholders": {
+      "tagId": {
+        "type": "int"
+      }
+    }
+  },
+  "downloadsEmpty": "No downloads yet",
+  "downloadsEmptyForTags": "No downloads carry those tags",
+  "downloadsEmptyForQuery": "No downloads match \"{query}\"",
+  "@downloadsEmptyForQuery": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadsSectionActive": "Active Downloads",
+  "downloadsSectionCompleted": "Completed Downloads",
+  "downloadsRandomTooltip": "Open a random completed download",
+  "downloadsListViewTooltip": "List view",
+  "downloadsGridViewTooltip": "Grid view",
+  "downloadsRepairAllTooltip": "Repair all completed downloads",
+  "downloadsRepairAllTitle": "Repair all completed downloads?",
+  "downloadsRepairAllBody": "This scans every completed download for missing pages or a missing cover and re-downloads anything broken. It may take a while and will use network data.",
+  "downloadsRepairAllConfirm": "Repair All",
+  "downloadsRepairAllIntact": "All {total} downloads are intact",
+  "@downloadsRepairAllIntact": {
+    "placeholders": {
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "downloadsRepairAllRepaired": "Repaired {repaired} of {total} downloads",
+  "@downloadsRepairAllRepaired": {
+    "placeholders": {
+      "repaired": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "downloadsRepairAllStopped": "Stopped after repeated failures — repaired {repaired}, failed {failed} (of {total} total)",
+  "@downloadsRepairAllStopped": {
+    "placeholders": {
+      "repaired": {
+        "type": "int"
+      },
+      "failed": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "downloadsRepairAllMixed": "Repaired {repaired}, failed {failed}, of {total} downloads",
+  "@downloadsRepairAllMixed": {
+    "placeholders": {
+      "repaired": {
+        "type": "int"
+      },
+      "failed": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "downloadsRepairAllError": "Repair all failed: {error}",
+  "@downloadsRepairAllError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadsDeleteAction": "Delete Download",
+  "downloadsReloadAction": "Reload",
+  "downloadsRepairAction": "Repair",
+  "downloadsDeleteTitle": "Delete downloaded comic?",
+  "downloadsDeleteBody": "This deletes the saved download, cover, offline snapshot, and the completed job record.",
+  "downloadsDeletedMessage": "Downloaded comic deleted",
+  "downloadsReloadTitle": "Reload download?",
+  "downloadsReloadBody": "This deletes the saved pages and re-downloads the comic from scratch. Reading history and metadata are preserved.",
+  "downloadsReloadQueued": "Reload queued",
+  "downloadsRepairQueued": "Repair queued",
+  "downloadsNothingToRepair": "All pages and cover are intact — nothing to repair",
+  "downloadsPausedMessage": "Download paused",
+  "downloadsPauseAction": "Pause",
+  "downloadsResumedMessage": "Download resumed",
+  "downloadsResumeAction": "Resume",
+  "downloadsRemoveJobTitle": "Remove download job?",
+  "downloadsRemoveJobBody": "This removes the download job and deletes any partial files already saved.",
+  "downloadsJobRemovedMessage": "Download job removed",
+  "downloadsRemoveAction": "Remove",
+  "downloadsRetriedMessage": "Download retried",
+  "downloadsRetryAction": "Retry",
+  "downloadsRemoveFailedTitle": "Remove failed download?",
+  "downloadsRemoveFailedBody": "This removes the failed job and deletes any partial files already saved.",
+  "downloadsFailedRemovedMessage": "Failed download removed",
+  "downloadsStatusDownloading": "Downloading",
+  "downloadsStatusQueued": "Queued",
+  "downloadsStatusPaused": "Paused",
+  "downloadsStatusFailed": "Failed",
+  "downloadsStatusCompleted": "Completed",
+  "downloadsPageCountShort": "{count}p",
+  "@downloadsPageCountShort": {
+    "description": "Compact page count on a grid tile, e.g. \"24p\"",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "downloadsPageCount": "{count, plural, =1{1 page} other{{count} pages}}",
+  "@downloadsPageCount": {
+    "description": "The one string here that genuinely needs a plural: English says \"1 page\" but \"2 pages\". Chinese has no plural form, so its translation is a single case.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "confirmButton": "Confirm",
+  "collectionFavorite": "Favorites",
+  "collectionNext": "Next",
+  "collectionHistory": "History",
+  "collectionUnknown": "Unknown collection: {name}",
+  "@collectionUnknown": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "collectionSelectComics": "Select comics",
+  "collectionSelectedCount": "{count} selected",
+  "@collectionSelectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "collectionSelectAll": "Select all",
+  "collectionDeselectAll": "Deselect all",
+  "collectionDone": "Done",
+  "collectionOpenSettings": "Open Settings",
+  "collectionLoginFromSettings": "Login from Settings",
+  "collectionEmptyForTag": "No comics here carry that tag",
+  "collectionEmpty": "No comics in {collection}",
+  "@collectionEmpty": {
+    "placeholders": {
+      "collection": {
+        "type": "String"
+      }
+    }
+  },
+  "collectionCollectedCount": "{count} collected",
+  "@collectionCollectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "collectionUnknownTag": "Tag #{tagId}",
+  "@collectionUnknownTag": {
+    "placeholders": {
+      "tagId": {
+        "type": "int"
+      }
+    }
+  },
+  "collectionNoneSelected": "No comics selected",
+  "collectionAllAlreadyDownloaded": "{count, plural, =1{That comic is already in Downloads} other{All {count} comics are already in Downloads}}",
+  "@collectionAllAlreadyDownloaded": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "collectionDownloadSelected": "{count, plural, =1{Download 1 comic} other{Download {count} comics}}",
+  "@collectionDownloadSelected": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "collectionBatchProgress": "Adding {processed}/{total} to Downloads…",
+  "@collectionBatchProgress": {
+    "placeholders": {
+      "processed": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "collectionBatchQueued": "{count, plural, =1{1 comic added to Downloads} other{{count} comics added to Downloads}}",
+  "@collectionBatchQueued": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "collectionBatchSkipped": "{count} skipped (already downloaded)",
+  "@collectionBatchSkipped": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "collectionBatchFailed": "{count} failed",
+  "@collectionBatchFailed": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "collectionBatchStoppedEarly": "stopped early after repeated failures",
+  "tagActionBlock": "Block \"{tag}\"",
+  "@tagActionBlock": {
+    "placeholders": {
+      "tag": {
+        "type": "String"
+      }
+    }
+  },
+  "tagActionUnblock": "Unblock \"{tag}\"",
+  "@tagActionUnblock": {
+    "placeholders": {
+      "tag": {
+        "type": "String"
+      }
+    }
+  },
+  "tagActionBlocked": "\"{tag}\" added to blocked tags",
+  "@tagActionBlocked": {
+    "placeholders": {
+      "tag": {
+        "type": "String"
+      }
+    }
+  },
+  "tagActionUnblocked": "\"{tag}\" removed from blocked tags",
+  "@tagActionUnblocked": {
+    "placeholders": {
+      "tag": {
+        "type": "String"
+      }
+    }
+  },
+  "tagActionSearchFavorites": "Search \"{tag}\" in Favorites",
+  "@tagActionSearchFavorites": {
+    "placeholders": {
+      "tag": {
+        "type": "String"
+      }
+    }
+  },
+  "tagActionFilterDownloads": "Filter Downloads by \"{tag}\"",
+  "@tagActionFilterDownloads": {
+    "placeholders": {
+      "tag": {
+        "type": "String"
+      }
+    }
+  },
+  "analysisTitle": "Tag Analysis",
+  "analysisNothingKept": "Nothing kept yet. Favorite or download some comics and this page fills in.",
+  "analysisComicsKept": "{count} comics kept",
+  "@analysisComicsKept": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "analysisTaggedRatio": "{count} of them carry tags ({percent}%)",
+  "@analysisTaggedRatio": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "analysisCoverageHint": "Everything below is based on the tagged ones. Sync favorites from Settings to fill in the rest.",
+  "analysisCombinationsTitle": "Taste Combinations",
+  "analysisCombinationsHint": "Two or three tags that show up together more often than each tag on its own would suggest. Tap to search them; long-press to filter Downloads by them.",
+  "tagPreferencesTitle": "Tag Preferences",
+  "tagPreferencesFullAnalysis": "Full analysis ›",
+  "tagPreferencesEmpty": "No tag data yet. Sync favorites from Settings, or download a few comics, and preferences will build up here.",
+  "tagPreferencesShowLess": "Show less",
+  "tagPreferencesShowMore": "Show {count} more",
+  "@tagPreferencesShowMore": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "tagSectionTags": "Tags",
+  "tagSectionArtists": "Artists",
+  "tagSectionParodies": "Parodies",
+  "tagSectionCharacters": "Characters",
+  "sortMostKept": "Most kept",
+  "sortMostDistinctive": "Most distinctive",
+  "tagSheetNoTags": "No tags",
+  "tagSheetLoadFailed": "Failed to load tags.",
+  "tagSheetSelectToSearch": "Select tags to search",
+  "tagSheetSearchSelected": "Search {count} tags",
+  "@tagSheetSearchSelected": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "tagActionSearchDownloads": "Search \"{tag}\" in Downloads",
+  "@tagActionSearchDownloads": {
+    "placeholders": {
+      "tag": {
+        "type": "String"
+      }
+    }
+  },
+  "retryButton": "Retry"
 }

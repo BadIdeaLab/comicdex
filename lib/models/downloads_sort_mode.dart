@@ -1,25 +1,20 @@
+/// How the completed downloads list is ordered.
+///
+/// The labels live in the UI layer, not here: they are localised, which needs
+/// a `BuildContext` an enum cannot hold. Mapping them with a `switch` there
+/// also means adding a value without a label fails to compile, rather than
+/// quietly showing the wrong text.
 enum DownloadsSortMode {
-  latestDownloaded('Latest Downloaded'),
-  lastRead('Last Read'),
-  mostFavorited('Most Favorited'),
-  title('Title'),
-  author('Author'),
+  latestDownloaded,
+  lastRead,
+  mostFavorited,
+  title,
+  author,
 
   /// Ranked by how well the comic's tags match the user's taste (P84).
   /// Local data only, so unlike the home tab there is no pagination to make
   /// the order misleading.
-  preference('Preference');
-
-  const DownloadsSortMode(this.label);
-
-  final String label;
+  preference,
 }
 
-enum DownloadsSortDirection {
-  descending('Descending'),
-  ascending('Ascending');
-
-  const DownloadsSortDirection(this.label);
-
-  final String label;
-}
+enum DownloadsSortDirection { descending, ascending }
