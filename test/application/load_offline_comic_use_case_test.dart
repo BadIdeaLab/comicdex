@@ -74,7 +74,7 @@ void main() {
     });
 
     test(
-      'keeps legacy absolute local paths unchanged (pre-P51 downloads)',
+      're-roots legacy absolute local paths (pre-P51 downloads)',
       () async {
       final comic = sampleComic(id: '800', mediaId: '500');
 
@@ -116,8 +116,17 @@ void main() {
       expect(result.mediaId, '500');
       expect(result.numPages, comic.numPages);
       expect(result.images.pages, hasLength(2));
-      expect(result.images.pages[0].path, '/downloads/800/pages/1.jpg');
-      expect(result.images.pages[1].path, '/downloads/800/pages/2.jpg');
+      // Used to assert these came back untouched, which is what made a
+      // restored library look corrupt: the rows name the container they were
+      // written in, while the files sit under this device's downloads root.
+      expect(
+        result.images.pages[0].path,
+        p.join(tempDirectory.path, '800', 'pages', '1.jpg'),
+      );
+      expect(
+        result.images.pages[1].path,
+        p.join(tempDirectory.path, '800', 'pages', '2.jpg'),
+      );
     });
 
     test('falls back to remotePath for pages without a local path', () async {
@@ -148,7 +157,10 @@ void main() {
       final result = await useCase.execute('801');
 
       expect(result, isNotNull);
-      expect(result!.images.pages[0].path, '/downloads/801/pages/1.jpg');
+      expect(
+        result!.images.pages[0].path,
+        p.join(tempDirectory.path, '801', 'pages', '1.jpg'),
+      );
       // Page 2 was not completed — falls back to the remote path stored at manifest time.
       expect(result.images.pages[1].path, isNotNull);
       expect(result.images.pages[1].path, isNot(startsWith('/')));

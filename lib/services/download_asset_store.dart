@@ -6,6 +6,41 @@ import 'package:path_provider/path_provider.dart';
 
 typedef DownloadDirectoryResolver = Future<Directory> Function();
 
+/// Where a stored download path stops being container-specific.
+///
+/// Shared with `normaliseRestorePath`, which answers the same question for a
+/// backed-up database. Two copies of this constant would drift.
+const String kDownloadsSegment = '/downloads/';
+
+/// The part of [storedPath] that identifies a file inside the downloads root,
+/// or null when it cannot be worked out.
+///
+/// Relative paths (the convention since P51) are already that. Absolute ones
+/// name some container — possibly another device's — and only the tail after
+/// `/downloads/` is portable.
+String? relativeDownloadPath(String storedPath) {
+  final trimmed = storedPath.trim();
+  if (trimmed.isEmpty) return null;
+
+  // Separators are compared, not rebuilt: a row written on Windows holds
+  // backslashes, one written on a phone holds slashes, and both name the same
+  // file inside the downloads root.
+  final normalised = trimmed.replaceAll(r'\', '/');
+  final isAbsolute = p.isAbsolute(normalised) || normalised.startsWith('/');
+  if (!isAbsolute) {
+    return trimmed;
+  }
+
+  final marker = normalised.lastIndexOf(kDownloadsSegment);
+  if (marker < 0) return null;
+  final tail = normalised.substring(marker + kDownloadsSegment.length);
+  if (tail.isEmpty) return null;
+  // Rebuilt with this platform's separator, so the result can be joined with
+  // a local root without ending up half slashes and half backslashes.
+  return p.joinAll(tail.split('/'));
+}
+
+
 class DownloadAssetStore {
   DownloadAssetStore({DownloadDirectoryResolver? directoryResolver})
     : _directoryResolver = directoryResolver ?? _defaultDirectoryResolver;
@@ -57,17 +92,27 @@ class DownloadAssetStore {
     return p.join(comicId, 'cover.$extension');
   }
 
-  /// Resolves a path stored in the database (relative, per [savePage] and
-  /// [saveCover]) to an absolute filesystem path rooted at the CURRENT app
-  /// container's downloads directory. Paths already absolute (written before
-  /// this relative-path convention existed) are returned unchanged — they'll
-  /// resolve the same way they did before this method existed.
+  /// Resolves a path stored in the database to an absolute filesystem path
+  /// rooted at the CURRENT app container's downloads directory.
+  ///
+  /// Paths written before the relative-path convention are absolute and name
+  /// a container that may no longer exist: a different device after a
+  /// restore, or the same device after a reinstall changed the container id
+  /// (the reason for P51). Those are re-rooted here by keeping everything
+  /// after the `/downloads/` segment, so the bytes already sitting on this
+  /// device are found instead of reported missing. On a container that has
+  /// not moved this produces exactly the same path as before, because the
+  /// tail is what identifies the file either way.
+  ///
+  /// An absolute path with no `/downloads/` segment cannot be mapped, so it
+  /// is returned unchanged rather than guessed at.
   Future<String> resolveAbsolutePath(String storedPath) async {
-    if (p.isAbsolute(storedPath)) {
+    final relative = relativeDownloadPath(storedPath);
+    if (relative == null) {
       return storedPath;
     }
     final baseDirectory = await _directoryResolver();
-    return p.join(baseDirectory.path, storedPath);
+    return p.join(baseDirectory.path, relative);
   }
 
   /// Returns the page numbers (1-based) that are missing or empty on disk.

@@ -575,7 +575,13 @@ void main() {
       expect(items, hasLength(1));
       expect(items.single.status, DownloadJobStatus.completed);
       expect(items.single.tags.single.name, 'sample');
-      expect(items.single.coverLocalPath, '/downloads/907/cover.webp');
+      // Re-rooted, not verbatim: a pre-P51 row names another container,
+      // and the cover it points at is on this device under the downloads
+      // root.
+      expect(
+        items.single.coverLocalPath,
+        p.join(tempDirectory.path, '907', 'cover.webp'),
+      );
       expect(items.single.pageCount, comic.numPages);
 
       manager.dispose();
