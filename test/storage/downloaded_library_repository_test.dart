@@ -55,5 +55,60 @@ void main() {
       expect(downloadedComics.single.tags.single.name, 'sample');
       expect(downloadedComics.single.tags.single.type, 'tag');
     });
+
+    test('saving again keeps when it was downloaded and last read', () async {
+      // Repairing missing pages re-runs the download job, which saves this
+      // row a second time. With insertOrReplace that rebuilt the row: the
+      // comic jumped to the top of "Latest Downloaded" and its reading
+      // history was silently dropped.
+      final comic = sampleComic(id: '800', mediaId: '500');
+      final downloadedAt = DateTime(2026, 5, 2, 10, 30);
+      final lastReadAt = DateTime(2026, 5, 3, 11, 0);
+      await harness.downloadedLibraryRepository.saveDownloadedComic(
+        comic: comic,
+        rootDirectoryPath: '/downloads/800',
+        coverLocalPath: '/downloads/800/cover.webp',
+        downloadedAt: downloadedAt,
+      );
+      await harness.downloadedLibraryRepository.saveLastReadAt(
+        '800',
+        lastReadAt,
+      );
+
+      await harness.downloadedLibraryRepository.saveDownloadedComic(
+        comic: comic,
+        rootDirectoryPath: '/downloads/800',
+        coverLocalPath: '/downloads/800/cover.webp',
+      );
+
+      final stored =
+          (await harness.downloadedLibraryRepository.loadDownloadedComics())
+              .single;
+      expect(stored.downloadedAt, downloadedAt);
+      expect(stored.lastReadAt, lastReadAt);
+    });
+
+    test('saving again still refreshes the metadata', () async {
+      // The timestamps are pinned, but a repair exists precisely to correct
+      // what is stored — so everything else must still be written.
+      await harness.downloadedLibraryRepository.saveDownloadedComic(
+        comic: sampleComic(id: '800', mediaId: '500'),
+        rootDirectoryPath: '/downloads/800',
+        coverLocalPath: null,
+        downloadedAt: DateTime(2026, 5, 2, 10, 30),
+      );
+
+      await harness.downloadedLibraryRepository.saveDownloadedComic(
+        comic: sampleComic(id: '800', mediaId: '500').copyWith(numPages: 42),
+        rootDirectoryPath: '/downloads/800',
+        coverLocalPath: '/downloads/800/cover.webp',
+      );
+
+      final stored =
+          (await harness.downloadedLibraryRepository.loadDownloadedComics())
+              .single;
+      expect(stored.coverLocalPath, '/downloads/800/cover.webp');
+      expect(stored.pageCount, 42);
+    });
   });
 }

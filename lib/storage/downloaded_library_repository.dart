@@ -34,12 +34,39 @@ class DownloadedLibraryRepository {
     });
   }
 
+  /// A real upsert, not `insertOrReplace`.
+  ///
+  /// This row is written again whenever a download job completes, and a job
+  /// is re-run to repair missing pages — so "replace" meant a repair rebuilt
+  /// the row from scratch: `downloaded_at` jumped to now, moving the comic to
+  /// the top of the default sort, and `last_read_at` fell back to its NULL
+  /// default, silently discarding when the comic was last read. (The same
+  /// trap blanked `favorite_rank` in `addComicToCollection`; see P78.)
+  ///
+  /// So both timestamps are recorded on first insert and never touched
+  /// again here. Reading updates `last_read_at` through its own path, and
+  /// nothing legitimately re-dates a download — a repair is not a new
+  /// download.
   Future<void> _insertDownloadedComic(
     model.Comic comic,
     String rootDirectoryPath,
     String? coverLocalPath,
     DateTime timestamp,
   ) async {
+    final tagsJson = jsonEncode(
+      comic.tags
+          .map(
+            (tag) => <String, dynamic>{
+              'id': tag.id,
+              'type': tag.type,
+              'name': tag.name,
+              'url': tag.url,
+              'count': tag.count,
+            },
+          )
+          .toList(growable: false),
+    );
+
     await localDatabase
         .into(localDatabase.downloadedComics)
         .insert(
@@ -55,21 +82,24 @@ class DownloadedLibraryRepository {
             downloadedAt: timestamp.toIso8601String(),
             lastReadAt: const drift.Value.absent(),
             numFavorites: drift.Value(comic.numFavorites),
-            tagsJson: jsonEncode(
-              comic.tags
-                  .map(
-                    (tag) => <String, dynamic>{
-                      'id': tag.id,
-                      'type': tag.type,
-                      'name': tag.name,
-                      'url': tag.url,
-                      'count': tag.count,
-                    },
-                  )
-                  .toList(growable: false),
-            ),
+            tagsJson: tagsJson,
           ),
-          mode: drift.InsertMode.insertOrReplace,
+          onConflict: drift.DoUpdate(
+            (_) => DownloadedComicsCompanion(
+              mediaId: drift.Value(comic.mediaId),
+              titleEnglish: drift.Value(comic.title.english),
+              titleJapanese: drift.Value(comic.title.japanese),
+              titlePretty: drift.Value(comic.title.pretty),
+              coverLocalPath: drift.Value(coverLocalPath),
+              rootDirectoryPath: drift.Value(rootDirectoryPath),
+              pageCount: drift.Value(comic.numPages),
+              numFavorites: drift.Value(comic.numFavorites),
+              tagsJson: drift.Value(tagsJson),
+            ),
+            target: <drift.Column<Object>>[
+              localDatabase.downloadedComics.comicId,
+            ],
+          ),
         );
   }
 
