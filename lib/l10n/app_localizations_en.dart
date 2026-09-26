@@ -1115,4 +1115,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get imageLinkCopied => 'Link copied to clipboard';
+
+  @override
+  String get readerSimilarInLibrary => 'Similar ones in your library';
+
+  @override
+  String readerSharedTags(String tags) {
+    return 'Shares $tags';
+  }
 }

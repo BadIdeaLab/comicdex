@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:concept_nhv/application/tags/find_similar_comics_use_case.dart';
+import 'package:concept_nhv/state/preference_score_model.dart';
 import 'package:concept_nhv/l10n/app_localizations.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:concept_nhv/application/reader/reader_settings_repository.dart';
@@ -10,10 +12,12 @@ import 'package:concept_nhv/state/reader_session_model.dart';
 import 'package:concept_nhv/state/reader_settings_model.dart';
 import 'package:concept_nhv/widgets/reader/reader_bottom_controls.dart';
 import 'package:concept_nhv/widgets/reader/reader_end_card.dart';
+import 'package:concept_nhv/widgets/reader/similar_comics_page.dart';
 import 'package:concept_nhv/widgets/reader/reader_page_view.dart';
 import 'package:concept_nhv/widgets/reader/reader_settings_sheet.dart';
 import 'package:concept_nhv/widgets/reader/reader_top_bar.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 // ---------------------------------------------------------------------------
@@ -46,6 +50,12 @@ class _ComicReaderScreenState extends State<ComicReaderScreen> {
   bool _showEndCard = false;
   Timer? _endCardTimer;
 
+  /// Comics from the library that resemble this one, shown on a page past the
+  /// last one. Loaded as soon as the comic is, rather than on reaching the
+  /// end: growing the page count while the reader is already swiping at the
+  /// edge would be visible.
+  List<SimilarComic> _similar = const <SimilarComic>[];
+
   @override
   void initState() {
     super.initState();
@@ -69,13 +79,42 @@ class _ComicReaderScreenState extends State<ComicReaderScreen> {
   Future<void> _load() async {
     await _session.open(comicId: widget.comicId, offline: widget.offline);
     if (!mounted || !_session.isReady) return;
+    unawaited(_loadSimilar());
     // One frame later, so the PageView exists and its controller is attached.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _restoreLastSeenPage();
     });
   }
 
+  Future<void> _loadSimilar() async {
+    final similar = await context.read<FindSimilarComicsUseCase>().execute(
+      widget.comicId,
+      preferences: context.read<PreferenceScoreModel?>()?.vector,
+    );
+    if (!mounted || similar.isEmpty) return;
+    setState(() => _similar = similar);
+  }
+
+  /// Replaces this reader rather than stacking another on top: reading four
+  /// comics in a row through this page would otherwise leave four readers on
+  /// the navigation stack, and backing out would walk through all of them.
+  void _openSimilar(String comicId) {
+    GoRouter.of(context).pushReplacement(
+      Uri(
+        path: '/third',
+        queryParameters: <String, String>{'id': comicId},
+      ).toString(),
+    );
+  }
+
   void _onPageChanged(int index, ReaderSessionModel session) {
+    // The similar-comics page sits past the last real page. It is not part of
+    // the comic, so it must not be recorded as reading progress — otherwise
+    // reopening this comic lands on it instead of the last page actually
+    // read, and nothing reveals that until the next visit. Prefetching from
+    // it would index past the end of the page list for the same reason.
+    if (index >= session.totalPages) return;
+
     session.onPageChanged(index, widget.comicId);
     _prefetchSurroundingPages(context, index + 1);
 
@@ -158,7 +197,12 @@ class _ComicReaderScreenState extends State<ComicReaderScreen> {
         // ── Main paged reader ──────────────────────────────────────────────
         // Isolated in its own widget so that page-change notifyListeners()
         // does not rebuild the PageView and flash image placeholders.
-        _ComicPageView(comicId: widget.comicId, onPageChanged: _onPageChanged),
+        _ComicPageView(
+          comicId: widget.comicId,
+          onPageChanged: _onPageChanged,
+          similar: _similar,
+          onOpenSimilar: _openSimilar,
+        ),
 
         // ── Top bar (fades in with controls) ───────────────────────────────
         Positioned(
@@ -324,10 +368,17 @@ class _FailureBody extends StatelessWidget {
 /// would flash image placeholders and produce a visible flicker on tap
 /// navigation.
 class _ComicPageView extends StatelessWidget {
-  const _ComicPageView({required this.comicId, required this.onPageChanged});
+  const _ComicPageView({
+    required this.comicId,
+    required this.onPageChanged,
+    required this.similar,
+    required this.onOpenSimilar,
+  });
 
   final String comicId;
   final void Function(int index, ReaderSessionModel session) onPageChanged;
+  final List<SimilarComic> similar;
+  final void Function(String comicId) onOpenSimilar;
 
   @override
   Widget build(BuildContext context) {
@@ -341,9 +392,17 @@ class _ComicPageView extends StatelessWidget {
         final session = context.read<ReaderSessionModel>();
         return PageView.builder(
           controller: session.pageController,
-          itemCount: comic.numPages,
+          // No trailing page when there is nothing to put on it: swiping past
+          // the end into a blank screen reads as a bug.
+          itemCount: comic.numPages + (similar.isEmpty ? 0 : 1),
           onPageChanged: (index) => onPageChanged(index, session),
           itemBuilder: (context, index) {
+            if (index >= comic.numPages) {
+              return SimilarComicsPage(
+                similar: similar,
+                onOpen: onOpenSimilar,
+              );
+            }
             final pageImage = comic.images.pages[index];
             final url = context.read<ComicPageSourceResolver>().resolvePageUrl(
               comic: comic,

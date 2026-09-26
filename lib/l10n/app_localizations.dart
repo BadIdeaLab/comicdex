@@ -1928,6 +1928,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Link copied to clipboard'**
   String get imageLinkCopied;
+
+  /// No description provided for @readerSimilarInLibrary.
+  ///
+  /// In en, this message translates to:
+  /// **'Similar ones in your library'**
+  String get readerSimilarInLibrary;
+
+  /// No description provided for @readerSharedTags.
+  ///
+  /// In en, this message translates to:
+  /// **'Shares {tags}'**
+  String readerSharedTags(String tags);
 }
 
 class _AppLocalizationsDelegate

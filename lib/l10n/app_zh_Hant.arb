@@ -369,5 +369,7 @@
   "comicCardRemoveBody": "注意，這個動作無法復原。即將移除：{title}",
   "comicCardRemoveConfirm": "移除",
   "imageCopyUrl": "複製圖片網址",
-  "imageLinkCopied": "已複製連結"
+  "imageLinkCopied": "已複製連結",
+  "readerSimilarInLibrary": "你書庫裡的相似作品",
+  "readerSharedTags": "共同標籤：{tags}"
 }

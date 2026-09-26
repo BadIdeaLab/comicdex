@@ -1087,6 +1087,14 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get imageLinkCopied => 'Link copied to clipboard';
+
+  @override
+  String get readerSimilarInLibrary => 'Similar ones in your library';
+
+  @override
+  String readerSharedTags(String tags) {
+    return 'Shares $tags';
+  }
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -2134,4 +2142,12 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get imageLinkCopied => '已複製連結';
+
+  @override
+  String get readerSimilarInLibrary => '你書庫裡的相似作品';
+
+  @override
+  String readerSharedTags(String tags) {
+    return '共同標籤：$tags';
+  }
 }

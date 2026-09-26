@@ -765,5 +765,14 @@
   },
   "comicCardRemoveConfirm": "REMOVE",
   "imageCopyUrl": "Copy image URL",
-  "imageLinkCopied": "Link copied to clipboard"
+  "imageLinkCopied": "Link copied to clipboard",
+  "readerSimilarInLibrary": "Similar ones in your library",
+  "readerSharedTags": "Shares {tags}",
+  "@readerSharedTags": {
+    "placeholders": {
+      "tags": {
+        "type": "String"
+      }
+    }
+  }
 }
