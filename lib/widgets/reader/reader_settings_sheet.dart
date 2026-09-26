@@ -1,3 +1,4 @@
+import 'package:concept_nhv/l10n/app_localizations.dart';
 import 'package:concept_nhv/application/reader/reader_settings_repository.dart';
 import 'package:concept_nhv/state/reader_settings_model.dart';
 import 'package:flutter/material.dart';
@@ -28,6 +29,7 @@ class _ReaderSettingsSheetState extends State<ReaderSettingsSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -35,16 +37,22 @@ class _ReaderSettingsSheetState extends State<ReaderSettingsSheet> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Reader Settings',
+            l10n.readerSettingsTitle,
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 16),
-          const Text('Reading Direction'),
+          Text(l10n.readerReadingDirection),
           const SizedBox(height: 8),
           SegmentedButton<ReadingDirection>(
-            segments: const <ButtonSegment<ReadingDirection>>[
-              ButtonSegment(value: ReadingDirection.ltr, label: Text('LTR')),
-              ButtonSegment(value: ReadingDirection.rtl, label: Text('RTL')),
+            segments: <ButtonSegment<ReadingDirection>>[
+              ButtonSegment(
+                value: ReadingDirection.ltr,
+                label: Text(l10n.readerDirectionLtr),
+              ),
+              ButtonSegment(
+                value: ReadingDirection.rtl,
+                label: Text(l10n.readerDirectionRtl),
+              ),
             ],
             selected: <ReadingDirection>{_readingDirection},
             onSelectionChanged: (selected) {
@@ -56,7 +64,7 @@ class _ReaderSettingsSheetState extends State<ReaderSettingsSheet> {
           const SizedBox(height: 16),
           Row(
             children: [
-              const Expanded(child: Text('Tap zone width')),
+              Expanded(child: Text(l10n.readerTapZoneWidth)),
               Text('${(_tapZoneRatio * 100).round()}%'),
             ],
           ),
@@ -80,7 +88,7 @@ class _ReaderSettingsSheetState extends State<ReaderSettingsSheet> {
           const SizedBox(height: 16),
           Row(
             children: [
-              const Expanded(child: Text('Pre-fetch pages (before & after)')),
+              Expanded(child: Text(l10n.readerPrefetchPages)),
               Text('$_prefetchCount'),
             ],
           ),
@@ -101,8 +109,7 @@ class _ReaderSettingsSheetState extends State<ReaderSettingsSheet> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Currently caching $_prefetchCount page(s) on each side of the'
-            ' current page.',
+            l10n.readerPrefetchExplanation(_prefetchCount),
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 8),

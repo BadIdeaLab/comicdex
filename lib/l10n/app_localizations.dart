@@ -1634,6 +1634,300 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Failed to load comics from the site.'**
   String get feedErrorUnknown;
+
+  /// No description provided for @readerSettingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reader Settings'**
+  String get readerSettingsTitle;
+
+  /// No description provided for @readerReadingDirection.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading Direction'**
+  String get readerReadingDirection;
+
+  /// No description provided for @readerDirectionLtr.
+  ///
+  /// In en, this message translates to:
+  /// **'LTR'**
+  String get readerDirectionLtr;
+
+  /// No description provided for @readerDirectionRtl.
+  ///
+  /// In en, this message translates to:
+  /// **'RTL'**
+  String get readerDirectionRtl;
+
+  /// No description provided for @readerTapZoneWidth.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap zone width'**
+  String get readerTapZoneWidth;
+
+  /// No description provided for @readerPrefetchPages.
+  ///
+  /// In en, this message translates to:
+  /// **'Pre-fetch pages (before & after)'**
+  String get readerPrefetchPages;
+
+  /// No description provided for @readerPrefetchExplanation.
+  ///
+  /// In en, this message translates to:
+  /// **'Currently caching {count} page(s) on each side of the current page.'**
+  String readerPrefetchExplanation(int count);
+
+  /// No description provided for @readerResumedFromPage.
+  ///
+  /// In en, this message translates to:
+  /// **'Resumed from page {page}'**
+  String readerResumedFromPage(int page);
+
+  /// No description provided for @readerGoToStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to start'**
+  String get readerGoToStart;
+
+  /// No description provided for @readerNotDownloaded.
+  ///
+  /// In en, this message translates to:
+  /// **'This comic is not downloaded, so there is nothing to read offline. Download it first, or repair it from the Downloads tab.'**
+  String get readerNotDownloaded;
+
+  /// No description provided for @readerLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load this comic. Check your connection and try again.'**
+  String get readerLoadFailed;
+
+  /// No description provided for @readerGoBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Go back'**
+  String get readerGoBack;
+
+  /// No description provided for @readerEnd.
+  ///
+  /// In en, this message translates to:
+  /// **'The End'**
+  String get readerEnd;
+
+  /// No description provided for @readerSettingsTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Reader settings'**
+  String get readerSettingsTooltip;
+
+  /// No description provided for @readerPreviousPage.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous page'**
+  String get readerPreviousPage;
+
+  /// No description provided for @readerNextPage.
+  ///
+  /// In en, this message translates to:
+  /// **'Next page'**
+  String get readerNextPage;
+
+  /// No description provided for @readerPageOfTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'/ {total}'**
+  String readerPageOfTotal(int total);
+
+  /// No description provided for @searchTabHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'History'**
+  String get searchTabHistory;
+
+  /// No description provided for @searchTabTags.
+  ///
+  /// In en, this message translates to:
+  /// **'Tags'**
+  String get searchTabTags;
+
+  /// No description provided for @searchNoHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'No search history'**
+  String get searchNoHistory;
+
+  /// No description provided for @searchClearFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear search'**
+  String get searchClearFilter;
+
+  /// No description provided for @searchInCategoryHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search this category'**
+  String get searchInCategoryHint;
+
+  /// No description provided for @searchNoTagsInCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'No tags in this category'**
+  String get searchNoTagsInCategory;
+
+  /// No description provided for @searchNoTagsMatching.
+  ///
+  /// In en, this message translates to:
+  /// **'No tags match \"{query}\"'**
+  String searchNoTagsMatching(String query);
+
+  /// No description provided for @searchTagWithCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} ({count})'**
+  String searchTagWithCount(String name, int count);
+
+  /// No description provided for @searchSelectedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Selected {count}'**
+  String searchSelectedCount(int count);
+
+  /// No description provided for @homeSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search comic'**
+  String get homeSearchHint;
+
+  /// No description provided for @homeRefreshTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh'**
+  String get homeRefreshTooltip;
+
+  /// No description provided for @homeCollectionsFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load collections'**
+  String get homeCollectionsFailed;
+
+  /// No description provided for @homeLoadingPage.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading… page {page}'**
+  String homeLoadingPage(int page);
+
+  /// No description provided for @downloadsSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search downloaded comics'**
+  String get downloadsSearchHint;
+
+  /// No description provided for @bootstrapLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading index…'**
+  String get bootstrapLoading;
+
+  /// No description provided for @sortFilterTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort & Filter'**
+  String get sortFilterTitle;
+
+  /// No description provided for @sortFilterSortBy.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort by'**
+  String get sortFilterSortBy;
+
+  /// No description provided for @sortFilterLatest.
+  ///
+  /// In en, this message translates to:
+  /// **'Latest'**
+  String get sortFilterLatest;
+
+  /// No description provided for @sortFilterTagFilters.
+  ///
+  /// In en, this message translates to:
+  /// **'Tag filters'**
+  String get sortFilterTagFilters;
+
+  /// No description provided for @sortFilterTagHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Tags are combined with the current search. Format: type:name (e.g. tag:full-color)'**
+  String get sortFilterTagHelp;
+
+  /// No description provided for @sortFilterTagHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. tag:full-color'**
+  String get sortFilterTagHint;
+
+  /// No description provided for @sortFilterAddTag.
+  ///
+  /// In en, this message translates to:
+  /// **'Add tag filter'**
+  String get sortFilterAddTag;
+
+  /// No description provided for @comicCardDownload.
+  ///
+  /// In en, this message translates to:
+  /// **'Download'**
+  String get comicCardDownload;
+
+  /// No description provided for @comicCardStartingDownload.
+  ///
+  /// In en, this message translates to:
+  /// **'Starting download…'**
+  String get comicCardStartingDownload;
+
+  /// No description provided for @comicCardManageInDownloads.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage in Downloads tab'**
+  String get comicCardManageInDownloads;
+
+  /// No description provided for @comicCardStatusDownloaded.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloaded'**
+  String get comicCardStatusDownloaded;
+
+  /// No description provided for @comicCardRemoveFrom.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from {collection}'**
+  String comicCardRemoveFrom(String collection);
+
+  /// No description provided for @comicCardRemoveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove this comic from {collection}?'**
+  String comicCardRemoveTitle(String collection);
+
+  /// No description provided for @comicCardRemoveBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Careful! You can\'t undo this action. You are removing: {title}'**
+  String comicCardRemoveBody(String title);
+
+  /// No description provided for @comicCardRemoveConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'REMOVE'**
+  String get comicCardRemoveConfirm;
+
+  /// No description provided for @imageCopyUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy image URL'**
+  String get imageCopyUrl;
+
+  /// No description provided for @imageLinkCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Link copied to clipboard'**
+  String get imageLinkCopied;
 }
 
 class _AppLocalizationsDelegate

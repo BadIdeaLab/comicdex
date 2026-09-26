@@ -1,3 +1,4 @@
+import 'package:concept_nhv/l10n/app_localizations.dart';
 import 'package:concept_nhv/application/home/home_shell_controller.dart';
 import 'package:concept_nhv/models/search_history_entry.dart';
 import 'package:concept_nhv/models/tag_catalog_type.dart';
@@ -42,14 +43,15 @@ class _SearchSuggestionsPanelState extends State<SearchSuggestionsPanel> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return DefaultTabController(
       length: 2,
       child: Column(
         children: <Widget>[
-          const TabBar(
+          TabBar(
             tabs: <Widget>[
-              Tab(text: 'History'),
-              Tab(text: 'Tags'),
+              Tab(text: l10n.searchTabHistory),
+              Tab(text: l10n.searchTabTags),
             ],
           ),
           Expanded(
@@ -66,6 +68,7 @@ class _SearchSuggestionsPanelState extends State<SearchSuggestionsPanel> {
   }
 
   Widget _buildHistoryTab(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return FutureBuilder<List<SearchHistoryEntry>>(
       future: _historyFuture,
       builder: (context, snapshot) {
@@ -75,7 +78,7 @@ class _SearchSuggestionsPanelState extends State<SearchSuggestionsPanel> {
 
         final entries = snapshot.requireData;
         if (entries.isEmpty) {
-          return const Center(child: Text('No search history'));
+          return Center(child: Text(l10n.searchNoHistory));
         }
 
         return ListView.builder(
@@ -106,6 +109,7 @@ class _SearchSuggestionsPanelState extends State<SearchSuggestionsPanel> {
   }
 
   Widget _buildTagsTab(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final locale = Localizations.localeOf(context);
     return Consumer<TagCatalogBrowserModel>(
       builder: (context, model, child) {
@@ -144,11 +148,11 @@ class _SearchSuggestionsPanelState extends State<SearchSuggestionsPanel> {
                   suffixIcon: _tagFilterQuery.isEmpty
                       ? null
                       : IconButton(
-                          tooltip: 'Clear search',
+                          tooltip: l10n.searchClearFilter,
                           icon: const Icon(Icons.clear),
                           onPressed: () => _clearTagFilter(model),
                         ),
-                  hintText: 'Search this category',
+                  hintText: l10n.searchInCategoryHint,
                   isDense: true,
                   border: const OutlineInputBorder(),
                 ),
@@ -173,8 +177,8 @@ class _SearchSuggestionsPanelState extends State<SearchSuggestionsPanel> {
                 child: Center(
                   child: Text(
                     _tagFilterQuery.trim().isEmpty
-                        ? 'No tags in this category'
-                        : 'No tags match "${_tagFilterQuery.trim()}"',
+                        ? l10n.searchNoTagsInCategory
+                        : l10n.searchNoTagsMatching(_tagFilterQuery.trim()),
                   ),
                 ),
               )
@@ -192,7 +196,9 @@ class _SearchSuggestionsPanelState extends State<SearchSuggestionsPanel> {
                           item.name,
                         );
                         return FilterChip(
-                          label: Text('$displayName (${item.count})'),
+                          label: Text(
+                            l10n.searchTagWithCount(displayName, item.count),
+                          ),
                           selected: model.isSelected(item),
                           onSelected: (_) => model.toggleSelection(item),
                         );
@@ -220,8 +226,10 @@ class _SearchSuggestionsPanelState extends State<SearchSuggestionsPanel> {
                   icon: const Icon(Icons.search),
                   label: Text(
                     model.selectedQueries.isEmpty
-                        ? 'Select tags to search'
-                        : 'Search ${model.selectedQueries.length} tags',
+                        ? l10n.tagSheetSelectToSearch
+                        : l10n.tagSheetSearchSelected(
+                            model.selectedQueries.length,
+                          ),
                   ),
                 ),
               ),
@@ -272,7 +280,9 @@ class _SelectedTagSummary extends StatelessWidget {
       child: Row(
         children: <Widget>[
           Text(
-            'Selected ${selectedQueries.length}',
+            AppLocalizations.of(
+              context,
+            )!.searchSelectedCount(selectedQueries.length),
             style: Theme.of(
               context,
             ).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600),
@@ -295,7 +305,10 @@ class _SelectedTagSummary extends StatelessWidget {
               },
             ),
           ),
-          TextButton(onPressed: onClear, child: const Text('Clear')),
+          TextButton(
+            onPressed: onClear,
+            child: Text(AppLocalizations.of(context)!.clearButton),
+          ),
         ],
       ),
     );

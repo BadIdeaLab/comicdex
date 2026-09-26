@@ -1,3 +1,4 @@
+import 'package:concept_nhv/l10n/app_localizations.dart';
 import 'package:concept_nhv/services/backup/restore_progress_flag.dart';
 import 'package:concept_nhv/state/comic_feed_model.dart';
 import 'package:concept_nhv/state/home_ui_model.dart';
@@ -54,13 +55,13 @@ class _BootstrapScreenState extends State<BootstrapScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
+    return Scaffold(
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            CircularProgressIndicator(),
-            Text('Loading index...'),
+            const CircularProgressIndicator(),
+            Text(AppLocalizations.of(context)!.bootstrapLoading),
           ],
         ),
       ),

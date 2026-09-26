@@ -1,5 +1,6 @@
 import 'dart:ui';
 
+import 'package:concept_nhv/l10n/app_localizations.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:concept_nhv/services/image_url_resolver.dart';
 import 'package:flutter/material.dart';
@@ -154,12 +155,16 @@ class _FallbackCachedNetworkImageState
 
           return Center(
             child: IconButton(
-              tooltip: 'Copy image URL',
+              tooltip: AppLocalizations.of(context)!.imageCopyUrl,
               iconSize: 24,
               onPressed: () {
                 Clipboard.setData(ClipboardData(text: url));
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Link copied to clipboard')),
+                  SnackBar(
+                    content: Text(
+                      AppLocalizations.of(context)!.imageLinkCopied,
+                    ),
+                  ),
                 );
               },
               icon: const Icon(Icons.broken_image_outlined, color: Colors.red),

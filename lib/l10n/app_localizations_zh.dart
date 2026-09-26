@@ -917,6 +917,176 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get feedErrorUnknown => 'Failed to load comics from the site.';
+
+  @override
+  String get readerSettingsTitle => 'Reader Settings';
+
+  @override
+  String get readerReadingDirection => 'Reading Direction';
+
+  @override
+  String get readerDirectionLtr => 'LTR';
+
+  @override
+  String get readerDirectionRtl => 'RTL';
+
+  @override
+  String get readerTapZoneWidth => 'Tap zone width';
+
+  @override
+  String get readerPrefetchPages => 'Pre-fetch pages (before & after)';
+
+  @override
+  String readerPrefetchExplanation(int count) {
+    return 'Currently caching $count page(s) on each side of the current page.';
+  }
+
+  @override
+  String readerResumedFromPage(int page) {
+    return 'Resumed from page $page';
+  }
+
+  @override
+  String get readerGoToStart => 'Go to start';
+
+  @override
+  String get readerNotDownloaded =>
+      'This comic is not downloaded, so there is nothing to read offline. Download it first, or repair it from the Downloads tab.';
+
+  @override
+  String get readerLoadFailed =>
+      'Could not load this comic. Check your connection and try again.';
+
+  @override
+  String get readerGoBack => 'Go back';
+
+  @override
+  String get readerEnd => 'The End';
+
+  @override
+  String get readerSettingsTooltip => 'Reader settings';
+
+  @override
+  String get readerPreviousPage => 'Previous page';
+
+  @override
+  String get readerNextPage => 'Next page';
+
+  @override
+  String readerPageOfTotal(int total) {
+    return '/ $total';
+  }
+
+  @override
+  String get searchTabHistory => 'History';
+
+  @override
+  String get searchTabTags => 'Tags';
+
+  @override
+  String get searchNoHistory => 'No search history';
+
+  @override
+  String get searchClearFilter => 'Clear search';
+
+  @override
+  String get searchInCategoryHint => 'Search this category';
+
+  @override
+  String get searchNoTagsInCategory => 'No tags in this category';
+
+  @override
+  String searchNoTagsMatching(String query) {
+    return 'No tags match \"$query\"';
+  }
+
+  @override
+  String searchTagWithCount(String name, int count) {
+    return '$name ($count)';
+  }
+
+  @override
+  String searchSelectedCount(int count) {
+    return 'Selected $count';
+  }
+
+  @override
+  String get homeSearchHint => 'Search comic';
+
+  @override
+  String get homeRefreshTooltip => 'Refresh';
+
+  @override
+  String get homeCollectionsFailed => 'Failed to load collections';
+
+  @override
+  String homeLoadingPage(int page) {
+    return 'Loading… page $page';
+  }
+
+  @override
+  String get downloadsSearchHint => 'Search downloaded comics';
+
+  @override
+  String get bootstrapLoading => 'Loading index…';
+
+  @override
+  String get sortFilterTitle => 'Sort & Filter';
+
+  @override
+  String get sortFilterSortBy => 'Sort by';
+
+  @override
+  String get sortFilterLatest => 'Latest';
+
+  @override
+  String get sortFilterTagFilters => 'Tag filters';
+
+  @override
+  String get sortFilterTagHelp =>
+      'Tags are combined with the current search. Format: type:name (e.g. tag:full-color)';
+
+  @override
+  String get sortFilterTagHint => 'e.g. tag:full-color';
+
+  @override
+  String get sortFilterAddTag => 'Add tag filter';
+
+  @override
+  String get comicCardDownload => 'Download';
+
+  @override
+  String get comicCardStartingDownload => 'Starting download…';
+
+  @override
+  String get comicCardManageInDownloads => 'Manage in Downloads tab';
+
+  @override
+  String get comicCardStatusDownloaded => 'Downloaded';
+
+  @override
+  String comicCardRemoveFrom(String collection) {
+    return 'Remove from $collection';
+  }
+
+  @override
+  String comicCardRemoveTitle(String collection) {
+    return 'Remove this comic from $collection?';
+  }
+
+  @override
+  String comicCardRemoveBody(String title) {
+    return 'Careful! You can\'t undo this action. You are removing: $title';
+  }
+
+  @override
+  String get comicCardRemoveConfirm => 'REMOVE';
+
+  @override
+  String get imageCopyUrl => 'Copy image URL';
+
+  @override
+  String get imageLinkCopied => 'Link copied to clipboard';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -1797,4 +1967,171 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get feedErrorUnknown => '無法從網站載入漫畫。';
+
+  @override
+  String get readerSettingsTitle => '閱讀器設定';
+
+  @override
+  String get readerReadingDirection => '閱讀方向';
+
+  @override
+  String get readerDirectionLtr => '由左至右';
+
+  @override
+  String get readerDirectionRtl => '由右至左';
+
+  @override
+  String get readerTapZoneWidth => '點擊區寬度';
+
+  @override
+  String get readerPrefetchPages => '預先載入頁數（前後各）';
+
+  @override
+  String readerPrefetchExplanation(int count) {
+    return '目前會在當前頁的前後各快取 $count 頁。';
+  }
+
+  @override
+  String readerResumedFromPage(int page) {
+    return '從第 $page 頁繼續';
+  }
+
+  @override
+  String get readerGoToStart => '回到第一頁';
+
+  @override
+  String get readerNotDownloaded => '這本沒有下載，所以沒有東西可以離線閱讀。請先下載，或到已下載分頁修復。';
+
+  @override
+  String get readerLoadFailed => '無法載入這本漫畫。請檢查連線後再試。';
+
+  @override
+  String get readerGoBack => '返回';
+
+  @override
+  String get readerEnd => '結束';
+
+  @override
+  String get readerSettingsTooltip => '閱讀器設定';
+
+  @override
+  String get readerPreviousPage => '上一頁';
+
+  @override
+  String get readerNextPage => '下一頁';
+
+  @override
+  String readerPageOfTotal(int total) {
+    return '/ $total';
+  }
+
+  @override
+  String get searchTabHistory => '歷史';
+
+  @override
+  String get searchTabTags => '標籤';
+
+  @override
+  String get searchNoHistory => '沒有搜尋紀錄';
+
+  @override
+  String get searchClearFilter => '清除搜尋';
+
+  @override
+  String get searchInCategoryHint => '在這個分類中搜尋';
+
+  @override
+  String get searchNoTagsInCategory => '這個分類沒有標籤';
+
+  @override
+  String searchNoTagsMatching(String query) {
+    return '沒有標籤符合「$query」';
+  }
+
+  @override
+  String searchTagWithCount(String name, int count) {
+    return '$name（$count）';
+  }
+
+  @override
+  String searchSelectedCount(int count) {
+    return '已選 $count';
+  }
+
+  @override
+  String get homeSearchHint => '搜尋漫畫';
+
+  @override
+  String get homeRefreshTooltip => '重新整理';
+
+  @override
+  String get homeCollectionsFailed => '無法載入收藏';
+
+  @override
+  String homeLoadingPage(int page) {
+    return '載入中… 第 $page 頁';
+  }
+
+  @override
+  String get downloadsSearchHint => '搜尋已下載的漫畫';
+
+  @override
+  String get bootstrapLoading => '載入索引中…';
+
+  @override
+  String get sortFilterTitle => '排序與篩選';
+
+  @override
+  String get sortFilterSortBy => '排序方式';
+
+  @override
+  String get sortFilterLatest => '最新';
+
+  @override
+  String get sortFilterTagFilters => '標籤篩選';
+
+  @override
+  String get sortFilterTagHelp => '標籤會與目前的搜尋合併。格式：type:name（例如 tag:full-color）';
+
+  @override
+  String get sortFilterTagHint => '例如 tag:full-color';
+
+  @override
+  String get sortFilterAddTag => '加入標籤篩選';
+
+  @override
+  String get comicCardDownload => '下載';
+
+  @override
+  String get comicCardStartingDownload => '開始下載…';
+
+  @override
+  String get comicCardManageInDownloads => '到已下載分頁管理';
+
+  @override
+  String get comicCardStatusDownloaded => '已下載';
+
+  @override
+  String comicCardRemoveFrom(String collection) {
+    return '從$collection移除';
+  }
+
+  @override
+  String comicCardRemoveTitle(String collection) {
+    return '要把這本從$collection移除嗎？';
+  }
+
+  @override
+  String comicCardRemoveBody(String title) {
+    return '注意，這個動作無法復原。即將移除：$title';
+  }
+
+  @override
+  String get comicCardRemoveConfirm => '移除';
+
+  @override
+  String get imageCopyUrl => '複製圖片網址';
+
+  @override
+  String get imageLinkCopied => '已複製連結';
 }

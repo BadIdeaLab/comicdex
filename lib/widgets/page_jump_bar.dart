@@ -1,3 +1,4 @@
+import 'package:concept_nhv/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -65,6 +66,7 @@ class _PageJumpBarState extends State<PageJumpBar> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final total = widget.totalPages;
     final atFirst = widget.currentPage <= 1;
@@ -79,7 +81,7 @@ class _PageJumpBarState extends State<PageJumpBar> {
               ? null
               : () => _jump(widget.currentPage - 1),
           icon: const Icon(Icons.chevron_left),
-          tooltip: 'Previous page',
+          tooltip: l10n.readerPreviousPage,
         ),
         SizedBox(
           width: 48,
@@ -103,7 +105,10 @@ class _PageJumpBarState extends State<PageJumpBar> {
         if (total != null)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: Text('/ $total', style: theme.textTheme.bodySmall),
+            child: Text(
+              l10n.readerPageOfTotal(total),
+              style: theme.textTheme.bodySmall,
+            ),
           ),
         IconButton(
           visualDensity: VisualDensity.compact,
@@ -111,7 +116,7 @@ class _PageJumpBarState extends State<PageJumpBar> {
               ? null
               : () => _jump(widget.currentPage + 1),
           icon: const Icon(Icons.chevron_right),
-          tooltip: 'Next page',
+          tooltip: l10n.readerNextPage,
         ),
         if (_isJumping)
           const SizedBox(

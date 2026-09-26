@@ -1,3 +1,4 @@
+import 'package:concept_nhv/l10n/app_localizations.dart';
 import 'package:concept_nhv/application/library/comic_card_action_coordinator.dart';
 import 'package:concept_nhv/application/reader/reader_launcher.dart';
 import 'package:concept_nhv/models/collection_type.dart';
@@ -12,6 +13,7 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import 'collection_type_label.dart';
 import 'comic_language_badge.dart';
 import 'preference_badge.dart';
 import 'comic_tag_bottom_sheet.dart';
@@ -156,7 +158,11 @@ class ComicCard extends StatelessWidget {
               icon: const Icon(Icons.add_to_photos_outlined),
               onPressed: () => _saveToCollection(context, CollectionType.next),
             ),
-            Text('${comic.pages}p'),
+            Text(
+              AppLocalizations.of(
+                context,
+              )!.downloadsPageCountShort(comic.pages),
+            ),
             Consumer<FavoriteSyncModel>(
               builder: (context, favoriteModel, child) {
                 final isFavorite = favoriteModel.isFavorite(comic.id);
@@ -224,6 +230,7 @@ class ComicCard extends StatelessWidget {
     required DownloadJobStatus? status,
     required bool isMutating,
   }) {
+    final l10n = AppLocalizations.of(context)!;
     if (status == null) {
       return SizedBox(
         width: double.infinity,
@@ -236,7 +243,11 @@ class ComicCard extends StatelessWidget {
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
               : const Icon(Icons.download_outlined),
-          label: Text(isMutating ? 'Starting download...' : 'Download'),
+          label: Text(
+            isMutating
+                ? l10n.comicCardStartingDownload
+                : l10n.comicCardDownload,
+          ),
         ),
       );
     }
@@ -244,13 +255,14 @@ class ComicCard extends StatelessWidget {
     return ListTile(
       contentPadding: EdgeInsets.zero,
       leading: Icon(_downloadStatusIcon(status)),
-      title: Text(_downloadStatusLabel(status)),
-      subtitle: const Text('Manage in Downloads tab'),
+      title: Text(_downloadStatusLabel(l10n, status)),
+      subtitle: Text(l10n.comicCardManageInDownloads),
     );
   }
 
   /// Builds the remove-from-collection button for the sheet.
   Widget _buildRemoveFromCollectionButton(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return SizedBox(
       width: double.infinity,
       child: OutlinedButton.icon(
@@ -259,7 +271,9 @@ class ComicCard extends StatelessWidget {
           side: BorderSide(color: Theme.of(context).colorScheme.error),
         ),
         icon: const Icon(Icons.remove_circle_outline),
-        label: Text('Remove from ${collectionType!.displayName}'),
+        label: Text(
+          l10n.comicCardRemoveFrom(collectionTypeLabel(l10n, collectionType!)),
+        ),
         onPressed: () {
           Navigator.of(context, rootNavigator: true).pop();
           _removeFromCollection(context);
@@ -269,22 +283,25 @@ class ComicCard extends StatelessWidget {
   }
 
   Future<void> _removeFromCollection(BuildContext context) async {
+    final l10n = AppLocalizations.of(context)!;
     final shouldRemove = await showDialog<bool>(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text('Remove this comic from ${collectionType!.displayName}?'),
-          content: Text(
-            "Careful! You can't undo this action. You are removing: ${comic.title}",
+          title: Text(
+            l10n.comicCardRemoveTitle(
+              collectionTypeLabel(l10n, collectionType!),
+            ),
           ),
+          content: Text(l10n.comicCardRemoveBody(comic.title)),
           actions: <Widget>[
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancel'),
+              child: Text(l10n.cancelButton),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('REMOVE'),
+              child: Text(l10n.comicCardRemoveConfirm),
             ),
           ],
         );
@@ -368,13 +385,13 @@ class ComicCard extends StatelessWidget {
     };
   }
 
-  String _downloadStatusLabel(DownloadJobStatus status) {
+  String _downloadStatusLabel(AppLocalizations l10n, DownloadJobStatus status) {
     return switch (status) {
-      DownloadJobStatus.queued => 'Queued',
-      DownloadJobStatus.downloading => 'Downloading',
-      DownloadJobStatus.paused => 'Paused',
-      DownloadJobStatus.failed => 'Failed',
-      DownloadJobStatus.completed => 'Downloaded',
+      DownloadJobStatus.queued => l10n.downloadsStatusQueued,
+      DownloadJobStatus.downloading => l10n.downloadsStatusDownloading,
+      DownloadJobStatus.paused => l10n.downloadsStatusPaused,
+      DownloadJobStatus.failed => l10n.downloadsStatusFailed,
+      DownloadJobStatus.completed => l10n.comicCardStatusDownloaded,
     };
   }
 }

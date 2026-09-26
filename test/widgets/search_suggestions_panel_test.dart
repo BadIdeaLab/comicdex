@@ -13,6 +13,8 @@ import 'package:concept_nhv/state/tag_catalog_browser_model.dart';
 import 'package:concept_nhv/widgets/search_suggestions_panel.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import '../test_support/helpers/localized_test_app.dart';
 import 'package:provider/provider.dart';
 import 'package:provider/single_child_widget.dart';
 
@@ -162,7 +164,7 @@ _pumpSearchSuggestionsPanel(
   await tester.pumpWidget(
     MultiProvider(
       providers: providers,
-      child: MaterialApp(
+      child: localizedTestApp(
         home: Scaffold(
           body: SizedBox(
             height: 500,

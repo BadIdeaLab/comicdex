@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:concept_nhv/l10n/app_localizations.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:concept_nhv/application/reader/reader_settings_repository.dart';
 import 'package:concept_nhv/models/comic.dart';
@@ -109,9 +110,11 @@ class _ComicReaderScreenState extends State<ComicReaderScreen> {
       ..clearSnackBars()
       ..showSnackBar(
         SnackBar(
-          content: Text('Resumed from page $targetPage'),
+          content: Text(
+            AppLocalizations.of(context)!.readerResumedFromPage(targetPage),
+          ),
           action: SnackBarAction(
-            label: 'Go to start',
+            label: AppLocalizations.of(context)!.readerGoToStart,
             onPressed: () => _session.goToPage(1),
           ),
           behavior: SnackBarBehavior.floating,
@@ -269,6 +272,7 @@ class _FailureBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final isMissingDownload = failure == ReaderLoadFailure.notDownloaded;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -276,18 +280,17 @@ class _FailureBody extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           Icon(
-            isMissingDownload ? Icons.download_for_offline_outlined : Icons.error_outline,
+            isMissingDownload
+                ? Icons.download_for_offline_outlined
+                : Icons.error_outline,
             color: Colors.white70,
             size: 48,
           ),
           const SizedBox(height: 16),
           Text(
             isMissingDownload
-                ? 'This comic is not downloaded, so there is nothing to read '
-                      'offline. Download it first, or repair it from the '
-                      'Downloads tab.'
-                : 'Could not load this comic. Check your connection and try '
-                      'again.',
+                ? l10n.readerNotDownloaded
+                : l10n.readerLoadFailed,
             textAlign: TextAlign.center,
             style: const TextStyle(color: Colors.white70),
           ),
@@ -297,13 +300,13 @@ class _FailureBody extends StatelessWidget {
           if (isMissingDownload)
             FilledButton(
               onPressed: () => Navigator.of(context).maybePop(),
-              child: const Text('Go back'),
+              child: Text(l10n.readerGoBack),
             )
           else
             FilledButton.icon(
               onPressed: onRetry,
               icon: const Icon(Icons.refresh),
-              label: const Text('Retry'),
+              label: Text(l10n.retryButton),
             ),
         ],
       ),
@@ -342,9 +345,10 @@ class _ComicPageView extends StatelessWidget {
           onPageChanged: (index) => onPageChanged(index, session),
           itemBuilder: (context, index) {
             final pageImage = comic.images.pages[index];
-            final url = context
-                .read<ComicPageSourceResolver>()
-                .resolvePageUrl(comic: comic, pageNumber: index + 1);
+            final url = context.read<ComicPageSourceResolver>().resolvePageUrl(
+              comic: comic,
+              pageNumber: index + 1,
+            );
             return ReaderPageView(
               url: url,
               width: pageImage.w ?? 9,
@@ -367,9 +371,13 @@ class _ComicPageView extends StatelessWidget {
     final isRtl = direction == ReadingDirection.rtl;
     switch (zone) {
       case ReaderTapZone.left:
-        session.goToPage(isRtl ? session.currentPage + 1 : session.currentPage - 1);
+        session.goToPage(
+          isRtl ? session.currentPage + 1 : session.currentPage - 1,
+        );
       case ReaderTapZone.right:
-        session.goToPage(isRtl ? session.currentPage - 1 : session.currentPage + 1);
+        session.goToPage(
+          isRtl ? session.currentPage - 1 : session.currentPage + 1,
+        );
       case ReaderTapZone.center:
         session.toggleControls();
     }

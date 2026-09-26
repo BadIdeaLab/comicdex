@@ -1,3 +1,4 @@
+import 'package:concept_nhv/l10n/app_localizations.dart';
 import 'package:concept_nhv/widgets/glass_container.dart';
 import 'package:flutter/material.dart';
 
@@ -67,7 +68,9 @@ class ReaderBottomControls extends StatelessWidget {
                   // Settings button
                   IconButton(
                     icon: const Icon(Icons.settings, color: Colors.white),
-                    tooltip: 'Reader settings',
+                    tooltip: AppLocalizations.of(
+                      context,
+                    )!.readerSettingsTooltip,
                     onPressed: onSettingsTap,
                   ),
                 ],

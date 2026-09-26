@@ -1,3 +1,4 @@
+import 'package:concept_nhv/l10n/app_localizations.dart';
 import 'package:concept_nhv/widgets/glass_container.dart';
 import 'package:flutter/material.dart';
 
@@ -16,11 +17,11 @@ class ReaderEndCard extends StatelessWidget {
         duration: const Duration(milliseconds: 300),
         child: Center(
           child: GlassContainer.card(
-            child: const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 32, vertical: 20),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
               child: Text(
-                'The End',
-                style: TextStyle(
+                AppLocalizations.of(context)!.readerEnd,
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 22,
                   fontWeight: FontWeight.w600,

@@ -20,6 +20,8 @@ import 'package:concept_nhv/storage/nhentai_api_key_store.dart';
 import 'package:concept_nhv/storage/options_store.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import '../test_support/helpers/localized_test_app.dart';
 import 'package:provider/provider.dart';
 
 import '../test_support/fakes/fake_image_compression_service.dart';
@@ -427,7 +429,7 @@ Widget _buildCardTestWidget({
       if (preferenceVector != null)
         Provider<TagPreferenceVector>.value(value: preferenceVector),
     ],
-    child: MaterialApp(
+    child: localizedTestApp(
       home: Scaffold(
         body: SizedBox(
           width: width,

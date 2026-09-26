@@ -643,5 +643,127 @@
   "feedErrorForbidden": "Authentication issue (403).",
   "feedErrorNotFound": "The site had nothing at that address (404).",
   "feedErrorServer": "The site is not responding right now. It was tried a few times already — give it a moment.",
-  "feedErrorUnknown": "Failed to load comics from the site."
+  "feedErrorUnknown": "Failed to load comics from the site.",
+  "readerSettingsTitle": "Reader Settings",
+  "readerReadingDirection": "Reading Direction",
+  "readerDirectionLtr": "LTR",
+  "readerDirectionRtl": "RTL",
+  "readerTapZoneWidth": "Tap zone width",
+  "readerPrefetchPages": "Pre-fetch pages (before & after)",
+  "readerPrefetchExplanation": "Currently caching {count} page(s) on each side of the current page.",
+  "@readerPrefetchExplanation": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "readerResumedFromPage": "Resumed from page {page}",
+  "@readerResumedFromPage": {
+    "placeholders": {
+      "page": {
+        "type": "int"
+      }
+    }
+  },
+  "readerGoToStart": "Go to start",
+  "readerNotDownloaded": "This comic is not downloaded, so there is nothing to read offline. Download it first, or repair it from the Downloads tab.",
+  "readerLoadFailed": "Could not load this comic. Check your connection and try again.",
+  "readerGoBack": "Go back",
+  "readerEnd": "The End",
+  "readerSettingsTooltip": "Reader settings",
+  "readerPreviousPage": "Previous page",
+  "readerNextPage": "Next page",
+  "readerPageOfTotal": "/ {total}",
+  "@readerPageOfTotal": {
+    "placeholders": {
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "searchTabHistory": "History",
+  "searchTabTags": "Tags",
+  "searchNoHistory": "No search history",
+  "searchClearFilter": "Clear search",
+  "searchInCategoryHint": "Search this category",
+  "searchNoTagsInCategory": "No tags in this category",
+  "searchNoTagsMatching": "No tags match \"{query}\"",
+  "@searchNoTagsMatching": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "searchTagWithCount": "{name} ({count})",
+  "@searchTagWithCount": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "searchSelectedCount": "Selected {count}",
+  "@searchSelectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "homeSearchHint": "Search comic",
+  "homeRefreshTooltip": "Refresh",
+  "homeCollectionsFailed": "Failed to load collections",
+  "homeLoadingPage": "Loading… page {page}",
+  "@homeLoadingPage": {
+    "placeholders": {
+      "page": {
+        "type": "int"
+      }
+    }
+  },
+  "downloadsSearchHint": "Search downloaded comics",
+  "bootstrapLoading": "Loading index…",
+  "sortFilterTitle": "Sort & Filter",
+  "sortFilterSortBy": "Sort by",
+  "sortFilterLatest": "Latest",
+  "sortFilterTagFilters": "Tag filters",
+  "sortFilterTagHelp": "Tags are combined with the current search. Format: type:name (e.g. tag:full-color)",
+  "sortFilterTagHint": "e.g. tag:full-color",
+  "sortFilterAddTag": "Add tag filter",
+  "comicCardDownload": "Download",
+  "comicCardStartingDownload": "Starting download…",
+  "comicCardManageInDownloads": "Manage in Downloads tab",
+  "comicCardStatusDownloaded": "Downloaded",
+  "comicCardRemoveFrom": "Remove from {collection}",
+  "@comicCardRemoveFrom": {
+    "placeholders": {
+      "collection": {
+        "type": "String"
+      }
+    }
+  },
+  "comicCardRemoveTitle": "Remove this comic from {collection}?",
+  "@comicCardRemoveTitle": {
+    "placeholders": {
+      "collection": {
+        "type": "String"
+      }
+    }
+  },
+  "comicCardRemoveBody": "Careful! You can't undo this action. You are removing: {title}",
+  "@comicCardRemoveBody": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "comicCardRemoveConfirm": "REMOVE",
+  "imageCopyUrl": "Copy image URL",
+  "imageLinkCopied": "Link copied to clipboard"
 }

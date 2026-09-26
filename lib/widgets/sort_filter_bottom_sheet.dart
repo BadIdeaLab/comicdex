@@ -1,3 +1,4 @@
+import 'package:concept_nhv/l10n/app_localizations.dart';
 import 'package:concept_nhv/models/popular_sort_type.dart';
 import 'package:concept_nhv/state/comic_feed_model.dart';
 import 'package:concept_nhv/widgets/glass_bottom_sheet.dart';
@@ -50,6 +51,7 @@ class _SortFilterBottomSheetState extends State<SortFilterBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
       child: Column(
@@ -75,7 +77,7 @@ class _SortFilterBottomSheetState extends State<SortFilterBottomSheet> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
             child: Text(
-              'Sort & Filter',
+              l10n.sortFilterTitle,
               style: Theme.of(context).textTheme.titleMedium,
             ),
           ),
@@ -108,7 +110,7 @@ class _SortFilterBottomSheetState extends State<SortFilterBottomSheet> {
                   Expanded(
                     child: OutlinedButton(
                       onPressed: _handleReset,
-                      child: const Text('Reset'),
+                      child: Text(l10n.resetButton),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -116,7 +118,7 @@ class _SortFilterBottomSheetState extends State<SortFilterBottomSheet> {
                     flex: 2,
                     child: FilledButton(
                       onPressed: _handleApply,
-                      child: const Text('Apply'),
+                      child: Text(l10n.applyButton),
                     ),
                   ),
                 ],
@@ -129,11 +131,12 @@ class _SortFilterBottomSheetState extends State<SortFilterBottomSheet> {
   }
 
   Widget _buildSortSection(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         Text(
-          'Sort by',
+          l10n.sortFilterSortBy,
           style: Theme.of(context).textTheme.labelLarge?.copyWith(
             color: Theme.of(context).colorScheme.primary,
           ),
@@ -144,7 +147,7 @@ class _SortFilterBottomSheetState extends State<SortFilterBottomSheet> {
           runSpacing: 4,
           children: <Widget>[
             _SortChip(
-              label: 'Latest',
+              label: l10n.sortFilterLatest,
               selected: _selectedSort == null,
               onSelected: (_) => setState(() => _selectedSort = null),
             ),
@@ -161,18 +164,19 @@ class _SortFilterBottomSheetState extends State<SortFilterBottomSheet> {
   }
 
   Widget _buildTagFilterSection(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         Text(
-          'Tag filters',
+          l10n.sortFilterTagFilters,
           style: Theme.of(context).textTheme.labelLarge?.copyWith(
             color: Theme.of(context).colorScheme.primary,
           ),
         ),
         const SizedBox(height: 4),
         Text(
-          'Tags are combined with the current search. Format: type:name (e.g. tag:full-color)',
+          l10n.sortFilterTagHelp,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
             color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
@@ -184,11 +188,11 @@ class _SortFilterBottomSheetState extends State<SortFilterBottomSheet> {
             Expanded(
               child: TextField(
                 controller: _tagInputController,
-                decoration: const InputDecoration(
-                  hintText: 'e.g. tag:full-color',
+                decoration: InputDecoration(
+                  hintText: l10n.sortFilterTagHint,
                   isDense: true,
-                  border: OutlineInputBorder(),
-                  contentPadding: EdgeInsets.symmetric(
+                  border: const OutlineInputBorder(),
+                  contentPadding: const EdgeInsets.symmetric(
                     horizontal: 12,
                     vertical: 10,
                   ),
@@ -201,7 +205,7 @@ class _SortFilterBottomSheetState extends State<SortFilterBottomSheet> {
             IconButton.filled(
               icon: const Icon(Icons.add),
               onPressed: () => _addTag(_tagInputController.text),
-              tooltip: 'Add tag filter',
+              tooltip: l10n.sortFilterAddTag,
             ),
           ],
         ),

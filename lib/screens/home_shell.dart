@@ -136,6 +136,7 @@ class _HomeShellState extends State<HomeShell> {
   Widget _buildDownloadsAppBar(BuildContext context) {
     return Consumer<DownloadManagerModel>(
       builder: (context, model, _) {
+        final l10n = AppLocalizations.of(context)!;
         return SliverAppBar(
           backgroundColor: Colors.transparent,
           flexibleSpace: GlassContainer.bar(child: const SizedBox.expand()),
@@ -145,8 +146,8 @@ class _HomeShellState extends State<HomeShell> {
             // No onChanged: the model listens to its own controller, so typing
             // here and the tag sheet writing into it take the same path.
             controller: context.read<HomeUiModel>().downloadsSearchController,
-            decoration: const InputDecoration(
-              hintText: 'Search downloaded comics',
+            decoration: InputDecoration(
+              hintText: l10n.downloadsSearchHint,
               border: InputBorder.none,
             ),
           ),
@@ -191,6 +192,7 @@ class _HomeShellState extends State<HomeShell> {
   Widget _buildHomeAppBar(BuildContext context) {
     return Consumer<HomeUiModel>(
       builder: (context, homeUiModel, _) {
+        final l10n = AppLocalizations.of(context)!;
         return SliverAppBar(
           clipBehavior: Clip.none,
           backgroundColor: Colors.transparent,
@@ -207,14 +209,14 @@ class _HomeShellState extends State<HomeShell> {
                     ? null
                     : () => _refreshHomeFeed(context),
                 icon: const Icon(Icons.refresh),
-                tooltip: 'Refresh',
+                tooltip: l10n.homeRefreshTooltip,
               ),
               IconButton.filledTonal(
                 onPressed: () => context.push('/settings'),
                 icon: const Icon(Icons.settings),
               ),
             ],
-            barHintText: 'Search comic',
+            barHintText: l10n.homeSearchHint,
             barElevation: WidgetStateProperty.all(0),
             suggestionsBuilder: (buildContext, controller) {
               return <Widget>[
@@ -324,7 +326,10 @@ class _HomeShellState extends State<HomeShell> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              Text(feedFailureMessage(l10n, failure), textAlign: TextAlign.center),
+              Text(
+                feedFailureMessage(l10n, failure),
+                textAlign: TextAlign.center,
+              ),
               const SizedBox(height: 12),
               FilledButton(
                 onPressed: () => _retryHomeFeed(context),
@@ -447,6 +452,7 @@ class _CollectionOverviewScreenState extends State<CollectionOverviewScreen> {
     return FutureBuilder<List<CollectionSummary>>(
       future: future,
       builder: (context, snapshot) {
+        final l10n = AppLocalizations.of(context)!;
         if (snapshot.hasError) {
           return SliverFillRemaining(
             hasScrollBody: false,
@@ -454,12 +460,12 @@ class _CollectionOverviewScreenState extends State<CollectionOverviewScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
-                  const Text('Failed to load collections'),
+                  Text(l10n.homeCollectionsFailed),
                   const SizedBox(height: 8),
                   FilledButton(
                     onPressed: () =>
                         context.read<ComicFeedModel>().refreshCollections(),
-                    child: const Text('Retry'),
+                    child: Text(l10n.retryButton),
                   ),
                 ],
               ),

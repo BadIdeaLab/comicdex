@@ -945,4 +945,174 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get feedErrorUnknown => 'Failed to load comics from the site.';
+
+  @override
+  String get readerSettingsTitle => 'Reader Settings';
+
+  @override
+  String get readerReadingDirection => 'Reading Direction';
+
+  @override
+  String get readerDirectionLtr => 'LTR';
+
+  @override
+  String get readerDirectionRtl => 'RTL';
+
+  @override
+  String get readerTapZoneWidth => 'Tap zone width';
+
+  @override
+  String get readerPrefetchPages => 'Pre-fetch pages (before & after)';
+
+  @override
+  String readerPrefetchExplanation(int count) {
+    return 'Currently caching $count page(s) on each side of the current page.';
+  }
+
+  @override
+  String readerResumedFromPage(int page) {
+    return 'Resumed from page $page';
+  }
+
+  @override
+  String get readerGoToStart => 'Go to start';
+
+  @override
+  String get readerNotDownloaded =>
+      'This comic is not downloaded, so there is nothing to read offline. Download it first, or repair it from the Downloads tab.';
+
+  @override
+  String get readerLoadFailed =>
+      'Could not load this comic. Check your connection and try again.';
+
+  @override
+  String get readerGoBack => 'Go back';
+
+  @override
+  String get readerEnd => 'The End';
+
+  @override
+  String get readerSettingsTooltip => 'Reader settings';
+
+  @override
+  String get readerPreviousPage => 'Previous page';
+
+  @override
+  String get readerNextPage => 'Next page';
+
+  @override
+  String readerPageOfTotal(int total) {
+    return '/ $total';
+  }
+
+  @override
+  String get searchTabHistory => 'History';
+
+  @override
+  String get searchTabTags => 'Tags';
+
+  @override
+  String get searchNoHistory => 'No search history';
+
+  @override
+  String get searchClearFilter => 'Clear search';
+
+  @override
+  String get searchInCategoryHint => 'Search this category';
+
+  @override
+  String get searchNoTagsInCategory => 'No tags in this category';
+
+  @override
+  String searchNoTagsMatching(String query) {
+    return 'No tags match \"$query\"';
+  }
+
+  @override
+  String searchTagWithCount(String name, int count) {
+    return '$name ($count)';
+  }
+
+  @override
+  String searchSelectedCount(int count) {
+    return 'Selected $count';
+  }
+
+  @override
+  String get homeSearchHint => 'Search comic';
+
+  @override
+  String get homeRefreshTooltip => 'Refresh';
+
+  @override
+  String get homeCollectionsFailed => 'Failed to load collections';
+
+  @override
+  String homeLoadingPage(int page) {
+    return 'Loading… page $page';
+  }
+
+  @override
+  String get downloadsSearchHint => 'Search downloaded comics';
+
+  @override
+  String get bootstrapLoading => 'Loading index…';
+
+  @override
+  String get sortFilterTitle => 'Sort & Filter';
+
+  @override
+  String get sortFilterSortBy => 'Sort by';
+
+  @override
+  String get sortFilterLatest => 'Latest';
+
+  @override
+  String get sortFilterTagFilters => 'Tag filters';
+
+  @override
+  String get sortFilterTagHelp =>
+      'Tags are combined with the current search. Format: type:name (e.g. tag:full-color)';
+
+  @override
+  String get sortFilterTagHint => 'e.g. tag:full-color';
+
+  @override
+  String get sortFilterAddTag => 'Add tag filter';
+
+  @override
+  String get comicCardDownload => 'Download';
+
+  @override
+  String get comicCardStartingDownload => 'Starting download…';
+
+  @override
+  String get comicCardManageInDownloads => 'Manage in Downloads tab';
+
+  @override
+  String get comicCardStatusDownloaded => 'Downloaded';
+
+  @override
+  String comicCardRemoveFrom(String collection) {
+    return 'Remove from $collection';
+  }
+
+  @override
+  String comicCardRemoveTitle(String collection) {
+    return 'Remove this comic from $collection?';
+  }
+
+  @override
+  String comicCardRemoveBody(String title) {
+    return 'Careful! You can\'t undo this action. You are removing: $title';
+  }
+
+  @override
+  String get comicCardRemoveConfirm => 'REMOVE';
+
+  @override
+  String get imageCopyUrl => 'Copy image URL';
+
+  @override
+  String get imageLinkCopied => 'Link copied to clipboard';
 }
