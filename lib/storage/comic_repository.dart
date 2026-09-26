@@ -7,6 +7,27 @@ class ComicRepository {
 
   final LocalDatabase localDatabase;
 
+  /// Loads the stored rows for [comicIds], keyed by id.
+  ///
+  /// Ids with nothing stored are simply absent — a comic can be downloaded
+  /// without ever having been cached here (see [insertComicIfAbsent]).
+  Future<Map<String, StoredComic>> loadComicsByIds(Set<String> comicIds) async {
+    if (comicIds.isEmpty) return const <String, StoredComic>{};
+    final query = localDatabase.select(localDatabase.comics)
+      ..where((table) => table.id.isIn(comicIds));
+    final rows = await query.get();
+    return <String, StoredComic>{
+      for (final row in rows)
+        row.id: StoredComic(
+          id: row.id,
+          mediaId: row.mid,
+          title: row.title,
+          serializedImages: row.images,
+          pages: row.pages,
+        ),
+    };
+  }
+
   Future<int> upsertComic(StoredComic comic) async {
     return localDatabase.into(localDatabase.comics).insert(
       ComicsCompanion.insert(

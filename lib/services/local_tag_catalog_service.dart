@@ -41,6 +41,17 @@ class LocalTagCatalogService extends ChangeNotifier {
 
   String get version => _version;
   int get entryCount => _entries.length;
+
+  /// The largest site-wide count in the catalog.
+  ///
+  /// Used as the reference for inverse document frequency (P92), so the
+  /// most common tag on the site scores zero — sharing it says nothing
+  /// about two comics being alike.
+  int get maxCount => _maxCount ??= _entries.fold<int>(
+    0,
+    (largest, entry) => entry.count > largest ? entry.count : largest,
+  );
+  int? _maxCount;
   bool get isUsingOverride => _isUsingOverride;
 
   /// Resolves a gallery `tag_ids` value to its catalog entry. Null when the
@@ -148,6 +159,8 @@ class LocalTagCatalogService extends ChangeNotifier {
     _version = candidate.version;
     _entries = candidate.entries;
     _entriesById = _indexById(candidate.entries);
+    // Derived from _entries, so it has to be dropped with them.
+    _maxCount = null;
     _isUsingOverride = true;
     notifyListeners();
     return _version;

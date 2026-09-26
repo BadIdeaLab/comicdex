@@ -1,6 +1,7 @@
 import 'package:concept_nhv/application/downloads/download_settings_repository.dart';
 import 'package:concept_nhv/application/search/blocked_tags_repository.dart';
 import 'package:concept_nhv/application/tags/build_tag_preference_vector_use_case.dart';
+import 'package:concept_nhv/application/tags/find_similar_comics_use_case.dart';
 import 'package:concept_nhv/application/tags/tag_preference_vector.dart';
 import 'package:concept_nhv/application/favorites/clear_favorite_auth_use_case.dart';
 import 'package:concept_nhv/application/favorites/initialize_favorites_use_case.dart';
@@ -302,6 +303,13 @@ List<SingleChildWidget> _buildUseCaseProviders() {
       create: (context) => BuildTagPreferenceVectorUseCase(
         loadTagPreferencesUseCase: context.read(),
         comicTagRepository: context.read(),
+      ),
+    ),
+    Provider(
+      create: (context) => FindSimilarComicsUseCase(
+        comicTagRepository: context.read(),
+        comicRepository: context.read(),
+        localTagCatalogService: context.read(),
       ),
     ),
     Provider(
