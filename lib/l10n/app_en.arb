@@ -774,5 +774,17 @@
         "type": "String"
       }
     }
-  }
+  },
+  "readerFindMoreOnline": "Find more on the site",
+  "readerSimilarOnline": "On the site",
+  "readerSearchedTag": "Searched: {tag}",
+  "@readerSearchedTag": {
+    "placeholders": {
+      "tag": {
+        "type": "String"
+      }
+    }
+  },
+  "readerNothingNewOnline": "Nothing here you do not already have.",
+  "readerOnlineLookupFailed": "Could not reach the site. Try again later."
 }

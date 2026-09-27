@@ -11,6 +11,7 @@ class SimilarComic {
     required this.comic,
     required this.similarity,
     required this.sharedTagIds,
+    required this.tagIds,
   });
 
   final StoredComic comic;
@@ -18,6 +19,10 @@ class SimilarComic {
 
   /// The strongest shared tags, for the line explaining why this is here.
   final List<int> sharedTagIds;
+
+  /// Every tag id on this comic. A [StoredComic] carries none of its own, so
+  /// without these the tile could not tell the reader what language it is in.
+  final List<int> tagIds;
 }
 
 /// Finds comics in the user's own library that resemble the one just read.
@@ -104,6 +109,7 @@ class FindSimilarComicsUseCase {
             comic: comics[entry.id]!,
             similarity: entry.score,
             sharedTagIds: entry.shared,
+            tagIds: tagsByComic[entry.id] ?? const <int>[],
           ),
     ];
   }

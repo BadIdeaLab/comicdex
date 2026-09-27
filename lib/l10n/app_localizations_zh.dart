@@ -1095,6 +1095,24 @@ class AppLocalizationsZh extends AppLocalizations {
   String readerSharedTags(String tags) {
     return 'Shares $tags';
   }
+
+  @override
+  String get readerFindMoreOnline => 'Find more on the site';
+
+  @override
+  String get readerSimilarOnline => 'On the site';
+
+  @override
+  String readerSearchedTag(String tag) {
+    return 'Searched: $tag';
+  }
+
+  @override
+  String get readerNothingNewOnline => 'Nothing here you do not already have.';
+
+  @override
+  String get readerOnlineLookupFailed =>
+      'Could not reach the site. Try again later.';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -2150,4 +2168,21 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String readerSharedTags(String tags) {
     return '共同標籤：$tags';
   }
+
+  @override
+  String get readerFindMoreOnline => '在網站上找更多';
+
+  @override
+  String get readerSimilarOnline => '網站上的相似作品';
+
+  @override
+  String readerSearchedTag(String tag) {
+    return '搜尋了：$tag';
+  }
+
+  @override
+  String get readerNothingNewOnline => '這裡沒有你還沒有的。';
+
+  @override
+  String get readerOnlineLookupFailed => '無法連到網站，請稍後再試。';
 }

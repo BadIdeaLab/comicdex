@@ -136,6 +136,33 @@ class ComicTagRepository {
 
   /// How many comics the user kept: favorited or downloaded, counted once
   /// when both. The sample size behind every tag's share (P79).
+  /// Every comic the user already has: favorited, downloaded, or queued for
+  /// download.
+  ///
+  /// The download queue is included on purpose — recommending something the
+  /// user is in the middle of downloading is worse than recommending
+  /// something they already own (P93).
+  Future<Set<String>> loadOwnedComicIds() async {
+    final rows = await localDatabase
+        .customSelect(
+          'SELECT comicid AS comic_id FROM Collection WHERE name = ?1 '
+          'UNION '
+          'SELECT comic_id FROM DownloadedComic '
+          'UNION '
+          'SELECT comic_id FROM DownloadJob',
+          variables: <drift.Variable<Object>>[
+            drift.Variable.withString(CollectionType.favorite.storageName),
+          ],
+          readsFrom: <drift.ResultSetImplementation<dynamic, dynamic>>{
+            localDatabase.collections,
+            localDatabase.downloadedComics,
+            localDatabase.downloadJobs,
+          },
+        )
+        .get();
+    return <String>{for (final row in rows) row.read<String>('comic_id')};
+  }
+
   Future<int> loadKeptComicCount() async {
     final row = await localDatabase
         .customSelect(

@@ -1940,6 +1940,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Shares {tags}'**
   String readerSharedTags(String tags);
+
+  /// No description provided for @readerFindMoreOnline.
+  ///
+  /// In en, this message translates to:
+  /// **'Find more on the site'**
+  String get readerFindMoreOnline;
+
+  /// No description provided for @readerSimilarOnline.
+  ///
+  /// In en, this message translates to:
+  /// **'On the site'**
+  String get readerSimilarOnline;
+
+  /// No description provided for @readerSearchedTag.
+  ///
+  /// In en, this message translates to:
+  /// **'Searched: {tag}'**
+  String readerSearchedTag(String tag);
+
+  /// No description provided for @readerNothingNewOnline.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing here you do not already have.'**
+  String get readerNothingNewOnline;
+
+  /// No description provided for @readerOnlineLookupFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not reach the site. Try again later.'**
+  String get readerOnlineLookupFailed;
 }
 
 class _AppLocalizationsDelegate

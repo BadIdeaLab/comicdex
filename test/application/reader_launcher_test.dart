@@ -85,6 +85,25 @@ void main() {
       await launcher.open(show: () async => shows++);
       expect(shows, 1, reason: 'the next open must still work');
     });
+
+    test('a show whose future never completes locks the guard open', () async {
+      // Not a wish, a warning. The guard is released only when the pushed
+      // route's future completes, so any caller that navigates in a way which
+      // abandons that future — go_router's pushReplacement drops the replaced
+      // match without completing it — bricks every later open in the app.
+      // This is what the recommendation page hit before it went back to push.
+      final abandoned = Completer<void>();
+      unawaited(launcher.open(show: () => abandoned.future));
+      await Future<void>.delayed(Duration.zero);
+
+      expect(launcher.isOpening, isTrue);
+
+      var shows = 0;
+      await launcher.open(show: () async => shows++);
+
+      expect(shows, 0, reason: 'nothing can be opened while it is stuck');
+      abandoned.complete();
+    });
   });
 }
 

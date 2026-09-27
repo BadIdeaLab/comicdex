@@ -22,12 +22,21 @@ class ReaderTopBar extends StatelessWidget {
     required this.currentPage,
     required this.totalPages,
     this.numFavorites,
+    this.trailing,
   });
 
   final bool visible;
   final int currentPage;
   final int totalPages;
+
+  /// The site's own favourite count — how popular the comic is, not whether
+  /// this reader has kept it.
   final int? numFavorites;
+
+  /// Sits at the far end, where the reader's own "keep this" control goes.
+  /// A slot rather than a callback: the bar has no business knowing about
+  /// favourites, models or comics.
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -67,7 +76,13 @@ class ReaderTopBar extends StatelessWidget {
                     '$currentPage / $totalPages',
                     style: const TextStyle(color: Colors.white, fontSize: 14),
                   ),
-                  const SizedBox(width: 16),
+                  if (trailing == null)
+                    const SizedBox(width: 16)
+                  else ...<Widget>[
+                    const SizedBox(width: 4),
+                    trailing!,
+                    const SizedBox(width: 4),
+                  ],
                 ],
               ),
             ),

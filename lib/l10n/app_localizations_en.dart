@@ -1123,4 +1123,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String readerSharedTags(String tags) {
     return 'Shares $tags';
   }
+
+  @override
+  String get readerFindMoreOnline => 'Find more on the site';
+
+  @override
+  String get readerSimilarOnline => 'On the site';
+
+  @override
+  String readerSearchedTag(String tag) {
+    return 'Searched: $tag';
+  }
+
+  @override
+  String get readerNothingNewOnline => 'Nothing here you do not already have.';
+
+  @override
+  String get readerOnlineLookupFailed =>
+      'Could not reach the site. Try again later.';
 }

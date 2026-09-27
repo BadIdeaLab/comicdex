@@ -1,8 +1,12 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:concept_nhv/application/tags/find_similar_comics_online_use_case.dart';
+import 'package:concept_nhv/models/comic_card_data.dart';
 import 'package:concept_nhv/application/tags/find_similar_comics_use_case.dart';
+import 'package:concept_nhv/state/favorite_sync_model.dart';
 import 'package:concept_nhv/state/preference_score_model.dart';
+import 'package:concept_nhv/storage/comic_repository.dart';
 import 'package:concept_nhv/l10n/app_localizations.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:concept_nhv/application/reader/reader_settings_repository.dart';
@@ -56,6 +60,27 @@ class _ComicReaderScreenState extends State<ComicReaderScreen> {
   /// edge would be visible.
   List<SimilarComic> _similar = const <SimilarComic>[];
 
+  /// Whether the trailing page is worth showing at all.
+  ///
+  /// True as soon as the comic carries a tag, not only when the library
+  /// happens to hold something similar: an empty library result is exactly
+  /// when looking on the site is most useful, and the button lives on that
+  /// page. Still false for a comic with no tags, where neither half has
+  /// anything to work with and swiping past the end should keep doing
+  /// nothing.
+  bool _canShowSimilarPage = false;
+
+  /// What to hand the favourites model when the reader keeps this comic.
+  ///
+  /// Not simply the comic on screen: reading offline reconstructs it from
+  /// local files, so its image manifest holds file paths rather than the
+  /// site's. Favouriting replaces the stored row outright, and that swap
+  /// would leave the Favorites grid with no cover — the same trap
+  /// `insertComicIfAbsent` was written to avoid. So the stored row wins when
+  /// there is one, and it is only built from the session's comic when
+  /// nothing is stored to damage.
+  ComicCardData? _favoriteCard;
+
   @override
   void initState() {
     super.initState();
@@ -80,6 +105,7 @@ class _ComicReaderScreenState extends State<ComicReaderScreen> {
     await _session.open(comicId: widget.comicId, offline: widget.offline);
     if (!mounted || !_session.isReady) return;
     unawaited(_loadSimilar());
+    unawaited(_loadFavoriteCard());
     // One frame later, so the PageView exists and its controller is attached.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _restoreLastSeenPage();
@@ -87,23 +113,72 @@ class _ComicReaderScreenState extends State<ComicReaderScreen> {
   }
 
   Future<void> _loadSimilar() async {
+    final hasTags = _session.currentComic?.effectiveTagIds.isNotEmpty ?? false;
     final similar = await context.read<FindSimilarComicsUseCase>().execute(
       widget.comicId,
       preferences: context.read<PreferenceScoreModel?>()?.vector,
     );
-    if (!mounted || similar.isEmpty) return;
-    setState(() => _similar = similar);
+    if (!mounted) return;
+    setState(() {
+      _similar = similar;
+      _canShowSimilarPage = hasTags || similar.isNotEmpty;
+    });
   }
 
-  /// Replaces this reader rather than stacking another on top: reading four
-  /// comics in a row through this page would otherwise leave four readers on
-  /// the navigation stack, and backing out would walk through all of them.
+  /// Pushes, and must keep pushing.
+  ///
+  /// `pushReplacement` looks right here — reading a chain of recommendations
+  /// otherwise stacks a reader per comic — but go_router drops the replaced
+  /// match without completing its future, and `ReaderLauncher.open` is
+  /// awaiting exactly that future to lower its guard. It never lowers, and
+  /// from then on no comic anywhere in the app can be opened until a restart.
+  /// Stacking readers is the lesser problem by a wide margin.
   void _openSimilar(String comicId) {
-    GoRouter.of(context).pushReplacement(
+    GoRouter.of(context).push(
       Uri(
         path: '/third',
         queryParameters: <String, String>{'id': comicId},
       ).toString(),
+    );
+  }
+
+  Future<void> _loadFavoriteCard() async {
+    final comic = _session.currentComic;
+    if (comic == null) return;
+    final stored = await context.read<ComicRepository>().loadComicsByIds(
+      <String>{widget.comicId},
+    );
+    if (!mounted) return;
+    final row = stored[widget.comicId];
+    setState(() {
+      _favoriteCard = row != null
+          ? ComicCardData.fromStoredComic(row)
+          : ComicCardData.fromComic(comic);
+    });
+  }
+
+  Widget? _buildFavoriteToggle() {
+    final card = _favoriteCard;
+    if (card == null) return null;
+    return Consumer<FavoriteSyncModel>(
+      builder: (context, favorites, _) {
+        final isFavorite = favorites.isFavorite(card.id);
+        final isMutating = favorites.isMutating(card.id);
+        return IconButton(
+          icon: Icon(
+            isFavorite ? Icons.favorite : Icons.favorite_outline,
+            color: Colors.white,
+          ),
+          onPressed: isMutating ? null : () => favorites.toggleFavorite(card),
+        );
+      },
+    );
+  }
+
+  Future<OnlineSimilarResult> _findSimilarOnline() {
+    return context.read<FindSimilarComicsOnlineUseCase>().execute(
+      widget.comicId,
+      preferences: context.read<PreferenceScoreModel?>()?.vector,
     );
   }
 
@@ -201,7 +276,9 @@ class _ComicReaderScreenState extends State<ComicReaderScreen> {
           comicId: widget.comicId,
           onPageChanged: _onPageChanged,
           similar: _similar,
+          showSimilarPage: _canShowSimilarPage,
           onOpenSimilar: _openSimilar,
+          onFindOnline: _findSimilarOnline,
         ),
 
         // ── Top bar (fades in with controls) ───────────────────────────────
@@ -216,6 +293,7 @@ class _ComicReaderScreenState extends State<ComicReaderScreen> {
               currentPage: session.currentPage,
               totalPages: session.totalPages,
               numFavorites: session.numFavorites,
+              trailing: _buildFavoriteToggle(),
             ),
           ),
         ),
@@ -372,13 +450,17 @@ class _ComicPageView extends StatelessWidget {
     required this.comicId,
     required this.onPageChanged,
     required this.similar,
+    required this.showSimilarPage,
     required this.onOpenSimilar,
+    required this.onFindOnline,
   });
 
   final String comicId;
   final void Function(int index, ReaderSessionModel session) onPageChanged;
   final List<SimilarComic> similar;
+  final bool showSimilarPage;
   final void Function(String comicId) onOpenSimilar;
+  final Future<OnlineSimilarResult> Function() onFindOnline;
 
   @override
   Widget build(BuildContext context) {
@@ -394,13 +476,14 @@ class _ComicPageView extends StatelessWidget {
           controller: session.pageController,
           // No trailing page when there is nothing to put on it: swiping past
           // the end into a blank screen reads as a bug.
-          itemCount: comic.numPages + (similar.isEmpty ? 0 : 1),
+          itemCount: comic.numPages + (showSimilarPage ? 1 : 0),
           onPageChanged: (index) => onPageChanged(index, session),
           itemBuilder: (context, index) {
             if (index >= comic.numPages) {
               return SimilarComicsPage(
                 similar: similar,
                 onOpen: onOpenSimilar,
+                onFindOnline: onFindOnline,
               );
             }
             final pageImage = comic.images.pages[index];

@@ -371,5 +371,10 @@
   "imageCopyUrl": "複製圖片網址",
   "imageLinkCopied": "已複製連結",
   "readerSimilarInLibrary": "你書庫裡的相似作品",
-  "readerSharedTags": "共同標籤：{tags}"
+  "readerSharedTags": "共同標籤：{tags}",
+  "readerFindMoreOnline": "在網站上找更多",
+  "readerSimilarOnline": "網站上的相似作品",
+  "readerSearchedTag": "搜尋了：{tag}",
+  "readerNothingNewOnline": "這裡沒有你還沒有的。",
+  "readerOnlineLookupFailed": "無法連到網站，請稍後再試。"
 }
