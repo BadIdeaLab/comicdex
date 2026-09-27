@@ -1,11 +1,10 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:concept_nhv/application/tags/find_similar_comics_online_use_case.dart';
+import 'package:concept_nhv/application/reader/reader_favorite_card.dart';
 import 'package:concept_nhv/models/comic_card_data.dart';
-import 'package:concept_nhv/application/tags/find_similar_comics_use_case.dart';
-import 'package:concept_nhv/state/favorite_sync_model.dart';
 import 'package:concept_nhv/state/preference_score_model.dart';
+import 'package:concept_nhv/state/reader_end_page_model.dart';
 import 'package:concept_nhv/storage/comic_repository.dart';
 import 'package:concept_nhv/l10n/app_localizations.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -16,6 +15,7 @@ import 'package:concept_nhv/state/reader_session_model.dart';
 import 'package:concept_nhv/state/reader_settings_model.dart';
 import 'package:concept_nhv/widgets/reader/reader_bottom_controls.dart';
 import 'package:concept_nhv/widgets/reader/reader_end_card.dart';
+import 'package:concept_nhv/widgets/reader/reader_favorite_toggle.dart';
 import 'package:concept_nhv/widgets/reader/similar_comics_page.dart';
 import 'package:concept_nhv/widgets/reader/reader_page_view.dart';
 import 'package:concept_nhv/widgets/reader/reader_settings_sheet.dart';
@@ -23,6 +23,7 @@ import 'package:concept_nhv/widgets/reader/reader_top_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:provider/single_child_widget.dart';
 
 // ---------------------------------------------------------------------------
 // Public screen widget
@@ -54,31 +55,12 @@ class _ComicReaderScreenState extends State<ComicReaderScreen> {
   bool _showEndCard = false;
   Timer? _endCardTimer;
 
-  /// Comics from the library that resemble this one, shown on a page past the
-  /// last one. Loaded as soon as the comic is, rather than on reaching the
-  /// end: growing the page count while the reader is already swiping at the
-  /// edge would be visible.
-  List<SimilarComic> _similar = const <SimilarComic>[];
+  /// The page past the last one. Loaded alongside the comic, and owned
+  /// separately because none of it is part of reading.
+  late final ReaderEndPageModel _endPage;
 
-  /// Whether the trailing page is worth showing at all.
-  ///
-  /// True as soon as the comic carries a tag, not only when the library
-  /// happens to hold something similar: an empty library result is exactly
-  /// when looking on the site is most useful, and the button lives on that
-  /// page. Still false for a comic with no tags, where neither half has
-  /// anything to work with and swiping past the end should keep doing
-  /// nothing.
-  bool _canShowSimilarPage = false;
-
-  /// What to hand the favourites model when the reader keeps this comic.
-  ///
-  /// Not simply the comic on screen: reading offline reconstructs it from
-  /// local files, so its image manifest holds file paths rather than the
-  /// site's. Favouriting replaces the stored row outright, and that swap
-  /// would leave the Favorites grid with no cover — the same trap
-  /// `insertComicIfAbsent` was written to avoid. So the stored row wins when
-  /// there is one, and it is only built from the session's comic when
-  /// nothing is stored to damage.
+  /// What the top bar's heart hands the favourites model; see
+  /// [readerFavoriteCard] for which row that is.
   ComicCardData? _favoriteCard;
 
   @override
@@ -91,12 +73,19 @@ class _ComicReaderScreenState extends State<ComicReaderScreen> {
       readerSettingsRepository: context.read(),
       downloadedLibraryRepository: context.read(),
     );
+    _endPage = ReaderEndPageModel(
+      comicId: widget.comicId,
+      findSimilar: context.read(),
+      findSimilarOnline: context.read(),
+      readPreferences: () => context.read<PreferenceScoreModel?>()?.vector,
+    );
     _load();
   }
 
   @override
   void dispose() {
     _endCardTimer?.cancel();
+    _endPage.dispose();
     _session.dispose();
     super.dispose();
   }
@@ -104,24 +93,15 @@ class _ComicReaderScreenState extends State<ComicReaderScreen> {
   Future<void> _load() async {
     await _session.open(comicId: widget.comicId, offline: widget.offline);
     if (!mounted || !_session.isReady) return;
-    unawaited(_loadSimilar());
+    unawaited(
+      _endPage.load(
+        hasTags: _session.currentComic?.effectiveTagIds.isNotEmpty ?? false,
+      ),
+    );
     unawaited(_loadFavoriteCard());
     // One frame later, so the PageView exists and its controller is attached.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _restoreLastSeenPage();
-    });
-  }
-
-  Future<void> _loadSimilar() async {
-    final hasTags = _session.currentComic?.effectiveTagIds.isNotEmpty ?? false;
-    final similar = await context.read<FindSimilarComicsUseCase>().execute(
-      widget.comicId,
-      preferences: context.read<PreferenceScoreModel?>()?.vector,
-    );
-    if (!mounted) return;
-    setState(() {
-      _similar = similar;
-      _canShowSimilarPage = hasTags || similar.isNotEmpty;
     });
   }
 
@@ -149,37 +129,12 @@ class _ComicReaderScreenState extends State<ComicReaderScreen> {
       <String>{widget.comicId},
     );
     if (!mounted) return;
-    final row = stored[widget.comicId];
     setState(() {
-      _favoriteCard = row != null
-          ? ComicCardData.fromStoredComic(row)
-          : ComicCardData.fromComic(comic);
+      _favoriteCard = readerFavoriteCard(
+        comic: comic,
+        stored: stored[widget.comicId],
+      );
     });
-  }
-
-  Widget? _buildFavoriteToggle() {
-    final card = _favoriteCard;
-    if (card == null) return null;
-    return Consumer<FavoriteSyncModel>(
-      builder: (context, favorites, _) {
-        final isFavorite = favorites.isFavorite(card.id);
-        final isMutating = favorites.isMutating(card.id);
-        return IconButton(
-          icon: Icon(
-            isFavorite ? Icons.favorite : Icons.favorite_outline,
-            color: Colors.white,
-          ),
-          onPressed: isMutating ? null : () => favorites.toggleFavorite(card),
-        );
-      },
-    );
-  }
-
-  Future<OnlineSimilarResult> _findSimilarOnline() {
-    return context.read<FindSimilarComicsOnlineUseCase>().execute(
-      widget.comicId,
-      preferences: context.read<PreferenceScoreModel?>()?.vector,
-    );
   }
 
   void _onPageChanged(int index, ReaderSessionModel session) {
@@ -239,8 +194,11 @@ class _ComicReaderScreenState extends State<ComicReaderScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider<ReaderSessionModel>.value(
-      value: _session,
+    return MultiProvider(
+      providers: <SingleChildWidget>[
+        ChangeNotifierProvider<ReaderSessionModel>.value(value: _session),
+        ChangeNotifierProvider<ReaderEndPageModel>.value(value: _endPage),
+      ],
       child: Scaffold(
         backgroundColor: Colors.black,
         body: Consumer<ReaderSessionModel>(
@@ -275,10 +233,7 @@ class _ComicReaderScreenState extends State<ComicReaderScreen> {
         _ComicPageView(
           comicId: widget.comicId,
           onPageChanged: _onPageChanged,
-          similar: _similar,
-          showSimilarPage: _canShowSimilarPage,
           onOpenSimilar: _openSimilar,
-          onFindOnline: _findSimilarOnline,
         ),
 
         // ── Top bar (fades in with controls) ───────────────────────────────
@@ -293,7 +248,12 @@ class _ComicReaderScreenState extends State<ComicReaderScreen> {
               currentPage: session.currentPage,
               totalPages: session.totalPages,
               numFavorites: session.numFavorites,
-              trailing: _buildFavoriteToggle(),
+              trailing: switch (_favoriteCard) {
+                final card? => ReaderFavoriteToggle(card: card),
+                // Nothing until the card loads: a placeholder that is always
+                // there would shift the bar when it arrives.
+                null => null,
+              },
             ),
           ),
         ),
@@ -449,24 +409,22 @@ class _ComicPageView extends StatelessWidget {
   const _ComicPageView({
     required this.comicId,
     required this.onPageChanged,
-    required this.similar,
-    required this.showSimilarPage,
     required this.onOpenSimilar,
-    required this.onFindOnline,
   });
 
   final String comicId;
   final void Function(int index, ReaderSessionModel session) onPageChanged;
-  final List<SimilarComic> similar;
-  final bool showSimilarPage;
   final void Function(String comicId) onOpenSimilar;
-  final Future<OnlineSimilarResult> Function() onFindOnline;
 
   @override
   Widget build(BuildContext context) {
     // Watched, not selected: these change only when the user edits reader
     // settings, which should rebuild the pages.
     final settings = context.watch<ReaderSettingsModel>();
+    // Watched here rather than passed down: the recommendations arrive after
+    // the comic does, and rebuilding the whole reader for them would undo the
+    // reason this widget exists.
+    final endPage = context.watch<ReaderEndPageModel>();
 
     return Selector<ReaderSessionModel, Comic>(
       selector: (_, session) => session.currentComic!,
@@ -476,14 +434,14 @@ class _ComicPageView extends StatelessWidget {
           controller: session.pageController,
           // No trailing page when there is nothing to put on it: swiping past
           // the end into a blank screen reads as a bug.
-          itemCount: comic.numPages + (showSimilarPage ? 1 : 0),
+          itemCount: comic.numPages + (endPage.canShowPage ? 1 : 0),
           onPageChanged: (index) => onPageChanged(index, session),
           itemBuilder: (context, index) {
             if (index >= comic.numPages) {
               return SimilarComicsPage(
-                similar: similar,
+                similar: endPage.similar,
                 onOpen: onOpenSimilar,
-                onFindOnline: onFindOnline,
+                onFindOnline: endPage.findOnline,
               );
             }
             final pageImage = comic.images.pages[index];
