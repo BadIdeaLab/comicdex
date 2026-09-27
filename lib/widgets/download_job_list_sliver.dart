@@ -1,11 +1,11 @@
 import 'dart:io';
 import 'dart:math';
 
+import 'package:concept_nhv/application/downloads/download_item_filter.dart';
 import 'package:concept_nhv/application/downloads/weighted_random_pick.dart';
 import 'package:concept_nhv/application/home/home_shell_controller.dart';
 import 'package:concept_nhv/application/tags/load_comic_meta_use_case.dart';
 import 'package:concept_nhv/l10n/app_localizations.dart';
-import 'package:concept_nhv/models/comic_tag.dart';
 import 'package:concept_nhv/models/download_job_status.dart';
 import 'package:concept_nhv/models/download_list_item_snapshot.dart';
 import 'package:concept_nhv/services/tag_display_service.dart';
@@ -64,27 +64,12 @@ class _DownloadJobListSliverState extends State<DownloadJobListSliver> {
       builder: (context, model, _) {
         final l10n = AppLocalizations.of(context)!;
         final query = widget.searchQuery.trim().toLowerCase();
-        final tagDisplayService = context.read<TagDisplayService>();
-        final filteredItems = model.sortedDownloadItems
-            .where((item) {
-              // An in-progress job has no tags yet, so a tag filter cannot
-              // match it — deliberately, since it has nothing to match on.
-              for (final tagId in widget.filterTagIds) {
-                if (!item.tags.any((tag) => tag.id == tagId)) return false;
-              }
-              if (query.isEmpty) return true;
-              if (item.title.toLowerCase().contains(query)) return true;
-              return item.tags.any((tag) {
-                final rawName = tag.name ?? '';
-                final displayName = tagDisplayService.displayName(
-                  tag.slug,
-                  rawName,
-                );
-                return rawName.toLowerCase().contains(query) ||
-                    displayName.toLowerCase().contains(query);
-              });
-            })
-            .toList(growable: false);
+        final filteredItems = filterDownloadItems(
+          model.sortedDownloadItems,
+          query: query,
+          tagIds: widget.filterTagIds,
+          tagDisplayService: context.read<TagDisplayService>(),
+        );
         final activeItems = filteredItems
             .where((item) => !item.isCompletedCard)
             .toList(growable: false);
