@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:concept_nhv/application/downloads/download_list_sorter.dart';
 import 'package:concept_nhv/application/downloads/download_settings_repository.dart';
@@ -13,11 +12,11 @@ import 'package:concept_nhv/models/comic_title.dart';
 import 'package:concept_nhv/models/download_list_item_snapshot.dart';
 import 'package:concept_nhv/models/download_job_snapshot.dart';
 import 'package:concept_nhv/models/download_job_status.dart';
-import 'package:concept_nhv/models/download_page_snapshot.dart';
 import 'package:concept_nhv/models/download_page_status.dart';
 import 'package:concept_nhv/models/download_request.dart';
 import 'package:concept_nhv/models/downloaded_comic_snapshot.dart';
 import 'package:concept_nhv/models/downloads_sort_mode.dart';
+import 'package:concept_nhv/services/download_asset_fetcher.dart';
 import 'package:concept_nhv/services/download_asset_store.dart';
 import 'package:concept_nhv/services/image_compression_service.dart';
 import 'package:concept_nhv/services/nhentai_api_client.dart';
@@ -27,13 +26,6 @@ import 'package:concept_nhv/services/request_retry.dart';
 import 'package:concept_nhv/storage/download_queue_repository.dart';
 import 'package:concept_nhv/storage/downloaded_library_repository.dart';
 import 'package:flutter/widgets.dart';
-import 'package:path/path.dart' as p;
-
-/// Extensions Flutter's built-in Skia codec can reliably decode via
-/// `Image.file`/`Image.memory`. Anything outside this set (heif/avif/tiff/
-/// unknown) is still transcoded to WebP so the reader never gets stuck on
-/// an undecodable local file.
-const _skiaSafeExtensions = {'jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'};
 
 class DownloadManagerModel extends ChangeNotifier with WidgetsBindingObserver {
   DownloadManagerModel({
@@ -55,6 +47,16 @@ class DownloadManagerModel extends ChangeNotifier with WidgetsBindingObserver {
   final DownloadAssetStore downloadAssetStore;
   final ImageCompressionService imageCompressionService;
   final RemoteAssetFetcher remoteAssetFetcher;
+
+  /// Built here rather than injected, so the model's callers — and its
+  /// tests — do not have to know that fetching a page is a separate thing
+  /// from queueing one.
+  late final DownloadAssetFetcher _assetFetcher = DownloadAssetFetcher(
+    cdnConfigService: cdnConfigService,
+    downloadAssetStore: downloadAssetStore,
+    imageCompressionService: imageCompressionService,
+    remoteAssetFetcher: remoteAssetFetcher,
+  );
 
   static const int completedPageSize = 30;
 
@@ -558,8 +560,8 @@ class DownloadManagerModel extends ChangeNotifier with WidgetsBindingObserver {
   Future<bool> _repairCover(String comicId) async {
     try {
       final detail = await nhentaiGateway.loadComicDetail(comicId);
-      final thumbnailHosts = await _loadThumbnailHosts();
-      final newCoverPath = await _downloadCover(
+      final thumbnailHosts = await _assetFetcher.loadThumbnailHosts();
+      final newCoverPath = await _assetFetcher.downloadCover(
         comicId: comicId,
         comic: detail,
         thumbnailHosts: thumbnailHosts,
@@ -669,7 +671,7 @@ class DownloadManagerModel extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> _processJob(DownloadJobSnapshot job) async {
     final detail = await nhentaiGateway.loadComicDetail(job.comicId);
     final comic = detail;
-    final imageHosts = await _loadImageHosts();
+    final imageHosts = await _assetFetcher.loadImageHosts();
     final pageIntervalMs = await downloadSettingsRepository
         .loadPageIntervalMs();
 
@@ -692,7 +694,7 @@ class DownloadManagerModel extends ChangeNotifier with WidgetsBindingObserver {
       await _syncState();
 
       try {
-        final downloadedPage = await _downloadAndPersistPage(
+        final downloadedPage = await _assetFetcher.downloadAndPersistPage(
           comicId: job.comicId,
           page: page,
           imageHosts: imageHosts,
@@ -730,10 +732,10 @@ class DownloadManagerModel extends ChangeNotifier with WidgetsBindingObserver {
     final coverLocalPath =
         await downloadAssetStore.coverExists(existingCoverPath)
         ? existingCoverPath
-        : await _downloadCover(
+        : await _assetFetcher.downloadCover(
             comicId: job.comicId,
             comic: comic,
-            thumbnailHosts: await _loadThumbnailHosts(),
+            thumbnailHosts: await _assetFetcher.loadThumbnailHosts(),
           );
     await downloadedLibraryRepository.saveDownloadedComic(
       comic: comic,
@@ -754,137 +756,6 @@ class DownloadManagerModel extends ChangeNotifier with WidgetsBindingObserver {
     }
     return job.status == DownloadJobStatus.paused ||
         job.status == DownloadJobStatus.failed;
-  }
-
-  Future<List<String>> _loadImageHosts() async {
-    try {
-      await cdnConfigService.load();
-    } catch (_) {}
-    return cdnConfigService.imageHosts;
-  }
-
-  /// Covers (and thumbnails) are served from a different CDN host pool than
-  /// full-resolution page images — using [_loadImageHosts] for covers
-  /// consistently fails (e.g. connection reset) since that path doesn't
-  /// exist on the page-image hosts.
-  Future<List<String>> _loadThumbnailHosts() async {
-    try {
-      await cdnConfigService.load();
-    } catch (_) {}
-    return cdnConfigService.thumbnailHosts;
-  }
-
-  Future<_PersistedAsset> _downloadAndPersistPage({
-    required String comicId,
-    required DownloadPageSnapshot page,
-    required List<String> imageHosts,
-  }) async {
-    Object? lastError;
-    for (final host in imageHosts) {
-      final url = Uri.https(host, page.remotePath).toString();
-      try {
-        final originalBytes = await remoteAssetFetcher.fetchBytes(url);
-        final compressed = await _compressWithFallback(
-          originalBytes,
-          fallbackExtension: _extensionFromPath(page.remotePath),
-        );
-        final localPath = await downloadAssetStore.savePage(
-          comicId: comicId,
-          pageNumber: page.pageNumber,
-          bytes: compressed.bytes,
-          extension: compressed.extension,
-        );
-        return _PersistedAsset(
-          sourceServer: host,
-          localPath: localPath,
-          storedFormat: compressed.extension,
-          byteSize: compressed.bytes.length,
-        );
-      } catch (error) {
-        lastError = error;
-      }
-    }
-
-    throw lastError ?? StateError('Failed to download page ${page.pageNumber}');
-  }
-
-  Future<String?> _downloadCover({
-    required String comicId,
-    required Comic comic,
-    required List<String> thumbnailHosts,
-  }) async {
-    final coverPath = comic.images.cover?.path;
-    if (coverPath == null || coverPath.isEmpty) {
-      debugPrint(
-        '[downloadCover] $comicId: comic.images.cover.path is null/empty.',
-      );
-      return null;
-    }
-
-    for (final host in thumbnailHosts) {
-      final url = Uri.https(host, coverPath).toString();
-      try {
-        final originalBytes = await remoteAssetFetcher.fetchBytes(url);
-        final compressed = await _compressWithFallback(
-          originalBytes,
-          fallbackExtension: _extensionFromPath(coverPath),
-        );
-        return downloadAssetStore.saveCover(
-          comicId: comicId,
-          bytes: compressed.bytes,
-          extension: compressed.extension,
-        );
-      } catch (error) {
-        debugPrint('[downloadCover] $comicId: $url failed: $error');
-      }
-    }
-
-    return null;
-  }
-
-  Future<_CompressedAsset> _compressWithFallback(
-    Uint8List originalBytes, {
-    required String fallbackExtension,
-  }) async {
-    final normalizedExtension = fallbackExtension.toLowerCase();
-    if (_skiaSafeExtensions.contains(normalizedExtension)) {
-      return _CompressedAsset(
-        bytes: originalBytes,
-        extension: normalizedExtension,
-      );
-    }
-
-    try {
-      final compressed = await imageCompressionService.compressToWebp(
-        originalBytes,
-        quality: 80,
-      );
-      if (compressed.isNotEmpty) {
-        return _CompressedAsset(bytes: compressed, extension: 'webp');
-      }
-    } on UnsupportedError {
-      // Keep original format below.
-    } catch (_) {
-      // Keep original format below.
-    }
-
-    return _CompressedAsset(
-      bytes: originalBytes,
-      extension: normalizedExtension,
-    );
-  }
-
-  String _extensionFromPath(String path) {
-    final filename = p.basename(path);
-    if (!filename.contains('.')) {
-      return 'bin';
-    }
-    final segments = filename.split('.');
-    if (segments.length >= 3 &&
-        segments.last == segments[segments.length - 2]) {
-      return segments.last.toLowerCase();
-    }
-    return segments.last.toLowerCase();
   }
 
   @override
@@ -918,25 +789,4 @@ class DownloadManagerModel extends ChangeNotifier with WidgetsBindingObserver {
       }
     }
   }
-}
-
-class _PersistedAsset {
-  const _PersistedAsset({
-    required this.sourceServer,
-    required this.localPath,
-    required this.storedFormat,
-    required this.byteSize,
-  });
-
-  final String sourceServer;
-  final String localPath;
-  final String storedFormat;
-  final int byteSize;
-}
-
-class _CompressedAsset {
-  const _CompressedAsset({required this.bytes, required this.extension});
-
-  final Uint8List bytes;
-  final String extension;
 }
