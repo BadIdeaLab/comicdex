@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:concept_nhv/application/downloads/download_list_sorter.dart';
 import 'package:concept_nhv/application/downloads/download_settings_repository.dart';
 import 'package:concept_nhv/application/tags/tag_preference_vector.dart';
 import 'package:concept_nhv/models/comic.dart';
@@ -116,19 +117,14 @@ class DownloadManagerModel extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   List<DownloadListItemSnapshot> get sortedDownloadItems {
-    final activeItems =
-        _downloadItems
-            .where((item) => item.status != DownloadJobStatus.completed)
-            .toList(growable: false)
-          ..sort(_compareActiveItems);
-    final completedItems =
-        _downloadItems
-            .where((item) => item.status == DownloadJobStatus.completed)
-            .toList(growable: false)
-          ..sort(_compareCompletedItems);
-    return List<DownloadListItemSnapshot>.unmodifiable(
-      <DownloadListItemSnapshot>[...activeItems, ...completedItems],
-    );
+    // Built here rather than held: the preference vector is pushed in from
+    // the background, and a sorter kept as a field would keep the one it was
+    // built with.
+    return DownloadListSorter(
+      mode: _downloadsSortMode,
+      direction: _downloadsSortDirection,
+      preferences: _preferenceVector,
+    ).sort(_downloadItems);
   }
 
   Future<void> initialize() async {
@@ -282,141 +278,6 @@ class DownloadManagerModel extends ChangeNotifier with WidgetsBindingObserver {
       items.add(DownloadListItemSnapshot.fromDownloadedComic(downloadedComic));
     }
     return List<DownloadListItemSnapshot>.unmodifiable(items);
-  }
-
-  int _compareActiveItems(
-    DownloadListItemSnapshot a,
-    DownloadListItemSnapshot b,
-  ) {
-    final statusComparison = _downloadJobStatusPriority(
-      a.status,
-    ).compareTo(_downloadJobStatusPriority(b.status));
-    if (statusComparison != 0) {
-      return statusComparison;
-    }
-    return b.requestedAt.compareTo(a.requestedAt);
-  }
-
-  int _compareCompletedItems(
-    DownloadListItemSnapshot a,
-    DownloadListItemSnapshot b,
-  ) {
-    return switch (_downloadsSortMode) {
-      DownloadsSortMode.latestDownloaded => _compareByDirection(
-        a.downloadedAt ?? a.updatedAt,
-        b.downloadedAt ?? b.updatedAt,
-      ),
-      DownloadsSortMode.lastRead => _compareLastReadItems(a, b),
-      DownloadsSortMode.mostFavorited => _compareMostFavoritedItems(a, b),
-      DownloadsSortMode.title => _compareByDirection(
-        a.title.toLowerCase(),
-        b.title.toLowerCase(),
-      ),
-      DownloadsSortMode.author => _compareAuthorItems(a, b),
-      DownloadsSortMode.preference => _comparePreferenceItems(a, b),
-    };
-  }
-
-  int _comparePreferenceItems(
-    DownloadListItemSnapshot a,
-    DownloadListItemSnapshot b,
-  ) {
-    final comparison = _compareByDirection(
-      _preferenceScore(a),
-      _preferenceScore(b),
-    );
-    if (comparison != 0) return comparison;
-    // Everything unscored — a library with no preference data, or comics
-    // downloaded before tag ids were stored — would otherwise come back in
-    // whatever order the rows arrived in.
-    return (b.downloadedAt ?? b.updatedAt).compareTo(
-      a.downloadedAt ?? a.updatedAt,
-    );
-  }
-
-  double _preferenceScore(DownloadListItemSnapshot item) {
-    return _preferenceVector.scoreComic(<int>[
-      for (final tag in item.tags)
-        if (tag.id != null) tag.id!,
-    ]);
-  }
-
-  int _compareAuthorItems(
-    DownloadListItemSnapshot a,
-    DownloadListItemSnapshot b,
-  ) {
-    final aAuthor = _authorName(a);
-    final bAuthor = _authorName(b);
-    if (aAuthor == null && bAuthor == null) {
-      return _compareByDirection(a.title.toLowerCase(), b.title.toLowerCase());
-    }
-    if (aAuthor == null) return 1;
-    if (bAuthor == null) return -1;
-    return _compareByDirection(aAuthor.toLowerCase(), bAuthor.toLowerCase());
-  }
-
-  /// First `artist` tag name, falling back to the first `group` tag —
-  /// this project has no dedicated author field; artist/group tags are how
-  /// doujin authorship is represented (same convention used to group tags
-  /// in comic_tag_bottom_sheet.dart).
-  String? _authorName(DownloadListItemSnapshot item) {
-    for (final tag in item.tags) {
-      if (tag.type == 'artist' && (tag.name?.isNotEmpty ?? false)) {
-        return tag.name;
-      }
-    }
-    for (final tag in item.tags) {
-      if (tag.type == 'group' && (tag.name?.isNotEmpty ?? false)) {
-        return tag.name;
-      }
-    }
-    return null;
-  }
-
-  int _compareLastReadItems(
-    DownloadListItemSnapshot a,
-    DownloadListItemSnapshot b,
-  ) {
-    final aTimestamp = a.lastReadAt ?? a.downloadedAt ?? a.updatedAt;
-    final bTimestamp = b.lastReadAt ?? b.downloadedAt ?? b.updatedAt;
-    return _compareByDirection(aTimestamp, bTimestamp);
-  }
-
-  int _compareMostFavoritedItems(
-    DownloadListItemSnapshot a,
-    DownloadListItemSnapshot b,
-  ) {
-    final aFavorites = a.numFavorites;
-    final bFavorites = b.numFavorites;
-    if (aFavorites == null && bFavorites == null) {
-      return (b.downloadedAt ?? b.updatedAt).compareTo(
-        a.downloadedAt ?? a.updatedAt,
-      );
-    }
-    if (aFavorites == null) {
-      return 1;
-    }
-    if (bFavorites == null) {
-      return -1;
-    }
-    return _compareByDirection(aFavorites, bFavorites);
-  }
-
-  int _compareByDirection<T extends Comparable<T>>(T a, T b) {
-    return switch (_downloadsSortDirection) {
-      DownloadsSortDirection.descending => b.compareTo(a),
-      DownloadsSortDirection.ascending => a.compareTo(b),
-    };
-  }
-
-  int _downloadJobStatusPriority(DownloadJobStatus status) {
-    return switch (status) {
-      DownloadJobStatus.downloading => 0,
-      DownloadJobStatus.queued => 1,
-      DownloadJobStatus.failed => 2,
-      DownloadJobStatus.paused => 3,
-      DownloadJobStatus.completed => 4,
-    };
   }
 
   Future<void> enqueue(DownloadRequest request) async {
