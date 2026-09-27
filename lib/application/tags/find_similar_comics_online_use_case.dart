@@ -1,6 +1,6 @@
 import 'package:concept_nhv/application/feed/search_comics_use_case.dart';
 import 'package:concept_nhv/application/search/blocked_tags_repository.dart';
-import 'package:concept_nhv/application/tags/comic_similarity.dart';
+import 'package:concept_nhv/application/tags/similar_comic_ranking.dart';
 import 'package:concept_nhv/application/tags/tag_preference_vector.dart';
 import 'package:concept_nhv/models/comic.dart';
 import 'package:concept_nhv/models/local_tag_catalog_entry.dart';
@@ -54,8 +54,8 @@ class FindSimilarComicsOnlineUseCase {
     required this.comicTagRepository,
     required this.localTagCatalogService,
     required this.blockedTagsRepository,
-    this.limit = 6,
-    this.minimumSimilarity = 0.15,
+    this.limit = similarComicsLimit,
+    this.minimumSimilarity = minimumComicSimilarity,
   });
 
   final SearchComicsUseCase searchComicsUseCase;
@@ -87,9 +87,15 @@ class FindSimilarComicsOnlineUseCase {
     }
 
     final owned = await comicTagRepository.loadOwnedComicIds();
-    final similarity = _buildSimilarity(sourceTags, result.comics);
+    final similarity = buildComicSimilarity(
+      catalog: localTagCatalogService,
+      tagGroups: <Iterable<int>>[
+        sourceTags,
+        for (final comic in result.comics) comic.effectiveTagIds,
+      ],
+    );
 
-    final scored = <OnlineSimilarComic>[];
+    final scored = <ScoredComic<Comic>>[];
     for (final comic in result.comics) {
       // Already in the library, or the comic that was just read.
       if (comic.id == comicId || owned.contains(comic.id)) continue;
@@ -97,27 +103,29 @@ class FindSimilarComicsOnlineUseCase {
       final score = similarity.between(sourceTags, tagIds);
       if (score < minimumSimilarity) continue;
       scored.add(
-        OnlineSimilarComic(
-          comic: comic,
+        ScoredComic<Comic>(
+          subject: comic,
+          id: comic.id,
           similarity: score,
           sharedTagIds: similarity.strongestSharedTags(sourceTags, tagIds),
+          tagIds: tagIds,
         ),
       );
     }
 
-    scored.sort((a, b) {
-      final bySimilarity = b.similarity.compareTo(a.similarity);
-      if (bySimilarity != 0) return bySimilarity;
-      // A tie-break only, as in the library pass: preference must not
-      // displace a closer match.
-      final preferred = _preferenceOf(b.comic, preferences).compareTo(
-        _preferenceOf(a.comic, preferences),
-      );
-      return preferred != 0 ? preferred : a.comic.id.compareTo(b.comic.id);
-    });
-
     return OnlineSimilarResult(
-      comics: scored.take(limit).toList(growable: false),
+      comics: <OnlineSimilarComic>[
+        for (final entry in rankSimilar(
+          scored,
+          preferences: preferences,
+          limit: limit,
+        ))
+          OnlineSimilarComic(
+            comic: entry.subject,
+            similarity: entry.similarity,
+            sharedTagIds: entry.sharedTagIds,
+          ),
+      ],
       searchedTag: searchTag,
       failed: false,
     );
@@ -136,27 +144,5 @@ class FindSimilarComicsOnlineUseCase {
       if (best == null || entry.count < best.count) best = entry;
     }
     return best;
-  }
-
-  ComicSimilarity _buildSimilarity(Set<int> sourceTags, List<Comic> results) {
-    final involved = <int>{
-      ...sourceTags,
-      for (final comic in results) ...comic.effectiveTagIds,
-    };
-    final siteCounts = <int, int>{};
-    for (final tagId in involved) {
-      final entry = localTagCatalogService.entryById(tagId);
-      if (entry == null) continue;
-      siteCounts[tagId] = entry.count;
-    }
-    return ComicSimilarity.fromSiteCounts(
-      siteCounts,
-      referenceCount: localTagCatalogService.maxCount,
-    );
-  }
-
-  double _preferenceOf(Comic comic, TagPreferenceVector? preferences) {
-    if (preferences == null) return 0;
-    return preferences.scoreComic(comic.effectiveTagIds);
   }
 }
