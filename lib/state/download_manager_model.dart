@@ -4,6 +4,7 @@ import 'dart:typed_data';
 
 import 'package:concept_nhv/application/downloads/download_list_sorter.dart';
 import 'package:concept_nhv/application/downloads/download_settings_repository.dart';
+import 'package:concept_nhv/application/downloads/throttled_batch.dart';
 import 'package:concept_nhv/application/tags/tag_preference_vector.dart';
 import 'package:concept_nhv/models/comic.dart';
 import 'package:concept_nhv/models/comic_card_data.dart';
@@ -322,47 +323,30 @@ class DownloadManagerModel extends ChangeNotifier with WidgetsBindingObserver {
   }) async {
     var queuedCount = 0;
     var skippedCount = 0;
-    var failedCount = 0;
-    var consecutiveFailures = 0;
-    var processedCount = 0;
-    final total = comics.length;
 
-    for (final comic in comics) {
-      if (_isDisposed) break;
-      var hitNetwork = false;
-      try {
+    final batch = await runThrottledBatch<ComicCardData>(
+      items: comics,
+      shouldStop: () => _isDisposed,
+      onProgress: onProgress,
+      step: (comic) async {
         final outcome = await _enqueueOne(comic);
-        hitNetwork = outcome.hitNetwork;
         if (outcome.skipped) {
           skippedCount += 1;
         } else {
           queuedCount += 1;
         }
-        consecutiveFailures = 0;
-      } catch (_) {
-        failedCount += 1;
-        hitNetwork = true;
-        consecutiveFailures += 1;
-      }
-      processedCount += 1;
-      onProgress?.call(processedCount, total);
-
-      if (consecutiveFailures >= _maxConsecutiveNetworkFailures) {
-        break;
-      }
-      if (hitNetwork && processedCount < total) {
-        await Future<void>.delayed(_networkThrottleDelay);
-      }
-    }
+        return outcome.hitNetwork;
+      },
+    );
 
     unawaited(_processQueue());
 
     return (
       queuedCount: queuedCount,
       skippedCount: skippedCount,
-      failedCount: failedCount,
-      totalCount: total,
-      stoppedEarly: consecutiveFailures >= _maxConsecutiveNetworkFailures,
+      failedCount: batch.failedCount,
+      totalCount: comics.length,
+      stoppedEarly: batch.stoppedEarly,
     );
   }
 
@@ -598,26 +582,11 @@ class DownloadManagerModel extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
-  /// Minimum delay after any network-hitting attempt in [repairAllCompleted]
-  /// or [enqueueMany], to avoid bursting `loadComicDetail` calls.
-  static const Duration _networkThrottleDelay = Duration(milliseconds: 1000);
-
-  /// Stop scanning/enqueueing after this many consecutive failures in
-  /// [repairAllCompleted] or [enqueueMany] — repeated failures in a row
-  /// suggest a systemic problem (e.g. the network or API is down), and
-  /// continuing to hammer it for the remaining items is more likely to make
-  /// things worse than to succeed.
-  static const int _maxConsecutiveNetworkFailures = 3;
-
   /// Scans every completed download, repairing missing pages and/or covers.
   ///
   /// Returns how many of the [totalCount] completed downloads needed a
-  /// repair and how many failed. Runs sequentially. Stops early —
-  /// [stoppedEarly] is true — after [_maxConsecutiveNetworkFailures]
-  /// consecutive failures, leaving the remaining items unscanned. A
-  /// throttling delay is inserted after any item that actually triggered a
-  /// network request (repaired or failed), but not after items that were
-  /// already intact (pure local check, no network involved).
+  /// repair and how many failed. Runs sequentially, throttled, and stops
+  /// early after too many consecutive failures — see [runThrottledBatch].
   Future<
     ({int repairedCount, int failedCount, int totalCount, bool stoppedEarly})
   >
@@ -630,37 +599,24 @@ class DownloadManagerModel extends ChangeNotifier with WidgetsBindingObserver {
         .toList(growable: false);
 
     var repairedCount = 0;
-    var failedCount = 0;
-    var consecutiveFailures = 0;
-    var processedCount = 0;
-    for (final comicId in completedIds) {
-      var hitNetwork = false;
-      try {
-        if (await repairCompleted(comicId)) {
-          repairedCount += 1;
-          hitNetwork = true;
-        }
-        consecutiveFailures = 0;
-      } catch (_) {
-        failedCount += 1;
-        hitNetwork = true;
-        consecutiveFailures += 1;
-      }
-      processedCount += 1;
-      onProgress?.call(processedCount, completedIds.length);
 
-      if (consecutiveFailures >= _maxConsecutiveNetworkFailures) {
-        break;
-      }
-      if (hitNetwork && processedCount < completedIds.length) {
-        await Future<void>.delayed(_networkThrottleDelay);
-      }
-    }
+    final batch = await runThrottledBatch<String>(
+      items: completedIds,
+      onProgress: onProgress,
+      step: (comicId) async {
+        // An item that was already intact is a pure local check, so it does
+        // not earn the throttle.
+        if (!await repairCompleted(comicId)) return false;
+        repairedCount += 1;
+        return true;
+      },
+    );
+
     return (
       repairedCount: repairedCount,
-      failedCount: failedCount,
+      failedCount: batch.failedCount,
       totalCount: completedIds.length,
-      stoppedEarly: consecutiveFailures >= _maxConsecutiveNetworkFailures,
+      stoppedEarly: batch.stoppedEarly,
     );
   }
 
