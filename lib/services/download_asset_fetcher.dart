@@ -188,16 +188,14 @@ class DownloadAssetFetcher {
     );
   }
 
+  /// The extension to store a file under, or `bin` for a name that carries
+  /// none — something has to be written, and a bare name gives nothing to go
+  /// on.
   static String extensionFromPath(String path) {
     final filename = p.basename(path);
     if (!filename.contains('.')) {
       return 'bin';
     }
-    final segments = filename.split('.');
-    if (segments.length >= 3 &&
-        segments.last == segments[segments.length - 2]) {
-      return segments.last.toLowerCase();
-    }
-    return segments.last.toLowerCase();
+    return filename.split('.').last.toLowerCase();
   }
 }

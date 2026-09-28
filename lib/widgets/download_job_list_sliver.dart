@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:concept_nhv/application/downloads/completed_page_window.dart';
 import 'package:concept_nhv/application/downloads/download_item_filter.dart';
 import 'package:concept_nhv/application/downloads/weighted_random_pick.dart';
 import 'package:concept_nhv/l10n/app_localizations.dart';
@@ -73,41 +74,29 @@ class _DownloadJobListSliverState extends State<DownloadJobListSliver> {
             .toList(growable: false);
 
         if (filteredItems.isEmpty) {
-          final hasFilter = query.isNotEmpty || widget.filterTagIds.isNotEmpty;
+          // Three different empty states, and which one it is decides whether
+          // the user should go download something or go clear a filter.
+          final String message;
+          if (query.isNotEmpty) {
+            message = l10n.downloadsEmptyForQuery(widget.searchQuery.trim());
+          } else if (widget.filterTagIds.isNotEmpty) {
+            message = l10n.downloadsEmptyForTags;
+          } else {
+            message = l10n.downloadsEmpty;
+          }
           return SliverFillRemaining(
             hasScrollBody: false,
-            child: Center(
-              child: Text(
-                !hasFilter
-                    ? l10n.downloadsEmpty
-                    : query.isEmpty
-                    ? l10n.downloadsEmptyForTags
-                    : l10n.downloadsEmptyForQuery(widget.searchQuery.trim()),
-              ),
-            ),
+            child: Center(child: Text(message)),
           );
         }
 
-        // Pagination for completed items: [anchorPage, currentPage] is the
-        // continuously-revealed range. Jumping resets both to the same
-        // page; scrolling to the end only advances currentPage, so already
-        // revealed pages stay visible (mirrors ComicFeedModel/ComicGridSliver).
-        final pageSize = DownloadManagerModel.completedPageSize;
-        final totalCompletedPages = completedItems.isEmpty
-            ? 1
-            : ((completedItems.length + pageSize - 1) ~/ pageSize);
-        final anchorPage = model.completedAnchorPage.clamp(
-          1,
-          totalCompletedPages,
+        final window = CompletedPageWindow.of(
+          itemCount: completedItems.length,
+          anchorPage: model.completedAnchorPage,
+          currentPage: model.completedPage,
+          pageSize: DownloadManagerModel.completedPageSize,
         );
-        final currentPage = model.completedPage.clamp(1, totalCompletedPages);
-        final pageStart = (anchorPage - 1) * pageSize;
-        final pageEnd = (currentPage * pageSize).clamp(
-          0,
-          completedItems.length,
-        );
-        final pagedCompletedItems = completedItems.sublist(pageStart, pageEnd);
-        final showPageBar = completedItems.length > pageSize;
+        final pagedCompletedItems = window.slice(completedItems);
 
         final slivers = <Widget>[];
 
@@ -144,7 +133,7 @@ class _DownloadJobListSliverState extends State<DownloadJobListSliver> {
             ),
           );
 
-          if (showPageBar) {
+          if (window.showPageBar) {
             slivers.add(
               SliverToBoxAdapter(
                 child: Padding(
@@ -156,8 +145,8 @@ class _DownloadJobListSliverState extends State<DownloadJobListSliver> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: <Widget>[
                       PageJumpBar(
-                        currentPage: anchorPage,
-                        totalPages: totalCompletedPages,
+                        currentPage: window.anchorPage,
+                        totalPages: window.totalPages,
                         onJump: (page) async {
                           model.setCompletedPage(page);
                         },
@@ -185,7 +174,7 @@ class _DownloadJobListSliverState extends State<DownloadJobListSliver> {
                       model,
                       index,
                       pagedCompletedItems.length,
-                      totalCompletedPages,
+                      window.totalPages,
                     );
                     final item = pagedCompletedItems[index];
                     return CompletedGridCell(
@@ -206,7 +195,7 @@ class _DownloadJobListSliverState extends State<DownloadJobListSliver> {
                     model,
                     index,
                     pagedCompletedItems.length,
-                    totalCompletedPages,
+                    window.totalPages,
                   );
                   return _buildItemCard(model, pagedCompletedItems[index]);
                 }, childCount: pagedCompletedItems.length),

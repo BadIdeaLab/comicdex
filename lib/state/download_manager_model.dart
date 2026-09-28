@@ -669,8 +669,7 @@ class DownloadManagerModel extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> _processJob(DownloadJobSnapshot job) async {
-    final detail = await nhentaiGateway.loadComicDetail(job.comicId);
-    final comic = detail;
+    final comic = await nhentaiGateway.loadComicDetail(job.comicId);
     final imageHosts = await _assetFetcher.loadImageHosts();
     final pageIntervalMs = await downloadSettingsRepository
         .loadPageIntervalMs();

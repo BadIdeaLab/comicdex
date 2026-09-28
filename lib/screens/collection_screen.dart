@@ -255,34 +255,7 @@ class _CollectionScreenState extends State<CollectionScreen> {
             ],
           ),
           if (collectionType == CollectionType.favorite)
-            Consumer<FavoriteSyncModel>(
-              builder: (context, favoriteModel, child) {
-                final message = favoriteModel.syncError;
-                if (message == null) {
-                  return const SliverToBoxAdapter(child: SizedBox.shrink());
-                }
-
-                return SliverToBoxAdapter(
-                  child: Card(
-                    margin: const EdgeInsets.all(12),
-                    child: Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          Text(message),
-                          if (!favoriteModel.isAuthenticated)
-                            TextButton(
-                              onPressed: () => context.push('/settings'),
-                              child: Text(l10n.collectionOpenSettings),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
+            const _SyncErrorBanner(),
           if (_tagId != null)
             SliverToBoxAdapter(
               child: Padding(
@@ -503,6 +476,49 @@ class _CollectionComicSliverState extends State<CollectionComicSliver> {
           },
           selectedIds: widget.selectedIds,
           onToggleSelection: widget.onToggleSelection,
+        );
+      },
+    );
+  }
+}
+
+/// Whatever went wrong with the last favourites sync, plus a way out of it.
+///
+/// Sits above the grid rather than in a snackbar: a sync that failed because
+/// the key expired stays broken until the user does something about it, and
+/// a message that disappears after four seconds does not say so.
+class _SyncErrorBanner extends StatelessWidget {
+  const _SyncErrorBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return Consumer<FavoriteSyncModel>(
+      builder: (context, favoriteModel, child) {
+        final message = favoriteModel.syncError;
+        if (message == null) {
+          return const SliverToBoxAdapter(child: SizedBox.shrink());
+        }
+        return SliverToBoxAdapter(
+          child: Card(
+            margin: const EdgeInsets.all(12),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(message),
+                  // Only when signing in is what would fix it — otherwise the
+                  // button leads to a settings page with nothing to change.
+                  if (!favoriteModel.isAuthenticated)
+                    TextButton(
+                      onPressed: () => context.push('/settings'),
+                      child: Text(l10n.collectionOpenSettings),
+                    ),
+                ],
+              ),
+            ),
+          ),
         );
       },
     );

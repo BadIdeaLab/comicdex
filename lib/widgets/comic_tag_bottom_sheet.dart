@@ -129,15 +129,18 @@ class _ComicTagBottomSheetState extends State<ComicTagBottomSheet> {
       maxChildSize: 0.92,
       expand: false,
       builder: (context, scrollController) {
+        // Either half of the row can arrive from the sheet's caller or from
+        // its own load, and an empty row is a visible gap above the divider.
+        final hasMeta =
+            _numFavorites != null ||
+            widget.comicId != null ||
+            _loadedUploadDate != null ||
+            widget.comicUploadDate != null;
         return Column(
           children: <Widget>[
             _buildHandle(context),
             _buildTitle(context),
-            if (_numFavorites != null ||
-                widget.comicId != null ||
-                _loadedUploadDate != null ||
-                widget.comicUploadDate != null)
-              _buildInfoRow(context),
+            if (hasMeta) _buildInfoRow(context),
             const Divider(height: 1),
             Expanded(
               child: _buildBody(

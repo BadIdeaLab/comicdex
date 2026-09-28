@@ -48,10 +48,14 @@ class ComicGridSliver extends StatelessWidget {
         final feedModel = context.read<ComicFeedModel>();
         final homeUiModel = context.read<HomeUiModel>();
 
-        if (pageLoaded != null &&
+        // A page is fetched only at the very bottom, only when the feed says
+        // there is more, and never on top of a fetch already in flight.
+        final shouldLoadNextPage =
+            pageLoaded != null &&
             reachLastItem &&
             !feedModel.noMorePage &&
-            !homeUiModel.isLoading) {
+            !homeUiModel.isLoading;
+        if (shouldLoadNextPage) {
           WidgetsBinding.instance.addPostFrameCallback((_) async {
             if (homeUiModel.isLoading) {
               return;
