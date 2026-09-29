@@ -14,7 +14,11 @@ import 'package:concept_nhv/models/download_job_status.dart';
 import 'package:concept_nhv/models/downloads_sort_mode.dart';
 import 'package:concept_nhv/models/download_page_status.dart';
 import 'package:concept_nhv/models/download_request.dart';
+import 'package:concept_nhv/application/downloads/download_settings_repository.dart';
 import 'package:concept_nhv/services/download_asset_store.dart';
+import 'package:concept_nhv/services/image_compression_service.dart';
+import 'package:concept_nhv/services/nhentai_api_client.dart';
+import 'package:concept_nhv/services/remote_asset_fetcher.dart';
 import 'package:concept_nhv/services/nhentai_cdn_config_service.dart';
 import 'package:concept_nhv/state/download_manager_model.dart';
 import 'package:concept_nhv/storage/download_settings_store.dart';
@@ -40,7 +44,9 @@ void main() {
     setUp(() async {
       harness = SqliteTestHarness();
       await harness.initialize();
-      tempDirectory = await Directory.systemTemp.createTemp('nhv-download-test');
+      tempDirectory = await Directory.systemTemp.createTemp(
+        'nhv-download-test',
+      );
     });
 
     tearDown(() async {
@@ -50,89 +56,132 @@ void main() {
       }
     });
 
-    test('downloads pages, stores offline snapshot, and marks job complete', () async {
-      final comic = sampleComic(id: '900', mediaId: '321');
-      final compressionService = FakeImageCompressionService(
-        result: Uint8List.fromList(<int>[1, 2, 3, 4]),
-      );
-      final manager = DownloadManagerModel(
-        nhentaiGateway: FakeNhentaiGateway(detailComic: comic),
+    /// The model under test, with only what a test actually varies.
+    ///
+    /// Four of its eight dependencies were identical in all thirty places
+    /// this used to be written out, and the other four differ in one test
+    /// each at most. Spelling all eight every time made the interesting
+    /// line — the fake that a test is actually about — the hardest one to
+    /// find.
+    DownloadManagerModel buildManager({
+      NhentaiGateway? nhentaiGateway,
+      ImageCompressionService? imageCompressionService,
+      RemoteAssetFetcher? remoteAssetFetcher,
+      DownloadSettingsRepository? downloadSettingsRepository,
+    }) {
+      return DownloadManagerModel(
+        nhentaiGateway: nhentaiGateway ?? FakeNhentaiGateway(),
         cdnConfigService: _FakeCdnConfigService(),
         downloadQueueRepository: harness.downloadQueueRepository,
         downloadedLibraryRepository: harness.downloadedLibraryRepository,
-        downloadSettingsRepository: DownloadSettingsStore(
-          optionsStore: OptionsStore(localDatabase: harness.localDatabase),
-        ),
+        downloadSettingsRepository:
+            downloadSettingsRepository ??
+            DownloadSettingsStore(
+              optionsStore: OptionsStore(localDatabase: harness.localDatabase),
+            ),
         downloadAssetStore: DownloadAssetStore(
           directoryResolver: () async => tempDirectory,
         ),
-        imageCompressionService: compressionService,
-        remoteAssetFetcher: FakeRemoteAssetFetcher(
-          responses: <String, Uint8List>{
-            'https://i1.nhentai.net/galleries/321/1.jpg': Uint8List.fromList(<int>[1]),
-            'https://i1.nhentai.net/galleries/321/2.jpg': Uint8List.fromList(<int>[2]),
-            'https://t1.nhentai.net/galleries/321/cover.jpg': Uint8List.fromList(<int>[3]),
-          },
-        ),
+        imageCompressionService:
+            imageCompressionService ?? FakeImageCompressionService(),
+        remoteAssetFetcher: remoteAssetFetcher ?? FakeRemoteAssetFetcher(),
+        // The throttle between network-hitting items is a second each, and
+        // nothing here is testing it — `throttled_batch_test.dart` is, with
+        // its own injected clock. Waiting for real cost this file half a
+        // minute.
+        batchSleep: (_) async {},
       );
+    }
 
-      await manager.initialize();
-      await manager.enqueue(const DownloadRequest(comicId: '900', title: 'Sample'));
-      await _waitForJobStatus(
-        harness: harness,
-        comicId: '900',
-        status: 'completed',
-      );
-      await manager.waitForIdle();
+    test(
+      'downloads pages, stores offline snapshot, and marks job complete',
+      () async {
+        final comic = sampleComic(id: '900', mediaId: '321');
+        final compressionService = FakeImageCompressionService(
+          result: Uint8List.fromList(<int>[1, 2, 3, 4]),
+        );
+        final manager = buildManager(
+          nhentaiGateway: FakeNhentaiGateway(detailComic: comic),
+          imageCompressionService: compressionService,
+          remoteAssetFetcher: FakeRemoteAssetFetcher(
+            responses: <String, Uint8List>{
+              'https://i1.nhentai.net/galleries/321/1.jpg': Uint8List.fromList(
+                <int>[1],
+              ),
+              'https://i1.nhentai.net/galleries/321/2.jpg': Uint8List.fromList(
+                <int>[2],
+              ),
+              'https://t1.nhentai.net/galleries/321/cover.jpg':
+                  Uint8List.fromList(<int>[3]),
+            },
+          ),
+        );
 
-      final job = await harness.downloadQueueRepository.loadJob('900');
-      final pages = await harness.downloadQueueRepository.loadPages('900');
-      final downloadedRows = await harness.localDatabase
-          .customSelect('SELECT comic_id, cover_local_path FROM DownloadedComic')
-          .get();
+        await manager.initialize();
+        await manager.enqueue(
+          const DownloadRequest(comicId: '900', title: 'Sample'),
+        );
+        await _waitForJobStatus(
+          harness: harness,
+          comicId: '900',
+          status: 'completed',
+        );
+        await manager.waitForIdle();
 
-      expect(job?.completedPages, comic.numPages);
-      // jpg is a Skia-safe format, so it is kept as-is instead of being
-      // transcoded to WebP — the compression service should never be called.
-      expect(pages.every((page) => page.storedFormat == 'jpg'), isTrue);
-      expect(compressionService.callCount, 0);
-      expect(downloadedRows.single.read<String>('comic_id'), '900');
-      final firstPageFile = File(
-        p.join(tempDirectory.path, pages.first.localPath!),
-      );
-      expect(await firstPageFile.exists(), isTrue);
+        final job = await harness.downloadQueueRepository.loadJob('900');
+        final pages = await harness.downloadQueueRepository.loadPages('900');
+        final downloadedRows = await harness.localDatabase
+            .customSelect(
+              'SELECT comic_id, cover_local_path FROM DownloadedComic',
+            )
+            .get();
 
-      manager.dispose();
-    });
+        expect(job?.completedPages, comic.numPages);
+        // jpg is a Skia-safe format, so it is kept as-is instead of being
+        // transcoded to WebP — the compression service should never be called.
+        expect(pages.every((page) => page.storedFormat == 'jpg'), isTrue);
+        expect(compressionService.callCount, 0);
+        expect(downloadedRows.single.read<String>('comic_id'), '900');
+        final firstPageFile = File(
+          p.join(tempDirectory.path, pages.first.localPath!),
+        );
+        expect(await firstPageFile.exists(), isTrue);
+
+        manager.dispose();
+      },
+    );
 
     test('transcodes unsafe source formats (e.g. avif) to WebP', () async {
-      final comic = _comicWithPageExtension(id: '903', mediaId: '999', typeCode: 'a', extension: 'avif');
+      final comic = _comicWithPageExtension(
+        id: '903',
+        mediaId: '999',
+        typeCode: 'a',
+        extension: 'avif',
+      );
       final compressionService = FakeImageCompressionService(
         result: Uint8List.fromList(<int>[1, 2, 3, 4]),
       );
-      final manager = DownloadManagerModel(
+      final manager = buildManager(
         nhentaiGateway: FakeNhentaiGateway(detailComic: comic),
-        cdnConfigService: _FakeCdnConfigService(),
-        downloadQueueRepository: harness.downloadQueueRepository,
-        downloadedLibraryRepository: harness.downloadedLibraryRepository,
-        downloadSettingsRepository: DownloadSettingsStore(
-          optionsStore: OptionsStore(localDatabase: harness.localDatabase),
-        ),
-        downloadAssetStore: DownloadAssetStore(
-          directoryResolver: () async => tempDirectory,
-        ),
         imageCompressionService: compressionService,
         remoteAssetFetcher: FakeRemoteAssetFetcher(
           responses: <String, Uint8List>{
-            'https://i1.nhentai.net/galleries/999/1.avif': Uint8List.fromList(<int>[1]),
-            'https://i1.nhentai.net/galleries/999/2.avif': Uint8List.fromList(<int>[2]),
-            'https://t1.nhentai.net/galleries/999/cover.avif': Uint8List.fromList(<int>[3]),
+            'https://i1.nhentai.net/galleries/999/1.avif': Uint8List.fromList(
+              <int>[1],
+            ),
+            'https://i1.nhentai.net/galleries/999/2.avif': Uint8List.fromList(
+              <int>[2],
+            ),
+            'https://t1.nhentai.net/galleries/999/cover.avif':
+                Uint8List.fromList(<int>[3]),
           },
         ),
       );
 
       await manager.initialize();
-      await manager.enqueue(const DownloadRequest(comicId: '903', title: 'Avif'));
+      await manager.enqueue(
+        const DownloadRequest(comicId: '903', title: 'Avif'),
+      );
       await _waitForJobStatus(
         harness: harness,
         comicId: '903',
@@ -147,196 +196,201 @@ void main() {
       manager.dispose();
     });
 
-    test('falls back to original page format when WebP compression is unsupported', () async {
-      final comic = _comicWithPageExtension(id: '901', mediaId: '654', typeCode: 'a', extension: 'avif');
-      final manager = DownloadManagerModel(
-        nhentaiGateway: FakeNhentaiGateway(detailComic: comic),
-        cdnConfigService: _FakeCdnConfigService(),
-        downloadQueueRepository: harness.downloadQueueRepository,
-        downloadedLibraryRepository: harness.downloadedLibraryRepository,
-        downloadSettingsRepository: DownloadSettingsStore(
-          optionsStore: OptionsStore(localDatabase: harness.localDatabase),
-        ),
-        downloadAssetStore: DownloadAssetStore(
-          directoryResolver: () async => tempDirectory,
-        ),
-        imageCompressionService: FakeImageCompressionService(
-          error: UnsupportedError('webp'),
-        ),
-        remoteAssetFetcher: FakeRemoteAssetFetcher(
-          responses: <String, Uint8List>{
-            'https://i1.nhentai.net/galleries/654/1.avif': Uint8List.fromList(<int>[1]),
-            'https://i1.nhentai.net/galleries/654/2.avif': Uint8List.fromList(<int>[2]),
-            'https://t1.nhentai.net/galleries/654/cover.avif': Uint8List.fromList(<int>[3]),
-          },
-        ),
-      );
+    test(
+      'falls back to original page format when WebP compression is unsupported',
+      () async {
+        final comic = _comicWithPageExtension(
+          id: '901',
+          mediaId: '654',
+          typeCode: 'a',
+          extension: 'avif',
+        );
+        final manager = buildManager(
+          nhentaiGateway: FakeNhentaiGateway(detailComic: comic),
+          imageCompressionService: FakeImageCompressionService(
+            error: UnsupportedError('webp'),
+          ),
+          remoteAssetFetcher: FakeRemoteAssetFetcher(
+            responses: <String, Uint8List>{
+              'https://i1.nhentai.net/galleries/654/1.avif': Uint8List.fromList(
+                <int>[1],
+              ),
+              'https://i1.nhentai.net/galleries/654/2.avif': Uint8List.fromList(
+                <int>[2],
+              ),
+              'https://t1.nhentai.net/galleries/654/cover.avif':
+                  Uint8List.fromList(<int>[3]),
+            },
+          ),
+        );
 
-      await manager.initialize();
-      await manager.enqueue(const DownloadRequest(comicId: '901', title: 'Fallback'));
-      await _waitForJobStatus(
-        harness: harness,
-        comicId: '901',
-        status: 'completed',
-      );
-      await manager.waitForIdle();
+        await manager.initialize();
+        await manager.enqueue(
+          const DownloadRequest(comicId: '901', title: 'Fallback'),
+        );
+        await _waitForJobStatus(
+          harness: harness,
+          comicId: '901',
+          status: 'completed',
+        );
+        await manager.waitForIdle();
 
-      final pages = await harness.downloadQueueRepository.loadPages('901');
-      expect(pages.every((page) => page.storedFormat == 'avif'), isTrue);
-      expect(pages.every((page) => page.localPath!.endsWith('.avif')), isTrue);
+        final pages = await harness.downloadQueueRepository.loadPages('901');
+        expect(pages.every((page) => page.storedFormat == 'avif'), isTrue);
+        expect(
+          pages.every((page) => page.localPath!.endsWith('.avif')),
+          isTrue,
+        );
 
-      manager.dispose();
-    });
+        manager.dispose();
+      },
+    );
 
-    test('ignores duplicate enqueue requests for the same comic while one is already starting', () async {
-      final comic = sampleComic(id: '902', mediaId: '777');
-      final gateway = FakeNhentaiGateway(detailComic: comic);
-      final manager = DownloadManagerModel(
-        nhentaiGateway: gateway,
-        cdnConfigService: _FakeCdnConfigService(),
-        downloadQueueRepository: harness.downloadQueueRepository,
-        downloadedLibraryRepository: harness.downloadedLibraryRepository,
-        downloadSettingsRepository: DownloadSettingsStore(
-          optionsStore: OptionsStore(localDatabase: harness.localDatabase),
-        ),
-        downloadAssetStore: DownloadAssetStore(
-          directoryResolver: () async => tempDirectory,
-        ),
-        imageCompressionService: FakeImageCompressionService(),
-        remoteAssetFetcher: FakeRemoteAssetFetcher(
-          responses: <String, Uint8List>{
-            'https://i1.nhentai.net/galleries/777/1.jpg': Uint8List.fromList(<int>[1]),
-            'https://i1.nhentai.net/galleries/777/2.jpg': Uint8List.fromList(<int>[2]),
-            'https://t1.nhentai.net/galleries/777/cover.jpg': Uint8List.fromList(<int>[3]),
-          },
-        ),
-      );
+    test(
+      'ignores duplicate enqueue requests for the same comic while one is already starting',
+      () async {
+        final comic = sampleComic(id: '902', mediaId: '777');
+        final gateway = FakeNhentaiGateway(detailComic: comic);
+        final manager = buildManager(
+          nhentaiGateway: gateway,
+          remoteAssetFetcher: FakeRemoteAssetFetcher(
+            responses: <String, Uint8List>{
+              'https://i1.nhentai.net/galleries/777/1.jpg': Uint8List.fromList(
+                <int>[1],
+              ),
+              'https://i1.nhentai.net/galleries/777/2.jpg': Uint8List.fromList(
+                <int>[2],
+              ),
+              'https://t1.nhentai.net/galleries/777/cover.jpg':
+                  Uint8List.fromList(<int>[3]),
+            },
+          ),
+        );
 
-      await manager.initialize();
-      await Future.wait(<Future<void>>[
-        manager.enqueue(const DownloadRequest(comicId: '902', title: 'Dupe')),
-        manager.enqueue(const DownloadRequest(comicId: '902', title: 'Dupe')),
-      ]);
-      await _waitForJobStatus(
-        harness: harness,
-        comicId: '902',
-        status: 'completed',
-      );
-      await manager.waitForIdle();
+        await manager.initialize();
+        await Future.wait(<Future<void>>[
+          manager.enqueue(const DownloadRequest(comicId: '902', title: 'Dupe')),
+          manager.enqueue(const DownloadRequest(comicId: '902', title: 'Dupe')),
+        ]);
+        await _waitForJobStatus(
+          harness: harness,
+          comicId: '902',
+          status: 'completed',
+        );
+        await manager.waitForIdle();
 
-      expect(gateway.loadedComicDetailIds, hasLength(2));
-      expect(
-        gateway.loadedComicDetailIds.every((comicId) => comicId == '902'),
-        isTrue,
-      );
-      expect(manager.isMutating('902'), isFalse);
-      expect(await harness.downloadQueueRepository.loadJobs(), hasLength(1));
-      expect(await harness.downloadQueueRepository.loadJob('902'), isNotNull);
+        expect(gateway.loadedComicDetailIds, hasLength(2));
+        expect(
+          gateway.loadedComicDetailIds.every((comicId) => comicId == '902'),
+          isTrue,
+        );
+        expect(manager.isMutating('902'), isFalse);
+        expect(await harness.downloadQueueRepository.loadJobs(), hasLength(1));
+        expect(await harness.downloadQueueRepository.loadJob('902'), isNotNull);
 
-      manager.dispose();
-    });
+        manager.dispose();
+      },
+    );
 
-    test('pause after resume stays paused when the current page finishes in flight', () async {
-      final comic = _threePageComic(id: '903', mediaId: '778');
-      final secondPageCompleter = Completer<Uint8List>();
-      final manager = DownloadManagerModel(
-        nhentaiGateway: FakeNhentaiGateway(detailComic: comic),
-        cdnConfigService: _FakeCdnConfigService(),
-        downloadQueueRepository: harness.downloadQueueRepository,
-        downloadedLibraryRepository: harness.downloadedLibraryRepository,
-        downloadSettingsRepository: DownloadSettingsStore(
-          optionsStore: OptionsStore(localDatabase: harness.localDatabase),
-        ),
-        downloadAssetStore: DownloadAssetStore(
-          directoryResolver: () async => tempDirectory,
-        ),
-        imageCompressionService: FakeImageCompressionService(),
-        remoteAssetFetcher: FakeRemoteAssetFetcher(
-          responses: <String, Uint8List>{
-            'https://i1.nhentai.net/galleries/778/1.jpg': Uint8List.fromList(<int>[1]),
-            'https://i1.nhentai.net/galleries/778/3.jpg': Uint8List.fromList(<int>[4]),
-            'https://t1.nhentai.net/galleries/778/cover.jpg': Uint8List.fromList(<int>[3]),
-          },
-          deferredResponses: <String, Future<Uint8List> Function()>{
-            'https://i1.nhentai.net/galleries/778/2.jpg': () => secondPageCompleter.future,
-          },
-        ),
-      );
+    test(
+      'pause after resume stays paused when the current page finishes in flight',
+      () async {
+        final comic = _threePageComic(id: '903', mediaId: '778');
+        final secondPageCompleter = Completer<Uint8List>();
+        final manager = buildManager(
+          nhentaiGateway: FakeNhentaiGateway(detailComic: comic),
+          remoteAssetFetcher: FakeRemoteAssetFetcher(
+            responses: <String, Uint8List>{
+              'https://i1.nhentai.net/galleries/778/1.jpg': Uint8List.fromList(
+                <int>[1],
+              ),
+              'https://i1.nhentai.net/galleries/778/3.jpg': Uint8List.fromList(
+                <int>[4],
+              ),
+              'https://t1.nhentai.net/galleries/778/cover.jpg':
+                  Uint8List.fromList(<int>[3]),
+            },
+            deferredResponses: <String, Future<Uint8List> Function()>{
+              'https://i1.nhentai.net/galleries/778/2.jpg': () =>
+                  secondPageCompleter.future,
+            },
+          ),
+        );
 
-      await manager.initialize();
-      await manager.enqueue(const DownloadRequest(comicId: '903', title: 'Pause Resume'));
-      await _waitForJobStatus(
-        harness: harness,
-        comicId: '903',
-        status: 'downloading',
-      );
-      await _waitForPageStatus(
-        harness: harness,
-        comicId: '903',
-        pageNumber: 1,
-        status: 'completed',
-      );
-      await _waitForPageStatus(
-        harness: harness,
-        comicId: '903',
-        pageNumber: 2,
-        status: 'pending',
-      );
+        await manager.initialize();
+        await manager.enqueue(
+          const DownloadRequest(comicId: '903', title: 'Pause Resume'),
+        );
+        await _waitForJobStatus(
+          harness: harness,
+          comicId: '903',
+          status: 'downloading',
+        );
+        await _waitForPageStatus(
+          harness: harness,
+          comicId: '903',
+          pageNumber: 1,
+          status: 'completed',
+        );
+        await _waitForPageStatus(
+          harness: harness,
+          comicId: '903',
+          pageNumber: 2,
+          status: 'pending',
+        );
 
-      await manager.pause('903');
-      expect((await harness.downloadQueueRepository.loadJob('903'))?.status, DownloadJobStatus.paused);
-      await manager.waitForIdle();
+        await manager.pause('903');
+        expect(
+          (await harness.downloadQueueRepository.loadJob('903'))?.status,
+          DownloadJobStatus.paused,
+        );
+        await manager.waitForIdle();
 
-      await manager.resume('903');
-      await _waitForJobStatus(
-        harness: harness,
-        comicId: '903',
-        status: 'downloading',
-      );
-      await _waitForPageStatus(
-        harness: harness,
-        comicId: '903',
-        pageNumber: 2,
-        status: 'downloading',
-      );
+        await manager.resume('903');
+        await _waitForJobStatus(
+          harness: harness,
+          comicId: '903',
+          status: 'downloading',
+        );
+        await _waitForPageStatus(
+          harness: harness,
+          comicId: '903',
+          pageNumber: 2,
+          status: 'downloading',
+        );
 
-      await manager.pause('903');
-      expect((await harness.downloadQueueRepository.loadJob('903'))?.status, DownloadJobStatus.paused);
+        await manager.pause('903');
+        expect(
+          (await harness.downloadQueueRepository.loadJob('903'))?.status,
+          DownloadJobStatus.paused,
+        );
 
-      secondPageCompleter.complete(Uint8List.fromList(<int>[2]));
-      await manager.waitForIdle();
+        secondPageCompleter.complete(Uint8List.fromList(<int>[2]));
+        await manager.waitForIdle();
 
-      final job = await harness.downloadQueueRepository.loadJob('903');
-      final pages = await harness.downloadQueueRepository.loadPages('903');
+        final job = await harness.downloadQueueRepository.loadJob('903');
+        final pages = await harness.downloadQueueRepository.loadPages('903');
 
-      expect(job, isNotNull);
-      expect(job!.status, DownloadJobStatus.paused);
-      expect(job.completedPages, 2);
-      expect(job.nextPageNumber, 3);
-      expect(job.completedAt, isNull);
-      expect(pages[1].status, DownloadPageStatus.completed);
-      expect(pages, hasLength(comic.numPages));
-      expect(pages[2].status, DownloadPageStatus.pending);
+        expect(job, isNotNull);
+        expect(job!.status, DownloadJobStatus.paused);
+        expect(job.completedPages, 2);
+        expect(job.nextPageNumber, 3);
+        expect(job.completedAt, isNull);
+        expect(pages[1].status, DownloadPageStatus.completed);
+        expect(pages, hasLength(comic.numPages));
+        expect(pages[2].status, DownloadPageStatus.pending);
 
-      manager.dispose();
-    });
+        manager.dispose();
+      },
+    );
 
     test('initialize restores the remembered completed view mode', () async {
       final downloadSettingsStore = DownloadSettingsStore(
         optionsStore: OptionsStore(localDatabase: harness.localDatabase),
       );
       await downloadSettingsStore.saveCompletedViewIsGrid(true);
-      final manager = DownloadManagerModel(
-        nhentaiGateway: FakeNhentaiGateway(),
-        cdnConfigService: _FakeCdnConfigService(),
-        downloadQueueRepository: harness.downloadQueueRepository,
-        downloadedLibraryRepository: harness.downloadedLibraryRepository,
+      final manager = buildManager(
         downloadSettingsRepository: downloadSettingsStore,
-        downloadAssetStore: DownloadAssetStore(
-          directoryResolver: () async => tempDirectory,
-        ),
-        imageCompressionService: FakeImageCompressionService(),
-        remoteAssetFetcher: FakeRemoteAssetFetcher(),
       );
 
       expect(manager.completedViewIsGrid, isFalse, reason: 'default is list');
@@ -349,416 +403,382 @@ void main() {
       manager.dispose();
     });
 
-    test('setCompletedViewIsGrid persists and notifies once per change', () async {
-      final downloadSettingsStore = DownloadSettingsStore(
-        optionsStore: OptionsStore(localDatabase: harness.localDatabase),
-      );
-      final manager = DownloadManagerModel(
-        nhentaiGateway: FakeNhentaiGateway(),
-        cdnConfigService: _FakeCdnConfigService(),
-        downloadQueueRepository: harness.downloadQueueRepository,
-        downloadedLibraryRepository: harness.downloadedLibraryRepository,
-        downloadSettingsRepository: downloadSettingsStore,
-        downloadAssetStore: DownloadAssetStore(
-          directoryResolver: () async => tempDirectory,
-        ),
-        imageCompressionService: FakeImageCompressionService(),
-        remoteAssetFetcher: FakeRemoteAssetFetcher(),
-      );
-      var notifications = 0;
-      manager.addListener(() => notifications++);
-
-      await manager.setCompletedViewIsGrid(true);
-
-      expect(manager.completedViewIsGrid, isTrue);
-      expect(await downloadSettingsStore.loadCompletedViewIsGrid(), isTrue);
-      expect(notifications, 1);
-
-      // Setting the same value again must not churn the store or the listeners
-      // — this setter runs on every toggle tap.
-      await manager.setCompletedViewIsGrid(true);
-      expect(notifications, 1);
-
-      manager.dispose();
-    });
-
-    test('initialize pauses interrupted downloading jobs when auto resume is disabled', () async {
-      final comic = sampleComic(id: '904', mediaId: '779');
-      final downloadSettingsStore = DownloadSettingsStore(
-        optionsStore: OptionsStore(localDatabase: harness.localDatabase),
-      );
-      await downloadSettingsStore.saveAutoResumeEnabled(false);
-      await harness.downloadQueueRepository.upsertJobManifest(
-        comic: comic,
-        title: 'Interrupted',
-      );
-      await harness.downloadQueueRepository.markJobDownloading('904');
-      await harness.downloadQueueRepository.markPageCompleted(
-        comicId: '904',
-        pageNumber: 1,
-        sourceServer: 'i1.nhentai.net',
-        localPath: '/tmp/904-1.webp',
-        storedFormat: 'webp',
-        byteSize: 123,
-      );
-      final remoteAssetFetcher = FakeRemoteAssetFetcher(
-        responses: <String, Uint8List>{
-          'https://i1.nhentai.net/galleries/779/1.jpg': Uint8List.fromList(<int>[1]),
-          'https://i1.nhentai.net/galleries/779/2.jpg': Uint8List.fromList(<int>[2]),
-          'https://t1.nhentai.net/galleries/779/cover.jpg': Uint8List.fromList(<int>[3]),
-        },
-      );
-      final manager = DownloadManagerModel(
-        nhentaiGateway: FakeNhentaiGateway(detailComic: comic),
-        cdnConfigService: _FakeCdnConfigService(),
-        downloadQueueRepository: harness.downloadQueueRepository,
-        downloadedLibraryRepository: harness.downloadedLibraryRepository,
-        downloadSettingsRepository: downloadSettingsStore,
-        downloadAssetStore: DownloadAssetStore(
-          directoryResolver: () async => tempDirectory,
-        ),
-        imageCompressionService: FakeImageCompressionService(),
-        remoteAssetFetcher: remoteAssetFetcher,
-      );
-
-      await manager.initialize();
-      await manager.waitForIdle();
-
-      final job = await harness.downloadQueueRepository.loadJob('904');
-
-      expect(job, isNotNull);
-      expect(job!.status, DownloadJobStatus.paused);
-      expect(job.completedPages, 1);
-      expect(job.nextPageNumber, 2);
-      expect(remoteAssetFetcher.requestedUrls, isEmpty);
-
-      manager.dispose();
-    });
-
-    test('resumed lifecycle pauses interrupted downloads when auto resume is disabled', () async {
-      final comic = sampleComic(id: '905', mediaId: '780');
-      final downloadSettingsStore = DownloadSettingsStore(
-        optionsStore: OptionsStore(localDatabase: harness.localDatabase),
-      );
-      final manager = DownloadManagerModel(
-        nhentaiGateway: FakeNhentaiGateway(detailComic: comic),
-        cdnConfigService: _FakeCdnConfigService(),
-        downloadQueueRepository: harness.downloadQueueRepository,
-        downloadedLibraryRepository: harness.downloadedLibraryRepository,
-        downloadSettingsRepository: downloadSettingsStore,
-        downloadAssetStore: DownloadAssetStore(
-          directoryResolver: () async => tempDirectory,
-        ),
-        imageCompressionService: FakeImageCompressionService(),
-        remoteAssetFetcher: FakeRemoteAssetFetcher(),
-      );
-
-      await manager.initialize();
-      await harness.downloadQueueRepository.upsertJobManifest(
-        comic: comic,
-        title: 'Resume Disabled',
-      );
-      await harness.downloadQueueRepository.markJobDownloading('905');
-      await harness.downloadQueueRepository.markPageCompleted(
-        comicId: '905',
-        pageNumber: 1,
-        sourceServer: 'i1.nhentai.net',
-        localPath: '/tmp/905-1.webp',
-        storedFormat: 'webp',
-        byteSize: 123,
-      );
-      await downloadSettingsStore.saveAutoResumeEnabled(false);
-
-      manager.didChangeAppLifecycleState(AppLifecycleState.resumed);
-      await _waitForJobStatus(
-        harness: harness,
-        comicId: '905',
-        status: 'paused',
-      );
-      await manager.waitForIdle();
-
-      final job = await harness.downloadQueueRepository.loadJob('905');
-      expect(job, isNotNull);
-      expect(job!.status, DownloadJobStatus.paused);
-
-      manager.dispose();
-    });
-
-    test('disabling auto resume during an active foreground download does not stop the current job', () async {
-      final comic = _threePageComic(id: '906', mediaId: '781');
-      final secondPageCompleter = Completer<Uint8List>();
-      final downloadSettingsStore = DownloadSettingsStore(
-        optionsStore: OptionsStore(localDatabase: harness.localDatabase),
-      );
-      final manager = DownloadManagerModel(
-        nhentaiGateway: FakeNhentaiGateway(detailComic: comic),
-        cdnConfigService: _FakeCdnConfigService(),
-        downloadQueueRepository: harness.downloadQueueRepository,
-        downloadedLibraryRepository: harness.downloadedLibraryRepository,
-        downloadSettingsRepository: downloadSettingsStore,
-        downloadAssetStore: DownloadAssetStore(
-          directoryResolver: () async => tempDirectory,
-        ),
-        imageCompressionService: FakeImageCompressionService(),
-        remoteAssetFetcher: FakeRemoteAssetFetcher(
-          responses: <String, Uint8List>{
-            'https://i1.nhentai.net/galleries/781/1.jpg': Uint8List.fromList(<int>[1]),
-            'https://i1.nhentai.net/galleries/781/3.jpg': Uint8List.fromList(<int>[3]),
-            'https://t1.nhentai.net/galleries/781/cover.jpg': Uint8List.fromList(<int>[4]),
-          },
-          deferredResponses: <String, Future<Uint8List> Function()>{
-            'https://i1.nhentai.net/galleries/781/2.jpg': () => secondPageCompleter.future,
-          },
-        ),
-      );
-
-      await manager.initialize();
-      await manager.enqueue(const DownloadRequest(comicId: '906', title: 'Toggle Auto Resume'));
-      await _waitForPageStatus(
-        harness: harness,
-        comicId: '906',
-        pageNumber: 2,
-        status: 'downloading',
-      );
-
-      await downloadSettingsStore.saveAutoResumeEnabled(false);
-      secondPageCompleter.complete(Uint8List.fromList(<int>[2]));
-
-      await _waitForJobStatus(
-        harness: harness,
-        comicId: '906',
-        status: 'completed',
-      );
-      await manager.waitForIdle();
-
-      final job = await harness.downloadQueueRepository.loadJob('906');
-      expect(job, isNotNull);
-      expect(job!.status, DownloadJobStatus.completed);
-
-      manager.dispose();
-    });
-
-    test('refresh builds a unified list without duplicating completed downloads', () async {
-      final comic = sampleComic(id: '907', mediaId: '782');
-      final manager = DownloadManagerModel(
-        nhentaiGateway: FakeNhentaiGateway(detailComic: comic),
-        cdnConfigService: _FakeCdnConfigService(),
-        downloadQueueRepository: harness.downloadQueueRepository,
-        downloadedLibraryRepository: harness.downloadedLibraryRepository,
-        downloadSettingsRepository: DownloadSettingsStore(
+    test(
+      'setCompletedViewIsGrid persists and notifies once per change',
+      () async {
+        final downloadSettingsStore = DownloadSettingsStore(
           optionsStore: OptionsStore(localDatabase: harness.localDatabase),
-        ),
-        downloadAssetStore: DownloadAssetStore(
-          directoryResolver: () async => tempDirectory,
-        ),
-        imageCompressionService: FakeImageCompressionService(),
-        remoteAssetFetcher: FakeRemoteAssetFetcher(),
-      );
+        );
+        final manager = buildManager(
+          downloadSettingsRepository: downloadSettingsStore,
+        );
+        var notifications = 0;
+        manager.addListener(() => notifications++);
 
-      await harness.downloadQueueRepository.upsertJobManifest(
-        comic: comic,
-        title: 'Completed Comic',
-      );
-      await harness.downloadQueueRepository.markJobCompleted('907');
-      await harness.downloadedLibraryRepository.saveDownloadedComic(
-        comic: comic,
-        rootDirectoryPath: '/downloads/907',
-        coverLocalPath: '/downloads/907/cover.webp',
-      );
+        await manager.setCompletedViewIsGrid(true);
 
-      await manager.refresh();
+        expect(manager.completedViewIsGrid, isTrue);
+        expect(await downloadSettingsStore.loadCompletedViewIsGrid(), isTrue);
+        expect(notifications, 1);
 
-      final items = manager.downloadItems
-          .where((item) => item.comicId == '907')
-          .toList(growable: false);
+        // Setting the same value again must not churn the store or the listeners
+        // — this setter runs on every toggle tap.
+        await manager.setCompletedViewIsGrid(true);
+        expect(notifications, 1);
 
-      expect(items, hasLength(1));
-      expect(items.single.status, DownloadJobStatus.completed);
-      expect(items.single.tags.single.name, 'sample');
-      // Re-rooted, not verbatim: a pre-P51 row names another container,
-      // and the cover it points at is on this device under the downloads
-      // root.
-      expect(
-        items.single.coverLocalPath,
-        p.join(tempDirectory.path, '907', 'cover.webp'),
-      );
-      expect(items.single.pageCount, comic.numPages);
+        manager.dispose();
+      },
+    );
 
-      manager.dispose();
-    });
-
-    test('sorts completed download items by last read while keeping active jobs first', () async {
-      final firstComic = sampleComic(id: '908', mediaId: '783');
-      final secondComic = sampleComic(id: '909', mediaId: '784');
-      final activeComic = sampleComic(id: '910', mediaId: '785');
-      final manager = DownloadManagerModel(
-        nhentaiGateway: FakeNhentaiGateway(detailComic: activeComic),
-        cdnConfigService: _FakeCdnConfigService(),
-        downloadQueueRepository: harness.downloadQueueRepository,
-        downloadedLibraryRepository: harness.downloadedLibraryRepository,
-        downloadSettingsRepository: DownloadSettingsStore(
+    test(
+      'initialize pauses interrupted downloading jobs when auto resume is disabled',
+      () async {
+        final comic = sampleComic(id: '904', mediaId: '779');
+        final downloadSettingsStore = DownloadSettingsStore(
           optionsStore: OptionsStore(localDatabase: harness.localDatabase),
-        ),
-        downloadAssetStore: DownloadAssetStore(
-          directoryResolver: () async => tempDirectory,
-        ),
-        imageCompressionService: FakeImageCompressionService(),
-        remoteAssetFetcher: FakeRemoteAssetFetcher(),
-      );
-
-      await harness.downloadQueueRepository.upsertJobManifest(
-        comic: activeComic,
-        title: 'Active Comic',
-        requestedAt: DateTime(2026, 5, 1, 10),
-      );
-      await harness.downloadQueueRepository.markJobPaused('910');
-
-      await harness.downloadQueueRepository.upsertJobManifest(
-        comic: firstComic,
-        title: 'First Completed',
-        requestedAt: DateTime(2026, 5, 1, 9),
-      );
-      await harness.downloadQueueRepository.markJobCompleted(
-        '908',
-        completedAt: DateTime(2026, 5, 1, 12),
-      );
-      await harness.downloadedLibraryRepository.saveDownloadedComic(
-        comic: firstComic,
-        rootDirectoryPath: '/downloads/908',
-        coverLocalPath: null,
-        downloadedAt: DateTime(2026, 5, 1, 12),
-      );
-
-      await harness.downloadQueueRepository.upsertJobManifest(
-        comic: secondComic,
-        title: 'Second Completed',
-        requestedAt: DateTime(2026, 5, 1, 11),
-      );
-      await harness.downloadQueueRepository.markJobCompleted(
-        '909',
-        completedAt: DateTime(2026, 5, 1, 13),
-      );
-      await harness.downloadedLibraryRepository.saveDownloadedComic(
-        comic: secondComic,
-        rootDirectoryPath: '/downloads/909',
-        coverLocalPath: null,
-        downloadedAt: DateTime(2026, 5, 1, 13),
-      );
-      await harness.downloadedLibraryRepository.saveLastReadAt(
-        '908',
-        DateTime(2026, 5, 2, 8),
-      );
-      await harness.downloadedLibraryRepository.saveLastReadAt(
-        '909',
-        DateTime(2026, 5, 1, 18),
-      );
-
-      await manager.refresh();
-      manager.setDownloadsSortMode(DownloadsSortMode.lastRead);
-
-      final sortedComicIds = manager.sortedDownloadItems
-          .map((item) => item.comicId)
-          .toList(growable: false);
-
-      expect(
-        sortedComicIds,
-        <String>[
-          '910',
-          '908',
-          '909',
-        ],
-      );
-      expect(manager.sortedDownloadItems.first.status, DownloadJobStatus.paused);
-      expect(manager.sortedDownloadItems[1].comicId, '908');
-      expect(manager.sortedDownloadItems[2].comicId, '909');
-
-      manager.dispose();
-    });
-
-    test('sorts completed items by direction and favorites while keeping active jobs first', () async {
-      final lowFavoriteComic = sampleComic(
-        id: '913',
-        mediaId: '788',
-      ).copyWith(numFavorites: 4);
-      final highFavoriteComic = sampleComic(
-        id: '914',
-        mediaId: '789',
-      ).copyWith(numFavorites: 80);
-      final unknownFavoriteComic = sampleComic(
-        id: '915',
-        mediaId: '790',
-      ).copyWith(numFavorites: null);
-      final activeComic = sampleComic(id: '916', mediaId: '791');
-      final manager = DownloadManagerModel(
-        nhentaiGateway: FakeNhentaiGateway(detailComic: activeComic),
-        cdnConfigService: _FakeCdnConfigService(),
-        downloadQueueRepository: harness.downloadQueueRepository,
-        downloadedLibraryRepository: harness.downloadedLibraryRepository,
-        downloadSettingsRepository: DownloadSettingsStore(
-          optionsStore: OptionsStore(localDatabase: harness.localDatabase),
-        ),
-        downloadAssetStore: DownloadAssetStore(
-          directoryResolver: () async => tempDirectory,
-        ),
-        imageCompressionService: FakeImageCompressionService(),
-        remoteAssetFetcher: FakeRemoteAssetFetcher(),
-      );
-
-      await harness.downloadQueueRepository.upsertJobManifest(
-        comic: activeComic,
-        title: 'Active Comic',
-        requestedAt: DateTime(2026, 5, 1, 8),
-      );
-      await harness.downloadQueueRepository.markJobPaused('916');
-
-      for (final entry in <({Comic comic, DateTime downloadedAt})>[
-        (comic: lowFavoriteComic, downloadedAt: DateTime(2026, 5, 1, 12)),
-        (comic: highFavoriteComic, downloadedAt: DateTime(2026, 5, 1, 13)),
-        (comic: unknownFavoriteComic, downloadedAt: DateTime(2026, 5, 1, 14)),
-      ]) {
+        );
+        await downloadSettingsStore.saveAutoResumeEnabled(false);
         await harness.downloadQueueRepository.upsertJobManifest(
-          comic: entry.comic,
-          title: entry.comic.title.pretty ?? entry.comic.id,
-          requestedAt: entry.downloadedAt,
+          comic: comic,
+          title: 'Interrupted',
+        );
+        await harness.downloadQueueRepository.markJobDownloading('904');
+        await harness.downloadQueueRepository.markPageCompleted(
+          comicId: '904',
+          pageNumber: 1,
+          sourceServer: 'i1.nhentai.net',
+          localPath: '/tmp/904-1.webp',
+          storedFormat: 'webp',
+          byteSize: 123,
+        );
+        final remoteAssetFetcher = FakeRemoteAssetFetcher(
+          responses: <String, Uint8List>{
+            'https://i1.nhentai.net/galleries/779/1.jpg': Uint8List.fromList(
+              <int>[1],
+            ),
+            'https://i1.nhentai.net/galleries/779/2.jpg': Uint8List.fromList(
+              <int>[2],
+            ),
+            'https://t1.nhentai.net/galleries/779/cover.jpg':
+                Uint8List.fromList(<int>[3]),
+          },
+        );
+        final manager = buildManager(
+          nhentaiGateway: FakeNhentaiGateway(detailComic: comic),
+          downloadSettingsRepository: downloadSettingsStore,
+          remoteAssetFetcher: remoteAssetFetcher,
+        );
+
+        await manager.initialize();
+        await manager.waitForIdle();
+
+        final job = await harness.downloadQueueRepository.loadJob('904');
+
+        expect(job, isNotNull);
+        expect(job!.status, DownloadJobStatus.paused);
+        expect(job.completedPages, 1);
+        expect(job.nextPageNumber, 2);
+        expect(remoteAssetFetcher.requestedUrls, isEmpty);
+
+        manager.dispose();
+      },
+    );
+
+    test(
+      'resumed lifecycle pauses interrupted downloads when auto resume is disabled',
+      () async {
+        final comic = sampleComic(id: '905', mediaId: '780');
+        final downloadSettingsStore = DownloadSettingsStore(
+          optionsStore: OptionsStore(localDatabase: harness.localDatabase),
+        );
+        final manager = buildManager(
+          nhentaiGateway: FakeNhentaiGateway(detailComic: comic),
+          downloadSettingsRepository: downloadSettingsStore,
+        );
+
+        await manager.initialize();
+        await harness.downloadQueueRepository.upsertJobManifest(
+          comic: comic,
+          title: 'Resume Disabled',
+        );
+        await harness.downloadQueueRepository.markJobDownloading('905');
+        await harness.downloadQueueRepository.markPageCompleted(
+          comicId: '905',
+          pageNumber: 1,
+          sourceServer: 'i1.nhentai.net',
+          localPath: '/tmp/905-1.webp',
+          storedFormat: 'webp',
+          byteSize: 123,
+        );
+        await downloadSettingsStore.saveAutoResumeEnabled(false);
+
+        manager.didChangeAppLifecycleState(AppLifecycleState.resumed);
+        await _waitForJobStatus(
+          harness: harness,
+          comicId: '905',
+          status: 'paused',
+        );
+        await manager.waitForIdle();
+
+        final job = await harness.downloadQueueRepository.loadJob('905');
+        expect(job, isNotNull);
+        expect(job!.status, DownloadJobStatus.paused);
+
+        manager.dispose();
+      },
+    );
+
+    test(
+      'disabling auto resume during an active foreground download does not stop the current job',
+      () async {
+        final comic = _threePageComic(id: '906', mediaId: '781');
+        final secondPageCompleter = Completer<Uint8List>();
+        final downloadSettingsStore = DownloadSettingsStore(
+          optionsStore: OptionsStore(localDatabase: harness.localDatabase),
+        );
+        final manager = buildManager(
+          nhentaiGateway: FakeNhentaiGateway(detailComic: comic),
+          downloadSettingsRepository: downloadSettingsStore,
+          remoteAssetFetcher: FakeRemoteAssetFetcher(
+            responses: <String, Uint8List>{
+              'https://i1.nhentai.net/galleries/781/1.jpg': Uint8List.fromList(
+                <int>[1],
+              ),
+              'https://i1.nhentai.net/galleries/781/3.jpg': Uint8List.fromList(
+                <int>[3],
+              ),
+              'https://t1.nhentai.net/galleries/781/cover.jpg':
+                  Uint8List.fromList(<int>[4]),
+            },
+            deferredResponses: <String, Future<Uint8List> Function()>{
+              'https://i1.nhentai.net/galleries/781/2.jpg': () =>
+                  secondPageCompleter.future,
+            },
+          ),
+        );
+
+        await manager.initialize();
+        await manager.enqueue(
+          const DownloadRequest(comicId: '906', title: 'Toggle Auto Resume'),
+        );
+        await _waitForPageStatus(
+          harness: harness,
+          comicId: '906',
+          pageNumber: 2,
+          status: 'downloading',
+        );
+
+        await downloadSettingsStore.saveAutoResumeEnabled(false);
+        secondPageCompleter.complete(Uint8List.fromList(<int>[2]));
+
+        await _waitForJobStatus(
+          harness: harness,
+          comicId: '906',
+          status: 'completed',
+        );
+        await manager.waitForIdle();
+
+        final job = await harness.downloadQueueRepository.loadJob('906');
+        expect(job, isNotNull);
+        expect(job!.status, DownloadJobStatus.completed);
+
+        manager.dispose();
+      },
+    );
+
+    test(
+      'refresh builds a unified list without duplicating completed downloads',
+      () async {
+        final comic = sampleComic(id: '907', mediaId: '782');
+        final manager = buildManager(
+          nhentaiGateway: FakeNhentaiGateway(detailComic: comic),
+        );
+
+        await harness.downloadQueueRepository.upsertJobManifest(
+          comic: comic,
+          title: 'Completed Comic',
+        );
+        await harness.downloadQueueRepository.markJobCompleted('907');
+        await harness.downloadedLibraryRepository.saveDownloadedComic(
+          comic: comic,
+          rootDirectoryPath: '/downloads/907',
+          coverLocalPath: '/downloads/907/cover.webp',
+        );
+
+        await manager.refresh();
+
+        final items = manager.downloadItems
+            .where((item) => item.comicId == '907')
+            .toList(growable: false);
+
+        expect(items, hasLength(1));
+        expect(items.single.status, DownloadJobStatus.completed);
+        expect(items.single.tags.single.name, 'sample');
+        // Re-rooted, not verbatim: a pre-P51 row names another container,
+        // and the cover it points at is on this device under the downloads
+        // root.
+        expect(
+          items.single.coverLocalPath,
+          p.join(tempDirectory.path, '907', 'cover.webp'),
+        );
+        expect(items.single.pageCount, comic.numPages);
+
+        manager.dispose();
+      },
+    );
+
+    test(
+      'sorts completed download items by last read while keeping active jobs first',
+      () async {
+        final firstComic = sampleComic(id: '908', mediaId: '783');
+        final secondComic = sampleComic(id: '909', mediaId: '784');
+        final activeComic = sampleComic(id: '910', mediaId: '785');
+        final manager = buildManager(
+          nhentaiGateway: FakeNhentaiGateway(detailComic: activeComic),
+        );
+
+        await harness.downloadQueueRepository.upsertJobManifest(
+          comic: activeComic,
+          title: 'Active Comic',
+          requestedAt: DateTime(2026, 5, 1, 10),
+        );
+        await harness.downloadQueueRepository.markJobPaused('910');
+
+        await harness.downloadQueueRepository.upsertJobManifest(
+          comic: firstComic,
+          title: 'First Completed',
+          requestedAt: DateTime(2026, 5, 1, 9),
         );
         await harness.downloadQueueRepository.markJobCompleted(
-          entry.comic.id,
-          completedAt: entry.downloadedAt,
+          '908',
+          completedAt: DateTime(2026, 5, 1, 12),
         );
         await harness.downloadedLibraryRepository.saveDownloadedComic(
-          comic: entry.comic,
-          rootDirectoryPath: '/downloads/${entry.comic.id}',
+          comic: firstComic,
+          rootDirectoryPath: '/downloads/908',
           coverLocalPath: null,
-          downloadedAt: entry.downloadedAt,
+          downloadedAt: DateTime(2026, 5, 1, 12),
         );
-      }
 
-      await manager.refresh();
-      manager.setDownloadsSortMode(DownloadsSortMode.latestDownloaded);
-      manager.setDownloadsSortDirection(DownloadsSortDirection.ascending);
+        await harness.downloadQueueRepository.upsertJobManifest(
+          comic: secondComic,
+          title: 'Second Completed',
+          requestedAt: DateTime(2026, 5, 1, 11),
+        );
+        await harness.downloadQueueRepository.markJobCompleted(
+          '909',
+          completedAt: DateTime(2026, 5, 1, 13),
+        );
+        await harness.downloadedLibraryRepository.saveDownloadedComic(
+          comic: secondComic,
+          rootDirectoryPath: '/downloads/909',
+          coverLocalPath: null,
+          downloadedAt: DateTime(2026, 5, 1, 13),
+        );
+        await harness.downloadedLibraryRepository.saveLastReadAt(
+          '908',
+          DateTime(2026, 5, 2, 8),
+        );
+        await harness.downloadedLibraryRepository.saveLastReadAt(
+          '909',
+          DateTime(2026, 5, 1, 18),
+        );
 
-      expect(
-        manager.sortedDownloadItems.map((item) => item.comicId),
-        <String>['916', '913', '914', '915'],
-      );
+        await manager.refresh();
+        manager.setDownloadsSortMode(DownloadsSortMode.lastRead);
 
-      manager.setDownloadsSortMode(DownloadsSortMode.mostFavorited);
-      manager.setDownloadsSortDirection(DownloadsSortDirection.descending);
+        final sortedComicIds = manager.sortedDownloadItems
+            .map((item) => item.comicId)
+            .toList(growable: false);
 
-      expect(
-        manager.sortedDownloadItems.map((item) => item.comicId),
-        <String>['916', '914', '913', '915'],
-      );
+        expect(sortedComicIds, <String>['910', '908', '909']);
+        expect(
+          manager.sortedDownloadItems.first.status,
+          DownloadJobStatus.paused,
+        );
+        expect(manager.sortedDownloadItems[1].comicId, '908');
+        expect(manager.sortedDownloadItems[2].comicId, '909');
 
-      manager.setDownloadsSortDirection(DownloadsSortDirection.ascending);
+        manager.dispose();
+      },
+    );
 
-      expect(
-        manager.sortedDownloadItems.map((item) => item.comicId),
-        <String>['916', '913', '914', '915'],
-      );
+    test(
+      'sorts completed items by direction and favorites while keeping active jobs first',
+      () async {
+        final lowFavoriteComic = sampleComic(
+          id: '913',
+          mediaId: '788',
+        ).copyWith(numFavorites: 4);
+        final highFavoriteComic = sampleComic(
+          id: '914',
+          mediaId: '789',
+        ).copyWith(numFavorites: 80);
+        final unknownFavoriteComic = sampleComic(
+          id: '915',
+          mediaId: '790',
+        ).copyWith(numFavorites: null);
+        final activeComic = sampleComic(id: '916', mediaId: '791');
+        final manager = buildManager(
+          nhentaiGateway: FakeNhentaiGateway(detailComic: activeComic),
+        );
 
-      manager.dispose();
-    });
+        await harness.downloadQueueRepository.upsertJobManifest(
+          comic: activeComic,
+          title: 'Active Comic',
+          requestedAt: DateTime(2026, 5, 1, 8),
+        );
+        await harness.downloadQueueRepository.markJobPaused('916');
+
+        for (final entry in <({Comic comic, DateTime downloadedAt})>[
+          (comic: lowFavoriteComic, downloadedAt: DateTime(2026, 5, 1, 12)),
+          (comic: highFavoriteComic, downloadedAt: DateTime(2026, 5, 1, 13)),
+          (comic: unknownFavoriteComic, downloadedAt: DateTime(2026, 5, 1, 14)),
+        ]) {
+          await harness.downloadQueueRepository.upsertJobManifest(
+            comic: entry.comic,
+            title: entry.comic.title.pretty ?? entry.comic.id,
+            requestedAt: entry.downloadedAt,
+          );
+          await harness.downloadQueueRepository.markJobCompleted(
+            entry.comic.id,
+            completedAt: entry.downloadedAt,
+          );
+          await harness.downloadedLibraryRepository.saveDownloadedComic(
+            comic: entry.comic,
+            rootDirectoryPath: '/downloads/${entry.comic.id}',
+            coverLocalPath: null,
+            downloadedAt: entry.downloadedAt,
+          );
+        }
+
+        await manager.refresh();
+        manager.setDownloadsSortMode(DownloadsSortMode.latestDownloaded);
+        manager.setDownloadsSortDirection(DownloadsSortDirection.ascending);
+
+        expect(
+          manager.sortedDownloadItems.map((item) => item.comicId),
+          <String>['916', '913', '914', '915'],
+        );
+
+        manager.setDownloadsSortMode(DownloadsSortMode.mostFavorited);
+        manager.setDownloadsSortDirection(DownloadsSortDirection.descending);
+
+        expect(
+          manager.sortedDownloadItems.map((item) => item.comicId),
+          <String>['916', '914', '913', '915'],
+        );
+
+        manager.setDownloadsSortDirection(DownloadsSortDirection.ascending);
+
+        expect(
+          manager.sortedDownloadItems.map((item) => item.comicId),
+          <String>['916', '913', '914', '915'],
+        );
+
+        manager.dispose();
+      },
+    );
 
     test('sorts completed items by preference score', () async {
       // Weights, not the ranking that produces them: this test is about the
@@ -780,19 +800,8 @@ void main() {
       final middling = tagged('931', '801', <int>[11]);
       final unscored = tagged('932', '802', <int>[]);
 
-      final manager = DownloadManagerModel(
+      final manager = buildManager(
         nhentaiGateway: FakeNhentaiGateway(detailComic: best),
-        cdnConfigService: _FakeCdnConfigService(),
-        downloadQueueRepository: harness.downloadQueueRepository,
-        downloadedLibraryRepository: harness.downloadedLibraryRepository,
-        downloadSettingsRepository: DownloadSettingsStore(
-          optionsStore: OptionsStore(localDatabase: harness.localDatabase),
-        ),
-        downloadAssetStore: DownloadAssetStore(
-          directoryResolver: () async => tempDirectory,
-        ),
-        imageCompressionService: FakeImageCompressionService(),
-        remoteAssetFetcher: FakeRemoteAssetFetcher(),
       );
 
       // Downloaded newest first, so the expected order cannot come from the
@@ -822,40 +831,32 @@ void main() {
       manager.setDownloadsSortMode(DownloadsSortMode.preference);
       manager.setDownloadsSortDirection(DownloadsSortDirection.descending);
 
-      expect(
-        manager.sortedDownloadItems.map((item) => item.comicId),
-        <String>['930', '931', '932'],
-      );
+      expect(manager.sortedDownloadItems.map((item) => item.comicId), <String>[
+        '930',
+        '931',
+        '932',
+      ]);
 
       manager.setDownloadsSortDirection(DownloadsSortDirection.ascending);
 
-      expect(
-        manager.sortedDownloadItems.map((item) => item.comicId),
-        <String>['932', '931', '930'],
-      );
+      expect(manager.sortedDownloadItems.map((item) => item.comicId), <String>[
+        '932',
+        '931',
+        '930',
+      ]);
 
       manager.dispose();
     });
 
     test('leaves the order alone until a preference vector arrives', () async {
-      final first = sampleComic(id: '940', mediaId: '810').copyWith(
-        tags: <ComicTag>[ComicTag(id: 10, type: 'tag')],
-      );
+      final first = sampleComic(
+        id: '940',
+        mediaId: '810',
+      ).copyWith(tags: <ComicTag>[ComicTag(id: 10, type: 'tag')]);
       final second = sampleComic(id: '941', mediaId: '811');
 
-      final manager = DownloadManagerModel(
+      final manager = buildManager(
         nhentaiGateway: FakeNhentaiGateway(detailComic: first),
-        cdnConfigService: _FakeCdnConfigService(),
-        downloadQueueRepository: harness.downloadQueueRepository,
-        downloadedLibraryRepository: harness.downloadedLibraryRepository,
-        downloadSettingsRepository: DownloadSettingsStore(
-          optionsStore: OptionsStore(localDatabase: harness.localDatabase),
-        ),
-        downloadAssetStore: DownloadAssetStore(
-          directoryResolver: () async => tempDirectory,
-        ),
-        imageCompressionService: FakeImageCompressionService(),
-        remoteAssetFetcher: FakeRemoteAssetFetcher(),
       );
 
       var downloadedAt = DateTime(2026, 6, 2, 9);
@@ -884,10 +885,10 @@ void main() {
 
       // Every score is zero, so the fallback decides: newest first, rather
       // than whatever order the rows happened to arrive in.
-      expect(
-        manager.sortedDownloadItems.map((item) => item.comicId),
-        <String>['940', '941'],
-      );
+      expect(manager.sortedDownloadItems.map((item) => item.comicId), <String>[
+        '940',
+        '941',
+      ]);
 
       manager.dispose();
     });
@@ -905,19 +906,8 @@ void main() {
         id: '922',
         mediaId: '794',
       ).copyWith(title: ComicTitle(pretty: 'Cherry Log'));
-      final manager = DownloadManagerModel(
+      final manager = buildManager(
         nhentaiGateway: FakeNhentaiGateway(detailComic: comicA),
-        cdnConfigService: _FakeCdnConfigService(),
-        downloadQueueRepository: harness.downloadQueueRepository,
-        downloadedLibraryRepository: harness.downloadedLibraryRepository,
-        downloadSettingsRepository: DownloadSettingsStore(
-          optionsStore: OptionsStore(localDatabase: harness.localDatabase),
-        ),
-        downloadAssetStore: DownloadAssetStore(
-          directoryResolver: () async => tempDirectory,
-        ),
-        imageCompressionService: FakeImageCompressionService(),
-        remoteAssetFetcher: FakeRemoteAssetFetcher(),
       );
 
       for (final comic in <Comic>[comicB, comicA, comicC]) {
@@ -937,160 +927,137 @@ void main() {
       manager.setDownloadsSortMode(DownloadsSortMode.title);
       manager.setDownloadsSortDirection(DownloadsSortDirection.ascending);
 
-      expect(
-        manager.sortedDownloadItems.map((item) => item.comicId),
-        <String>['921', '920', '922'],
-      );
+      expect(manager.sortedDownloadItems.map((item) => item.comicId), <String>[
+        '921',
+        '920',
+        '922',
+      ]);
 
       manager.setDownloadsSortDirection(DownloadsSortDirection.descending);
 
-      expect(
-        manager.sortedDownloadItems.map((item) => item.comicId),
-        <String>['922', '920', '921'],
-      );
-
-      manager.dispose();
-    });
-
-    test('sorts completed items by author, with untagged comics last', () async {
-      final comicWithArtist = sampleComic(id: '923', mediaId: '795').copyWith(
-        tags: <ComicTag>[ComicTag(type: 'artist', name: 'zeta')],
-      );
-      final comicWithGroup = sampleComic(id: '924', mediaId: '796').copyWith(
-        tags: <ComicTag>[ComicTag(type: 'group', name: 'alpha team')],
-      );
-      final comicWithoutAuthor = sampleComic(
-        id: '925',
-        mediaId: '797',
-      ).copyWith(tags: const <ComicTag>[]);
-      final manager = DownloadManagerModel(
-        nhentaiGateway: FakeNhentaiGateway(detailComic: comicWithArtist),
-        cdnConfigService: _FakeCdnConfigService(),
-        downloadQueueRepository: harness.downloadQueueRepository,
-        downloadedLibraryRepository: harness.downloadedLibraryRepository,
-        downloadSettingsRepository: DownloadSettingsStore(
-          optionsStore: OptionsStore(localDatabase: harness.localDatabase),
-        ),
-        downloadAssetStore: DownloadAssetStore(
-          directoryResolver: () async => tempDirectory,
-        ),
-        imageCompressionService: FakeImageCompressionService(),
-        remoteAssetFetcher: FakeRemoteAssetFetcher(),
-      );
-
-      for (final comic in <Comic>[
-        comicWithArtist,
-        comicWithGroup,
-        comicWithoutAuthor,
-      ]) {
-        await harness.downloadQueueRepository.upsertJobManifest(
-          comic: comic,
-          title: comic.title.pretty!,
-        );
-        await harness.downloadQueueRepository.markJobCompleted(comic.id);
-        await harness.downloadedLibraryRepository.saveDownloadedComic(
-          comic: comic,
-          rootDirectoryPath: '/downloads/${comic.id}',
-          coverLocalPath: null,
-        );
-      }
-
-      await manager.refresh();
-      manager.setDownloadsSortMode(DownloadsSortMode.author);
-      manager.setDownloadsSortDirection(DownloadsSortDirection.ascending);
-
-      expect(
-        manager.sortedDownloadItems.map((item) => item.comicId),
-        // "alpha team" (group) < "zeta" (artist), untagged always last.
-        <String>['924', '923', '925'],
-      );
-
-      manager.dispose();
-    });
-
-    test('refresh picks up online reader last read updates for completed sorting', () async {
-      final olderDownload = sampleComic(id: '911', mediaId: '786');
-      final latestRead = sampleComic(id: '912', mediaId: '787');
-      final manager = DownloadManagerModel(
-        nhentaiGateway: FakeNhentaiGateway(detailComic: latestRead),
-        cdnConfigService: _FakeCdnConfigService(),
-        downloadQueueRepository: harness.downloadQueueRepository,
-        downloadedLibraryRepository: harness.downloadedLibraryRepository,
-        downloadSettingsRepository: DownloadSettingsStore(
-          optionsStore: OptionsStore(localDatabase: harness.localDatabase),
-        ),
-        downloadAssetStore: DownloadAssetStore(
-          directoryResolver: () async => tempDirectory,
-        ),
-        imageCompressionService: FakeImageCompressionService(),
-        remoteAssetFetcher: FakeRemoteAssetFetcher(),
-      );
-
-      await harness.downloadQueueRepository.upsertJobManifest(
-        comic: olderDownload,
-        title: 'Older Download',
-        requestedAt: DateTime(2026, 5, 1, 9),
-      );
-      await harness.downloadQueueRepository.markJobCompleted(
-        '911',
-        completedAt: DateTime(2026, 5, 1, 12),
-      );
-      await harness.downloadedLibraryRepository.saveDownloadedComic(
-        comic: olderDownload,
-        rootDirectoryPath: '/downloads/911',
-        coverLocalPath: null,
-        downloadedAt: DateTime(2026, 5, 1, 12),
-      );
-
-      await harness.downloadQueueRepository.upsertJobManifest(
-        comic: latestRead,
-        title: 'Latest Read',
-        requestedAt: DateTime(2026, 5, 1, 10),
-      );
-      await harness.downloadQueueRepository.markJobCompleted(
-        '912',
-        completedAt: DateTime(2026, 5, 1, 13),
-      );
-      await harness.downloadedLibraryRepository.saveDownloadedComic(
-        comic: latestRead,
-        rootDirectoryPath: '/downloads/912',
-        coverLocalPath: null,
-        downloadedAt: DateTime(2026, 5, 1, 13),
-      );
-
-      await manager.refresh();
-      manager.setDownloadsSortMode(DownloadsSortMode.lastRead);
-
-      await harness.downloadedLibraryRepository.saveLastReadAt(
-        '911',
-        DateTime(2026, 5, 2, 8),
-      );
-      await manager.refresh();
-
-      final sortedComicIds = manager.sortedDownloadItems
-          .map((item) => item.comicId)
-          .toList(growable: false);
-
-      expect(sortedComicIds, <String>['911', '912']);
+      expect(manager.sortedDownloadItems.map((item) => item.comicId), <String>[
+        '922',
+        '920',
+        '921',
+      ]);
 
       manager.dispose();
     });
 
     test(
+      'sorts completed items by author, with untagged comics last',
+      () async {
+        final comicWithArtist = sampleComic(id: '923', mediaId: '795').copyWith(
+          tags: <ComicTag>[ComicTag(type: 'artist', name: 'zeta')],
+        );
+        final comicWithGroup = sampleComic(id: '924', mediaId: '796').copyWith(
+          tags: <ComicTag>[ComicTag(type: 'group', name: 'alpha team')],
+        );
+        final comicWithoutAuthor = sampleComic(
+          id: '925',
+          mediaId: '797',
+        ).copyWith(tags: const <ComicTag>[]);
+        final manager = buildManager(
+          nhentaiGateway: FakeNhentaiGateway(detailComic: comicWithArtist),
+        );
+
+        for (final comic in <Comic>[
+          comicWithArtist,
+          comicWithGroup,
+          comicWithoutAuthor,
+        ]) {
+          await harness.downloadQueueRepository.upsertJobManifest(
+            comic: comic,
+            title: comic.title.pretty!,
+          );
+          await harness.downloadQueueRepository.markJobCompleted(comic.id);
+          await harness.downloadedLibraryRepository.saveDownloadedComic(
+            comic: comic,
+            rootDirectoryPath: '/downloads/${comic.id}',
+            coverLocalPath: null,
+          );
+        }
+
+        await manager.refresh();
+        manager.setDownloadsSortMode(DownloadsSortMode.author);
+        manager.setDownloadsSortDirection(DownloadsSortDirection.ascending);
+
+        expect(
+          manager.sortedDownloadItems.map((item) => item.comicId),
+          // "alpha team" (group) < "zeta" (artist), untagged always last.
+          <String>['924', '923', '925'],
+        );
+
+        manager.dispose();
+      },
+    );
+
+    test(
+      'refresh picks up online reader last read updates for completed sorting',
+      () async {
+        final olderDownload = sampleComic(id: '911', mediaId: '786');
+        final latestRead = sampleComic(id: '912', mediaId: '787');
+        final manager = buildManager(
+          nhentaiGateway: FakeNhentaiGateway(detailComic: latestRead),
+        );
+
+        await harness.downloadQueueRepository.upsertJobManifest(
+          comic: olderDownload,
+          title: 'Older Download',
+          requestedAt: DateTime(2026, 5, 1, 9),
+        );
+        await harness.downloadQueueRepository.markJobCompleted(
+          '911',
+          completedAt: DateTime(2026, 5, 1, 12),
+        );
+        await harness.downloadedLibraryRepository.saveDownloadedComic(
+          comic: olderDownload,
+          rootDirectoryPath: '/downloads/911',
+          coverLocalPath: null,
+          downloadedAt: DateTime(2026, 5, 1, 12),
+        );
+
+        await harness.downloadQueueRepository.upsertJobManifest(
+          comic: latestRead,
+          title: 'Latest Read',
+          requestedAt: DateTime(2026, 5, 1, 10),
+        );
+        await harness.downloadQueueRepository.markJobCompleted(
+          '912',
+          completedAt: DateTime(2026, 5, 1, 13),
+        );
+        await harness.downloadedLibraryRepository.saveDownloadedComic(
+          comic: latestRead,
+          rootDirectoryPath: '/downloads/912',
+          coverLocalPath: null,
+          downloadedAt: DateTime(2026, 5, 1, 13),
+        );
+
+        await manager.refresh();
+        manager.setDownloadsSortMode(DownloadsSortMode.lastRead);
+
+        await harness.downloadedLibraryRepository.saveLastReadAt(
+          '911',
+          DateTime(2026, 5, 2, 8),
+        );
+        await manager.refresh();
+
+        final sortedComicIds = manager.sortedDownloadItems
+            .map((item) => item.comicId)
+            .toList(growable: false);
+
+        expect(sortedComicIds, <String>['911', '912']);
+
+        manager.dispose();
+      },
+    );
+
+    test(
       'repairCompleted re-downloads a missing cover without touching intact pages',
       () async {
         final comic = sampleComic(id: '930', mediaId: '441');
-        final manager = DownloadManagerModel(
+        final manager = buildManager(
           nhentaiGateway: FakeNhentaiGateway(detailComic: comic),
-          cdnConfigService: _FakeCdnConfigService(),
-          downloadQueueRepository: harness.downloadQueueRepository,
-          downloadedLibraryRepository: harness.downloadedLibraryRepository,
-          downloadSettingsRepository: DownloadSettingsStore(
-            optionsStore: OptionsStore(localDatabase: harness.localDatabase),
-          ),
-          downloadAssetStore: DownloadAssetStore(
-            directoryResolver: () async => tempDirectory,
-          ),
           imageCompressionService: FakeImageCompressionService(
             result: Uint8List.fromList(<int>[1, 2, 3, 4]),
           ),
@@ -1119,8 +1086,8 @@ void main() {
         );
         await manager.waitForIdle();
 
-        final coverPathBeforeBreak =
-            await harness.downloadedLibraryRepository.loadCoverLocalPath('930');
+        final coverPathBeforeBreak = await harness.downloadedLibraryRepository
+            .loadCoverLocalPath('930');
         expect(coverPathBeforeBreak, isNotNull);
 
         // Simulate the real-world scenario reported by the user: the cover
@@ -1134,11 +1101,13 @@ void main() {
         final repaired = await manager.repairCompleted('930');
         expect(repaired, isTrue);
 
-        final coverPathAfterRepair =
-            await harness.downloadedLibraryRepository.loadCoverLocalPath('930');
+        final coverPathAfterRepair = await harness.downloadedLibraryRepository
+            .loadCoverLocalPath('930');
         expect(coverPathAfterRepair, isNotNull);
         expect(
-          await File(p.join(tempDirectory.path, coverPathAfterRepair!)).exists(),
+          await File(
+            p.join(tempDirectory.path, coverPathAfterRepair!),
+          ).exists(),
           isTrue,
         );
 
@@ -1162,22 +1131,12 @@ void main() {
             'https://i1.nhentai.net/galleries/447/2.jpg': Uint8List.fromList(
               <int>[2],
             ),
-            'https://t1.nhentai.net/galleries/447/cover.jpg': Uint8List.fromList(
-              <int>[3],
-            ),
+            'https://t1.nhentai.net/galleries/447/cover.jpg':
+                Uint8List.fromList(<int>[3]),
           },
         );
-        final manager = DownloadManagerModel(
+        final manager = buildManager(
           nhentaiGateway: FakeNhentaiGateway(detailComic: comic),
-          cdnConfigService: _FakeCdnConfigService(),
-          downloadQueueRepository: harness.downloadQueueRepository,
-          downloadedLibraryRepository: harness.downloadedLibraryRepository,
-          downloadSettingsRepository: DownloadSettingsStore(
-            optionsStore: OptionsStore(localDatabase: harness.localDatabase),
-          ),
-          downloadAssetStore: DownloadAssetStore(
-            directoryResolver: () async => tempDirectory,
-          ),
           imageCompressionService: FakeImageCompressionService(
             result: Uint8List.fromList(<int>[1, 2, 3, 4]),
           ),
@@ -1196,12 +1155,9 @@ void main() {
         await manager.waitForIdle();
 
         final coverUrl = 'https://t1.nhentai.net/galleries/447/cover.jpg';
-        expect(
-          fetcher.requestedUrls.where((url) => url == coverUrl).length,
-          1,
-        );
-        final coverPathBeforeRepair =
-            await harness.downloadedLibraryRepository.loadCoverLocalPath('935');
+        expect(fetcher.requestedUrls.where((url) => url == coverUrl).length, 1);
+        final coverPathBeforeRepair = await harness.downloadedLibraryRepository
+            .loadCoverLocalPath('935');
         expect(coverPathBeforeRepair, isNotNull);
 
         // Break only page 1 on disk, leaving the cover untouched.
@@ -1222,15 +1178,14 @@ void main() {
 
         // The cover must not have been re-fetched: a failed re-fetch would
         // have silently overwritten the already-valid coverLocalPath.
-        expect(
-          fetcher.requestedUrls.where((url) => url == coverUrl).length,
-          1,
-        );
-        final coverPathAfterRepair =
-            await harness.downloadedLibraryRepository.loadCoverLocalPath('935');
+        expect(fetcher.requestedUrls.where((url) => url == coverUrl).length, 1);
+        final coverPathAfterRepair = await harness.downloadedLibraryRepository
+            .loadCoverLocalPath('935');
         expect(coverPathAfterRepair, coverPathBeforeRepair);
         expect(
-          await File(p.join(tempDirectory.path, coverPathAfterRepair!)).exists(),
+          await File(
+            p.join(tempDirectory.path, coverPathAfterRepair!),
+          ).exists(),
           isTrue,
         );
 
@@ -1244,17 +1199,8 @@ void main() {
       () async {
         final comic = sampleComic(id: '936', mediaId: '448');
         final gateway = _SelectiveFailureGateway(<String, Comic>{'936': comic});
-        final manager = DownloadManagerModel(
+        final manager = buildManager(
           nhentaiGateway: gateway,
-          cdnConfigService: _FakeCdnConfigService(),
-          downloadQueueRepository: harness.downloadQueueRepository,
-          downloadedLibraryRepository: harness.downloadedLibraryRepository,
-          downloadSettingsRepository: DownloadSettingsStore(
-            optionsStore: OptionsStore(localDatabase: harness.localDatabase),
-          ),
-          downloadAssetStore: DownloadAssetStore(
-            directoryResolver: () async => tempDirectory,
-          ),
           imageCompressionService: FakeImageCompressionService(
             result: Uint8List.fromList(<int>[1, 2, 3, 4]),
           ),
@@ -1296,8 +1242,9 @@ void main() {
           throwsA(anything),
         );
 
-        final coverPathAfterFailedRepair =
-            await harness.downloadedLibraryRepository.loadCoverLocalPath('936');
+        final coverPathAfterFailedRepair = await harness
+            .downloadedLibraryRepository
+            .loadCoverLocalPath('936');
         expect(coverPathAfterFailedRepair, isNull);
 
         manager.dispose();
@@ -1313,17 +1260,8 @@ void main() {
           '937': healthyComic,
           '938': brokenComic,
         });
-        final manager = DownloadManagerModel(
+        final manager = buildManager(
           nhentaiGateway: gateway,
-          cdnConfigService: _FakeCdnConfigService(),
-          downloadQueueRepository: harness.downloadQueueRepository,
-          downloadedLibraryRepository: harness.downloadedLibraryRepository,
-          downloadSettingsRepository: DownloadSettingsStore(
-            optionsStore: OptionsStore(localDatabase: harness.localDatabase),
-          ),
-          downloadAssetStore: DownloadAssetStore(
-            directoryResolver: () async => tempDirectory,
-          ),
           imageCompressionService: FakeImageCompressionService(
             result: Uint8List.fromList(<int>[1, 2, 3, 4]),
           ),
@@ -1387,87 +1325,77 @@ void main() {
       },
     );
 
-    test(
-      'repairAllCompleted stops early after 3 consecutive failures, leaving '
-      'the rest unscanned',
-      () async {
-        // Download order matters here: loadJobs() sorts by updatedAt desc,
-        // so the comic downloaded *first* ends up *last* in the scan order.
-        // Download '942' first so it's the one left unscanned once the
-        // other three (downloaded after, so scanned first) fail in a row.
-        final comics = <String, Comic>{
-          '942': sampleComic(id: '942', mediaId: '454'),
-          '939': sampleComic(id: '939', mediaId: '451'),
-          '940': sampleComic(id: '940', mediaId: '452'),
-          '941': sampleComic(id: '941', mediaId: '453'),
-        };
-        final gateway = _SelectiveFailureGateway(comics);
-        final fetcher = FakeRemoteAssetFetcher(
-          responses: <String, Uint8List>{
-            for (final entry in comics.entries) ...{
-              'https://i1.nhentai.net/galleries/${entry.value.mediaId}/1.jpg':
-                  Uint8List.fromList(<int>[1]),
-              'https://i1.nhentai.net/galleries/${entry.value.mediaId}/2.jpg':
-                  Uint8List.fromList(<int>[2]),
-              'https://t1.nhentai.net/galleries/${entry.value.mediaId}/cover.jpg':
-                  Uint8List.fromList(<int>[3]),
-            },
+    test('repairAllCompleted stops early after 3 consecutive failures, leaving '
+        'the rest unscanned', () async {
+      // Download order matters here: loadJobs() sorts by updatedAt desc,
+      // so the comic downloaded *first* ends up *last* in the scan order.
+      // Download '942' first so it's the one left unscanned once the
+      // other three (downloaded after, so scanned first) fail in a row.
+      final comics = <String, Comic>{
+        '942': sampleComic(id: '942', mediaId: '454'),
+        '939': sampleComic(id: '939', mediaId: '451'),
+        '940': sampleComic(id: '940', mediaId: '452'),
+        '941': sampleComic(id: '941', mediaId: '453'),
+      };
+      final gateway = _SelectiveFailureGateway(comics);
+      final fetcher = FakeRemoteAssetFetcher(
+        responses: <String, Uint8List>{
+          for (final entry in comics.entries) ...{
+            'https://i1.nhentai.net/galleries/${entry.value.mediaId}/1.jpg':
+                Uint8List.fromList(<int>[1]),
+            'https://i1.nhentai.net/galleries/${entry.value.mediaId}/2.jpg':
+                Uint8List.fromList(<int>[2]),
+            'https://t1.nhentai.net/galleries/${entry.value.mediaId}/cover.jpg':
+                Uint8List.fromList(<int>[3]),
           },
+        },
+      );
+      final manager = buildManager(
+        nhentaiGateway: gateway,
+        imageCompressionService: FakeImageCompressionService(
+          result: Uint8List.fromList(<int>[1, 2, 3, 4]),
+        ),
+        remoteAssetFetcher: fetcher,
+      );
+
+      await manager.initialize();
+      for (final comicId in <String>['942', '939', '940', '941']) {
+        await manager.enqueue(
+          DownloadRequest(comicId: comicId, title: comicId),
         );
-        final manager = DownloadManagerModel(
-          nhentaiGateway: gateway,
-          cdnConfigService: _FakeCdnConfigService(),
-          downloadQueueRepository: harness.downloadQueueRepository,
-          downloadedLibraryRepository: harness.downloadedLibraryRepository,
-          downloadSettingsRepository: DownloadSettingsStore(
-            optionsStore: OptionsStore(localDatabase: harness.localDatabase),
-          ),
-          downloadAssetStore: DownloadAssetStore(
-            directoryResolver: () async => tempDirectory,
-          ),
-          imageCompressionService: FakeImageCompressionService(
-            result: Uint8List.fromList(<int>[1, 2, 3, 4]),
-          ),
-          remoteAssetFetcher: fetcher,
+        await _waitForJobStatus(
+          harness: harness,
+          comicId: comicId,
+          status: 'completed',
         );
+        await manager.waitForIdle();
+      }
 
-        await manager.initialize();
-        for (final comicId in <String>['942', '939', '940', '941']) {
-          await manager.enqueue(DownloadRequest(comicId: comicId, title: comicId));
-          await _waitForJobStatus(
-            harness: harness,
-            comicId: comicId,
-            status: 'completed',
-          );
-          await manager.waitForIdle();
-        }
+      // Break every cover, but only make 939/940/941 fail on repair —
+      // 942 would succeed if the scan ever reached it.
+      for (final comicId in comics.keys) {
+        await harness.downloadedLibraryRepository.updateCoverLocalPath(
+          comicId,
+          null,
+        );
+      }
+      gateway.throwingComicIds.addAll(<String>['939', '940', '941']);
+      await manager.refresh();
 
-        // Break every cover, but only make 939/940/941 fail on repair —
-        // 942 would succeed if the scan ever reached it.
-        for (final comicId in comics.keys) {
-          await harness.downloadedLibraryRepository.updateCoverLocalPath(
-            comicId,
-            null,
-          );
-        }
-        gateway.throwingComicIds.addAll(<String>['939', '940', '941']);
-        await manager.refresh();
+      final result = await manager.repairAllCompleted();
 
-        final result = await manager.repairAllCompleted();
+      expect(result.stoppedEarly, isTrue);
+      expect(result.failedCount, 3);
+      expect(result.repairedCount, 0);
+      expect(result.totalCount, 4);
 
-        expect(result.stoppedEarly, isTrue);
-        expect(result.failedCount, 3);
-        expect(result.repairedCount, 0);
-        expect(result.totalCount, 4);
+      // '942' was never reached, so its cover is still broken.
+      final coverPath942 = await harness.downloadedLibraryRepository
+          .loadCoverLocalPath('942');
+      expect(coverPath942, isNull);
 
-        // '942' was never reached, so its cover is still broken.
-        final coverPath942 =
-            await harness.downloadedLibraryRepository.loadCoverLocalPath('942');
-        expect(coverPath942, isNull);
-
-        manager.dispose();
-      },
-    );
+      manager.dispose();
+    });
 
     test(
       'repairAllCompleted scans every completed download and repairs only the broken cover',
@@ -1478,17 +1406,8 @@ void main() {
           '931': intactComic,
           '932': brokenComic,
         });
-        final manager = DownloadManagerModel(
+        final manager = buildManager(
           nhentaiGateway: gateway,
-          cdnConfigService: _FakeCdnConfigService(),
-          downloadQueueRepository: harness.downloadQueueRepository,
-          downloadedLibraryRepository: harness.downloadedLibraryRepository,
-          downloadSettingsRepository: DownloadSettingsStore(
-            optionsStore: OptionsStore(localDatabase: harness.localDatabase),
-          ),
-          downloadAssetStore: DownloadAssetStore(
-            directoryResolver: () async => tempDirectory,
-          ),
           imageCompressionService: FakeImageCompressionService(
             result: Uint8List.fromList(<int>[1, 2, 3, 4]),
           ),
@@ -1546,8 +1465,8 @@ void main() {
         expect(result.totalCount, 2);
         expect(result.repairedCount, 1);
 
-        final repairedCoverPath =
-            await harness.downloadedLibraryRepository.loadCoverLocalPath('932');
+        final repairedCoverPath = await harness.downloadedLibraryRepository
+            .loadCoverLocalPath('932');
         expect(repairedCoverPath, isNotNull);
 
         manager.dispose();
@@ -1646,260 +1565,184 @@ void main() {
       },
     );
 
-    test(
-      'enqueueMany skips comics already in the download queue',
-      () async {
-        final gateway = FakeNhentaiGateway();
-        final manager = DownloadManagerModel(
-          nhentaiGateway: gateway,
-          cdnConfigService: _FakeCdnConfigService(),
-          downloadQueueRepository: harness.downloadQueueRepository,
-          downloadedLibraryRepository: harness.downloadedLibraryRepository,
-          downloadSettingsRepository: DownloadSettingsStore(
-            optionsStore: OptionsStore(localDatabase: harness.localDatabase),
-          ),
-          downloadAssetStore: DownloadAssetStore(
-            directoryResolver: () async => tempDirectory,
-          ),
-          imageCompressionService: FakeImageCompressionService(
-            result: Uint8List.fromList(<int>[1, 2, 3, 4]),
-          ),
-          remoteAssetFetcher: FakeRemoteAssetFetcher(),
-        );
+    test('enqueueMany skips comics already in the download queue', () async {
+      final gateway = FakeNhentaiGateway();
+      final manager = buildManager(
+        nhentaiGateway: gateway,
+        imageCompressionService: FakeImageCompressionService(
+          result: Uint8List.fromList(<int>[1, 2, 3, 4]),
+        ),
+      );
 
-        await manager.initialize();
-        await manager.enqueue(
-          const DownloadRequest(comicId: '960', title: 'Already queued'),
-        );
-        await manager.refresh();
+      await manager.initialize();
+      await manager.enqueue(
+        const DownloadRequest(comicId: '960', title: 'Already queued'),
+      );
+      await manager.refresh();
 
-        final alreadyQueued = ComicCardData.fromComic(
-          sampleComic(id: '960', mediaId: '460'),
-        );
-        final fresh = ComicCardData.fromComic(
-          sampleComic(id: '961', mediaId: '461'),
-        );
+      final alreadyQueued = ComicCardData.fromComic(
+        sampleComic(id: '960', mediaId: '460'),
+      );
+      final fresh = ComicCardData.fromComic(
+        sampleComic(id: '961', mediaId: '461'),
+      );
 
-        final result = await manager.enqueueMany(
-          <ComicCardData>[alreadyQueued, fresh],
-        );
+      final result = await manager.enqueueMany(<ComicCardData>[
+        alreadyQueued,
+        fresh,
+      ]);
 
-        expect(result.totalCount, 2);
-        expect(result.skippedCount, 1);
-        expect(result.queuedCount, 1);
-        expect(result.failedCount, 0);
+      expect(result.totalCount, 2);
+      expect(result.skippedCount, 1);
+      expect(result.queuedCount, 1);
+      expect(result.failedCount, 0);
 
-        await manager.waitForIdle();
-        manager.dispose();
-      },
-    );
+      await manager.waitForIdle();
+      manager.dispose();
+    });
 
-    test(
-      'enqueueMany skips the loadComicDetail round trip when the favorite '
-      'already has a complete cached page manifest',
-      () async {
-        final gateway = _DelayedNhentaiGateway(
-          delay: const Duration(milliseconds: 300),
-        );
-        final manager = DownloadManagerModel(
-          nhentaiGateway: gateway,
-          cdnConfigService: _FakeCdnConfigService(),
-          downloadQueueRepository: harness.downloadQueueRepository,
-          downloadedLibraryRepository: harness.downloadedLibraryRepository,
-          downloadSettingsRepository: DownloadSettingsStore(
-            optionsStore: OptionsStore(localDatabase: harness.localDatabase),
-          ),
-          downloadAssetStore: DownloadAssetStore(
-            directoryResolver: () async => tempDirectory,
-          ),
-          imageCompressionService: FakeImageCompressionService(
-            result: Uint8List.fromList(<int>[1, 2, 3, 4]),
-          ),
-          remoteAssetFetcher: FakeRemoteAssetFetcher(),
-        );
+    test('enqueueMany skips the loadComicDetail round trip when the favorite '
+        'already has a complete cached page manifest', () async {
+      final gateway = _DelayedNhentaiGateway(
+        delay: const Duration(milliseconds: 300),
+      );
+      final manager = buildManager(
+        nhentaiGateway: gateway,
+        imageCompressionService: FakeImageCompressionService(
+          result: Uint8List.fromList(<int>[1, 2, 3, 4]),
+        ),
+      );
 
-        await manager.initialize();
+      await manager.initialize();
 
-        // Built via ComicCardData.fromComic, so serializedImages already
-        // carries the full 2-page manifest from sampleComic() — as if this
-        // comic had been opened in the reader before being favorited.
-        final completeComic = ComicCardData.fromComic(
-          sampleComic(id: '962', mediaId: '462'),
-        );
+      // Built via ComicCardData.fromComic, so serializedImages already
+      // carries the full 2-page manifest from sampleComic() — as if this
+      // comic had been opened in the reader before being favorited.
+      final completeComic = ComicCardData.fromComic(
+        sampleComic(id: '962', mediaId: '462'),
+      );
 
-        final stopwatch = Stopwatch()..start();
-        final result = await manager.enqueueMany(<ComicCardData>[completeComic]);
-        stopwatch.stop();
+      final stopwatch = Stopwatch()..start();
+      final result = await manager.enqueueMany(<ComicCardData>[completeComic]);
+      stopwatch.stop();
 
-        expect(result.queuedCount, 1);
-        expect(result.skippedCount, 0);
-        expect(result.failedCount, 0);
-        expect(
-          stopwatch.elapsed,
-          lessThan(const Duration(milliseconds: 200)),
-          reason:
-              'A complete local page manifest should skip loadComicDetail '
-              'entirely, so this should resolve well under the fake '
-              'gateway\'s 300ms delay.',
-        );
+      expect(result.queuedCount, 1);
+      expect(result.skippedCount, 0);
+      expect(result.failedCount, 0);
+      expect(
+        stopwatch.elapsed,
+        lessThan(const Duration(milliseconds: 200)),
+        reason:
+            'A complete local page manifest should skip loadComicDetail '
+            'entirely, so this should resolve well under the fake '
+            'gateway\'s 300ms delay.',
+      );
 
-        final job = await harness.downloadQueueRepository.loadJob('962');
-        expect(job, isNotNull);
-        expect(job!.totalPages, 2);
+      final job = await harness.downloadQueueRepository.loadJob('962');
+      expect(job, isNotNull);
+      expect(job!.totalPages, 2);
 
-        await manager.waitForIdle();
-        manager.dispose();
-      },
-    );
+      await manager.waitForIdle();
+      manager.dispose();
+    });
 
-    test(
-      'enqueueMany calls loadComicDetail when the favorite has no cached '
-      'page manifest (e.g. synced from the remote favorites list)',
-      () async {
-        final gateway = FakeNhentaiGateway();
-        final manager = DownloadManagerModel(
-          nhentaiGateway: gateway,
-          cdnConfigService: _FakeCdnConfigService(),
-          downloadQueueRepository: harness.downloadQueueRepository,
-          downloadedLibraryRepository: harness.downloadedLibraryRepository,
-          downloadSettingsRepository: DownloadSettingsStore(
-            optionsStore: OptionsStore(localDatabase: harness.localDatabase),
-          ),
-          downloadAssetStore: DownloadAssetStore(
-            directoryResolver: () async => tempDirectory,
-          ),
-          imageCompressionService: FakeImageCompressionService(
-            result: Uint8List.fromList(<int>[1, 2, 3, 4]),
-          ),
-          remoteAssetFetcher: FakeRemoteAssetFetcher(),
-        );
+    test('enqueueMany calls loadComicDetail when the favorite has no cached '
+        'page manifest (e.g. synced from the remote favorites list)', () async {
+      final gateway = FakeNhentaiGateway();
+      final manager = buildManager(
+        nhentaiGateway: gateway,
+        imageCompressionService: FakeImageCompressionService(
+          result: Uint8List.fromList(<int>[1, 2, 3, 4]),
+        ),
+      );
 
-        await manager.initialize();
+      await manager.initialize();
 
-        final thumbnailOnlyComic = _thumbnailOnlyCard(id: '963', mediaId: '463');
-        final result = await manager.enqueueMany(<ComicCardData>[thumbnailOnlyComic]);
+      final thumbnailOnlyComic = _thumbnailOnlyCard(id: '963', mediaId: '463');
+      final result = await manager.enqueueMany(<ComicCardData>[
+        thumbnailOnlyComic,
+      ]);
 
-        expect(result.queuedCount, 1);
-        expect(gateway.loadedComicDetailIds, contains('963'));
+      expect(result.queuedCount, 1);
+      expect(gateway.loadedComicDetailIds, contains('963'));
 
-        await manager.waitForIdle();
-        manager.dispose();
-      },
-    );
+      await manager.waitForIdle();
+      manager.dispose();
+    });
 
-    test(
-      'enqueueMany stops early after 3 consecutive failures, leaving the '
-      'rest unprocessed',
-      () async {
-        final comics = <String, Comic>{
-          '970': sampleComic(id: '970', mediaId: '470'),
-          '971': sampleComic(id: '971', mediaId: '471'),
-          '972': sampleComic(id: '972', mediaId: '472'),
-          '973': sampleComic(id: '973', mediaId: '473'),
-        };
-        final gateway = _SelectiveFailureGateway(comics);
-        gateway.throwingComicIds.addAll(<String>['970', '971', '972']);
+    test('enqueueMany stops early after 3 consecutive failures, leaving the '
+        'rest unprocessed', () async {
+      final comics = <String, Comic>{
+        '970': sampleComic(id: '970', mediaId: '470'),
+        '971': sampleComic(id: '971', mediaId: '471'),
+        '972': sampleComic(id: '972', mediaId: '472'),
+        '973': sampleComic(id: '973', mediaId: '473'),
+      };
+      final gateway = _SelectiveFailureGateway(comics);
+      gateway.throwingComicIds.addAll(<String>['970', '971', '972']);
 
-        final manager = DownloadManagerModel(
-          nhentaiGateway: gateway,
-          cdnConfigService: _FakeCdnConfigService(),
-          downloadQueueRepository: harness.downloadQueueRepository,
-          downloadedLibraryRepository: harness.downloadedLibraryRepository,
-          downloadSettingsRepository: DownloadSettingsStore(
-            optionsStore: OptionsStore(localDatabase: harness.localDatabase),
-          ),
-          downloadAssetStore: DownloadAssetStore(
-            directoryResolver: () async => tempDirectory,
-          ),
-          imageCompressionService: FakeImageCompressionService(
-            result: Uint8List.fromList(<int>[1, 2, 3, 4]),
-          ),
-          remoteAssetFetcher: FakeRemoteAssetFetcher(),
-        );
+      final manager = buildManager(
+        nhentaiGateway: gateway,
+        imageCompressionService: FakeImageCompressionService(
+          result: Uint8List.fromList(<int>[1, 2, 3, 4]),
+        ),
+      );
 
-        await manager.initialize();
+      await manager.initialize();
 
-        final progressUpdates = <(int, int)>[];
-        final result = await manager.enqueueMany(
-          <ComicCardData>[
-            for (final entry in comics.entries)
-              _thumbnailOnlyCard(id: entry.key, mediaId: entry.value.mediaId),
-          ],
-          onProgress: (processed, total) =>
-              progressUpdates.add((processed, total)),
-        );
+      final progressUpdates = <(int, int)>[];
+      final result = await manager.enqueueMany(
+        <ComicCardData>[
+          for (final entry in comics.entries)
+            _thumbnailOnlyCard(id: entry.key, mediaId: entry.value.mediaId),
+        ],
+        onProgress: (processed, total) =>
+            progressUpdates.add((processed, total)),
+      );
 
-        expect(result.totalCount, 4);
-        expect(result.failedCount, 3);
-        expect(result.queuedCount, 0);
-        expect(result.stoppedEarly, isTrue);
-        expect(progressUpdates, <(int, int)>[(1, 4), (2, 4), (3, 4)]);
-        expect(gateway.loadedComicDetailIds, isNot(contains('973')));
+      expect(result.totalCount, 4);
+      expect(result.failedCount, 3);
+      expect(result.queuedCount, 0);
+      expect(result.stoppedEarly, isTrue);
+      expect(progressUpdates, <(int, int)>[(1, 4), (2, 4), (3, 4)]);
+      expect(gateway.loadedComicDetailIds, isNot(contains('973')));
 
-        manager.dispose();
-      },
-    );
+      manager.dispose();
+    });
 
-    test(
-      'enqueueMany retries after a 429 using the Retry-After header, then '
-      'succeeds',
-      () async {
-        final gateway = _RateLimitedOnceGateway(<String, Comic>{
-          '980': sampleComic(id: '980', mediaId: '480'),
-        });
-        final manager = DownloadManagerModel(
-          nhentaiGateway: gateway,
-          cdnConfigService: _FakeCdnConfigService(),
-          downloadQueueRepository: harness.downloadQueueRepository,
-          downloadedLibraryRepository: harness.downloadedLibraryRepository,
-          downloadSettingsRepository: DownloadSettingsStore(
-            optionsStore: OptionsStore(localDatabase: harness.localDatabase),
-          ),
-          downloadAssetStore: DownloadAssetStore(
-            directoryResolver: () async => tempDirectory,
-          ),
-          imageCompressionService: FakeImageCompressionService(
-            result: Uint8List.fromList(<int>[1, 2, 3, 4]),
-          ),
-          remoteAssetFetcher: FakeRemoteAssetFetcher(),
-        );
+    test('enqueueMany retries after a 429 using the Retry-After header, then '
+        'succeeds', () async {
+      final gateway = _RateLimitedOnceGateway(<String, Comic>{
+        '980': sampleComic(id: '980', mediaId: '480'),
+      });
+      final manager = buildManager(
+        nhentaiGateway: gateway,
+        imageCompressionService: FakeImageCompressionService(
+          result: Uint8List.fromList(<int>[1, 2, 3, 4]),
+        ),
+      );
 
-        await manager.initialize();
+      await manager.initialize();
 
-        final comic = _thumbnailOnlyCard(id: '980', mediaId: '480');
-        final result = await manager.enqueueMany(<ComicCardData>[comic]);
+      final comic = _thumbnailOnlyCard(id: '980', mediaId: '480');
+      final result = await manager.enqueueMany(<ComicCardData>[comic]);
 
-        expect(result.queuedCount, 1);
-        expect(result.failedCount, 0);
-        // The first call hits the simulated 429; the retry after the
-        // Retry-After delay succeeds.
-        expect(
-          gateway.loadedComicDetailIds.where((id) => id == '980').length,
-          2,
-        );
+      expect(result.queuedCount, 1);
+      expect(result.failedCount, 0);
+      // The first call hits the simulated 429; the retry after the
+      // Retry-After delay succeeds.
+      expect(gateway.loadedComicDetailIds.where((id) => id == '980').length, 2);
 
-        await manager.waitForIdle();
-        manager.dispose();
-      },
-    );
+      await manager.waitForIdle();
+      manager.dispose();
+    });
 
     group('completed downloads pagination', () {
-      Future<DownloadManagerModel> buildManager() async {
-        final manager = DownloadManagerModel(
-          nhentaiGateway: FakeNhentaiGateway(),
-          cdnConfigService: _FakeCdnConfigService(),
-          downloadQueueRepository: harness.downloadQueueRepository,
-          downloadedLibraryRepository: harness.downloadedLibraryRepository,
-          downloadSettingsRepository: DownloadSettingsStore(
-            optionsStore: OptionsStore(localDatabase: harness.localDatabase),
-          ),
-          downloadAssetStore: DownloadAssetStore(
-            directoryResolver: () async => tempDirectory,
-          ),
+      Future<DownloadManagerModel> buildStartedManager() async {
+        final manager = buildManager(
           imageCompressionService: FakeImageCompressionService(
             result: Uint8List.fromList(<int>[1, 2, 3, 4]),
           ),
-          remoteAssetFetcher: FakeRemoteAssetFetcher(),
         );
         await manager.initialize();
         return manager;
@@ -1909,7 +1752,7 @@ void main() {
         'setCompletedPage jumps by setting both the anchor and current page, '
         'discarding any auto-revealed pages',
         () async {
-          final manager = await buildManager();
+          final manager = await buildStartedManager();
 
           manager.setCompletedPage(3);
 
@@ -1924,7 +1767,7 @@ void main() {
         'revealNextCompletedPage advances only the current page, leaving '
         'the anchor (and therefore already-revealed pages) in place',
         () async {
-          final manager = await buildManager();
+          final manager = await buildStartedManager();
           manager.setCompletedPage(2);
 
           manager.revealNextCompletedPage(5);
@@ -1936,25 +1779,22 @@ void main() {
         },
       );
 
-      test(
-        'revealNextCompletedPage is a no-op once the current page reaches '
-        'totalPages',
-        () async {
-          final manager = await buildManager();
-          manager.setCompletedPage(4);
+      test('revealNextCompletedPage is a no-op once the current page reaches '
+          'totalPages', () async {
+        final manager = await buildStartedManager();
+        manager.setCompletedPage(4);
 
-          manager.revealNextCompletedPage(4);
+        manager.revealNextCompletedPage(4);
 
-          expect(manager.completedPage, 4);
+        expect(manager.completedPage, 4);
 
-          manager.dispose();
-        },
-      );
+        manager.dispose();
+      });
 
       test(
         'resetCompletedPage resets both the anchor and current page to 1',
         () async {
-          final manager = await buildManager();
+          final manager = await buildStartedManager();
           manager.setCompletedPage(3);
           manager.revealNextCompletedPage(5);
 
@@ -1970,7 +1810,7 @@ void main() {
       test(
         'notifyListeners fires only when the page state actually changes',
         () async {
-          final manager = await buildManager();
+          final manager = await buildStartedManager();
           var notifyCount = 0;
           manager.addListener(() => notifyCount++);
 
@@ -2109,10 +1949,25 @@ Comic _comicWithPageExtension({
   return base.copyWith(
     images: base.images.copyWith(
       pages: <ComicPageImage>[
-        ComicPageImage(t: typeCode, w: 1200, h: 1800, path: 'galleries/$mediaId/1.$extension'),
-        ComicPageImage(t: typeCode, w: 1200, h: 1800, path: 'galleries/$mediaId/2.$extension'),
+        ComicPageImage(
+          t: typeCode,
+          w: 1200,
+          h: 1800,
+          path: 'galleries/$mediaId/1.$extension',
+        ),
+        ComicPageImage(
+          t: typeCode,
+          w: 1200,
+          h: 1800,
+          path: 'galleries/$mediaId/2.$extension',
+        ),
       ],
-      cover: ComicPageImage(t: typeCode, w: 350, h: 500, path: 'galleries/$mediaId/cover.$extension'),
+      cover: ComicPageImage(
+        t: typeCode,
+        w: 350,
+        h: 500,
+        path: 'galleries/$mediaId/cover.$extension',
+      ),
     ),
   );
 }
@@ -2179,8 +2034,9 @@ Future<void> _waitForPageStatus({
   required String status,
 }) async {
   for (int attempt = 0; attempt < 100; attempt++) {
-    final page = (await harness.downloadQueueRepository.loadPages(comicId))
-        .firstWhere((candidate) => candidate.pageNumber == pageNumber);
+    final page = (await harness.downloadQueueRepository.loadPages(
+      comicId,
+    )).firstWhere((candidate) => candidate.pageNumber == pageNumber);
     if (page.status.storageValue == status) {
       return;
     }

@@ -37,6 +37,7 @@ class DownloadManagerModel extends ChangeNotifier with WidgetsBindingObserver {
     required this.downloadAssetStore,
     required this.imageCompressionService,
     required this.remoteAssetFetcher,
+    this.batchSleep,
   });
 
   final NhentaiGateway nhentaiGateway;
@@ -47,6 +48,13 @@ class DownloadManagerModel extends ChangeNotifier with WidgetsBindingObserver {
   final DownloadAssetStore downloadAssetStore;
   final ImageCompressionService imageCompressionService;
   final RemoteAssetFetcher remoteAssetFetcher;
+
+  /// How a batch waits between items that hit the network.
+  ///
+  /// Only ever passed by tests, and only so they do not spend real seconds
+  /// proving a throttle they are not testing. Null means the real wait, which
+  /// is what every caller in the app gets.
+  final Future<void> Function(Duration duration)? batchSleep;
 
   /// Built here rather than injected, so the model's callers — and its
   /// tests — do not have to know that fetching a page is a separate thing
@@ -330,6 +338,7 @@ class DownloadManagerModel extends ChangeNotifier with WidgetsBindingObserver {
       items: comics,
       shouldStop: () => _isDisposed,
       onProgress: onProgress,
+      sleep: batchSleep,
       step: (comic) async {
         final outcome = await _enqueueOne(comic);
         if (outcome.skipped) {
@@ -605,6 +614,7 @@ class DownloadManagerModel extends ChangeNotifier with WidgetsBindingObserver {
     final batch = await runThrottledBatch<String>(
       items: completedIds,
       onProgress: onProgress,
+      sleep: batchSleep,
       step: (comicId) async {
         // An item that was already intact is a pure local check, so it does
         // not earn the throttle.
