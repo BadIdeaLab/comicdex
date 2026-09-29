@@ -49,7 +49,14 @@
 - Offline reader entry for completed downloads using local page files
 - Download list search across titles and tags, sortable by title/author/popularity/last read
 - Reader end-of-comic overlay, page-jump navigation, and navigation expansion on last page
+- Similar-comic recommendations on the page after the last one — drawn from your own
+  library first, with an optional look on the site that excludes what you already have
+- Taste badges on comics that match the tags you actually keep, scored against your
+  library rather than against what is merely popular
 - Vertical reader experience
+- LAN backup and restore to a desktop server: QR or PIN pairing, incremental mirroring
+  of the whole download library, pausable transfers, and interrupted-restore detection
+- English and Traditional Chinese interface
 - Glassmorphism-styled UI across reader, screens, and sheets with cross-platform
   performance tuning
 - Android build pipeline and GitHub-hosted unsigned iOS build verification

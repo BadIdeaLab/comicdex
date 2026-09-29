@@ -107,13 +107,17 @@
 | `lib/state/` | `ChangeNotifier` 狀態模型 |
 | `lib/application/` | Use Case 與 Coordinator，依領域分子資料夾 |
 | `lib/services/` | 無狀態服務：API client、CDN、圖片、查詢字串建構 |
+| `lib/services/backup/` | 備份／還原／配對子系統（17 個檔案，見 §9.1） |
+| `lib/l10n/` | `flutter gen-l10n` 產出的在地化（`en` 與 `zh_Hant`；`zh` 刻意退回英文） |
 | `lib/storage/` | Drift `LocalDatabase`、Repository、secure / options store |
 | `lib/models/` | 領域資料模型與列舉（純資料，多用 freezed / json） |
 | `lib/theme.dart` | Material 3 主題色與 `ThemeData` |
 | `android/.../MainActivity.java` | 空殼 `FlutterActivity`（無原生業務邏輯） |
 | `assets/tag_zh.bin` | 靜態 tag 中文名對照（由 `TagDisplayService` 載入） |
 
-`lib/application/` 子資料夾依領域分類：`feed`、`home`、`library`、`reader`、`tags`、`favorites`、`downloads`、`search`。
+`lib/application/` 子資料夾依領域分類：`feed`、`home`、`library`、`reader`、`tags`、`favorites`、`downloads`、`search`、`settings`。
+
+`lib/widgets/downloads/` 是下載頁的卡片、格子、動作面板（P94 從一個 1096 行的檔案拆出來）。
 
 ---
 
@@ -207,11 +211,17 @@ main()
 | --- | --- |
 | `HomeUiModel` | 底部導覽 index、`SearchController`、全域 loading；切頁時清空搜尋欄 |
 | `ComicFeedModel` | 首頁 / 搜尋的漫畫列表、分頁、排序、語言、tag 篩選、封鎖 tag 套用 |
-| `ComicReaderModel` | 當前漫畫、頁碼導覽、`PageController`、預抓頁數、閱讀方向、點擊區比例、控制列顯示 |
-| `DownloadManagerModel` | 下載佇列引擎（排程 / 暫停 / 續傳 / 重下 / 修復）、完成清單、排序；監聽 app 生命週期 |
+| `ReaderSessionModel` | 當前漫畫、頁碼導覽、`PageController`、預抓頁數、控制列顯示；與閱讀器路由同生共死 |
+| `ReaderSettingsModel` | 閱讀方向、點擊區比例、預抓頁數等跨漫畫的偏好 |
+| `ReaderEndPageModel` | 看完後那一頁：書庫裡的相似作品，與「在網站上找更多」（P92／P93） |
+| `DownloadManagerModel` | 下載佇列引擎（排程 / 暫停 / 續傳 / 重下 / 修復）、完成清單、分頁；監聽 app 生命週期 |
 | `FavoriteSyncModel` | 收藏 id 集合、API key 認證狀態、與遠端收藏同步、樂觀切換收藏 |
 | `BlockedTagsModel` | 封鎖 tag 清單的載入 / 新增 / 移除 |
 | `TagCatalogBrowserModel` | tag 目錄瀏覽（類型切換、分頁、多選 query） |
+| `TagPreferenceModel` | 書庫裡的 tag 統計（出現次數、覆蓋率、共現） |
+| `PreferenceScoreModel` | 由統計建出的喜好向量，並把它推給需要的模型（P84 的徽章與排序） |
+| `BackupControlModel` | 配對、鏡像上傳、還原的進度與可暫停狀態（見 §9.1） |
+| `AppLocaleModel` | 介面語言（跟隨系統或明確指定） |
 
 設計重點：
 
@@ -247,6 +257,19 @@ main()
 | `CollectionPageCoordinator` | 收藏頁載入與快照協調 |
 | `ComicCardActionCoordinator` | 漫畫卡片動作：開啟、載入 meta、收藏、移除、切換收藏、加入下載 |
 
+**純函式與值物件**（P94／P95 從 model 與 widget 拆出來的部分）：
+
+| 檔案 | 功能 |
+| --- | --- |
+| `downloads/download_list_sorter.dart` | 下載清單的排序（進行中優先，完成的依使用者選的模式） |
+| `downloads/download_item_filter.dart` | 下載清單的關鍵字與 tag 過濾（含翻譯後的 tag 名） |
+| `downloads/throttled_batch.dart` | 批次的節流與「連續失敗就停」，`enqueueMany` 與 `repairAllCompleted` 共用 |
+| `downloads/completed_page_window.dart` | 完成清單的分頁區間計算 |
+| `downloads/weighted_random_pick.dart` | 依閱讀新舊加權的隨機抽選（P87） |
+| `tags/tag_preference_vector.dart` / `preference_statistics.dart` | 喜好向量與 Wilson 下界等統計（P84） |
+| `tags/comic_similarity.dart` / `similar_comic_ranking.dart` | idf 加權餘弦相似度與排序（P92） |
+| `reader/reader_favorite_card.dart` | 收藏閱讀中的漫畫時，用哪一列資料 |
+
 此外 `application/` 也放部分 Repository 介面（`ReaderProgressRepository`、`ReaderSettingsRepository`、`DownloadSettingsRepository`、`BlockedTagsRepository`），實作則在 `storage/`，達成依賴反轉。
 
 ---
@@ -268,15 +291,43 @@ main()
 | `DownloadAssetStore` | 下載檔案在磁碟上的存放 / 驗證 / 刪除（與圖片快取分離） |
 | `SearchQueryBuilder` / `TagSearchQueryBuilder` | 組搜尋 URI、把多個 tag query 串成搜尋字串 |
 | `TagDisplayService` | 從 `assets/tag_zh.bin` 提供 tag slug → 中文顯示名 |
+| `DownloadAssetFetcher` | 取一頁／封面並落地：多主機輪替、Skia 解不了的格式轉 WebP（P94 從 model 拆出） |
 | `LibraryImportService` | 從外部來源匯入收藏 / 漫畫 |
 
 多數服務以「抽象介面 + 具體實作」成對出現，便於單元測試替身。
+
+### 9.1 備份／還原／配對（`services/backup/`）
+
+把整個下載庫與資料庫鏡像到區網內的桌面伺服器，再還原到（同一台或另一台）裝置。
+**伺服器不在這個 repo 裡**，這裡只有用戶端。
+
+| 檔案 | 角色 |
+| --- | --- |
+| `backup_connection.dart` | `IP:port` 的解析與驗證；明碼 HTTP，刻意拒絕 `https://` |
+| `pairing_payload.dart` / `pairing_code_reader.dart` | 桌面端 QR 的格式與掃描（相機或相簿） |
+| `pairing_connect_attempt.dart` | 依序嘗試桌面端提供的多個位址 |
+| `pairing_memory.dart` | 記住上次的位址與裝置名稱——**PIN 刻意不存**，那是整個安全模型 |
+| `backup_client.dart` / `backup_control_client.dart` | HTTP 進出口（inventory、檔案、資料庫、控制指令） |
+| `backup_sync_service.dart` | 上傳：比對本機與鏡像，只送差異 |
+| `backup_diff.dart` | 差異計算 |
+| `backup_restore_service.dart` | 還原：檢查 → 下載資料庫 → 規劃 → 清除 → 下載 → 換上資料庫 |
+| `restore_path_resolver.dart` | 把資料庫裡的路徑正規化成可比對的相對路徑；**拒絕跳出根目錄的路徑**（P96） |
+| `snapshot_database_reader.dart` | 從下載下來的資料庫快照讀出它引用的檔案路徑 |
+| `restore_progress_flag.dart` / `pending_restore_applier.dart` | 中斷偵測，與下次啟動時才真正換上資料庫 |
+| `device_name_service.dart` | 這台裝置在伺服器上的分割名稱 |
+
+兩個關鍵不變式：
+
+1. **還原在「下載資料庫」之後、「動到本機任何位元組」之前檢查 schema 版本**——
+   drift 能往前遷移但不能往回，先清空再發現版本太新就毀了唯一的另一份。
+2. **資料庫是最後才換上的**。`restore_progress_flag` 在第一次刪除之前就立起來，
+   所以中途斷掉在下次啟動時看得出來，而不是把半套的庫當成正常的。
 
 ---
 
 ## 10. 儲存層（storage/）與 Drift 資料庫
 
-本地持久化已從 sqflite 遷移到 **Drift**（見 phase P5）。核心是 `LocalDatabase`（`local_database.dart`），目前 `schemaVersion = 9`，migration 以 `onUpgrade` 逐版本撰寫。
+本地持久化已從 sqflite 遷移到 **Drift**（見 phase P5）。核心是 `LocalDatabase`（`local_database.dart`），目前 `schemaVersion = 11`，migration 以 `onUpgrade` 逐版本撰寫。
 
 ### 資料表
 
