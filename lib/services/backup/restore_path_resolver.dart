@@ -1,3 +1,5 @@
+import 'package:path/path.dart' as p;
+
 /// Marks where a stored path stops being container-specific.
 const String _downloadsSegment = '/downloads/';
 
@@ -35,7 +37,19 @@ String? normaliseRestorePath(String? stored) {
   if (path.startsWith('/') || path.isEmpty) {
     return null;
   }
-  return path;
+
+  // Every path that reaches here came from the other device — both the
+  // backed-up database and the server's inventory are its data, not ours —
+  // and both end up joined onto the downloads root and written to. A `..`
+  // that survives would put that write outside the mirror entirely, so the
+  // path is collapsed first and anything still pointing upwards is refused.
+  final normalised = p.posix.normalize(path);
+  if (normalised == '..' ||
+      normalised.startsWith('../') ||
+      normalised.startsWith('/')) {
+    return null;
+  }
+  return normalised;
 }
 
 /// Files to pull, given what the backup's database references and what the

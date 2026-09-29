@@ -35,7 +35,10 @@ void main() {
     });
 
     test('normalises Windows separators', () {
-      expect(normaliseRestorePath(r'177013\pages\1.webp'), '177013/pages/1.webp');
+      expect(
+        normaliseRestorePath(r'177013\pages\1.webp'),
+        '177013/pages/1.webp',
+      );
     });
 
     test('rejects empty, null and unmappable absolute paths', () {
@@ -44,6 +47,23 @@ void main() {
       expect(normaliseRestorePath('   '), isNull);
       // Absolute but with no downloads segment: cannot be placed in the mirror.
       expect(normaliseRestorePath('/var/mobile/elsewhere/cover.webp'), isNull);
+    });
+
+    test('refuses a path that climbs out of the downloads root', () {
+      // These arrive from the other device — both the backed-up database and
+      // the server's inventory are its data — and each one is joined onto the
+      // downloads root and written to. A surviving `..` would put that write
+      // anywhere in the app's sandbox.
+      expect(normaliseRestorePath('../../Library/Preferences/x.plist'), isNull);
+      expect(normaliseRestorePath('177013/../../../elsewhere/x'), isNull);
+      expect(normaliseRestorePath('..'), isNull);
+      expect(normaliseRestorePath(r'..\..\x'), isNull);
+      // One that climbs but lands back inside is still inside, and collapsing
+      // it is what lets it match the inventory at all.
+      expect(
+        normaliseRestorePath('177013/../287290/cover.webp'),
+        '287290/cover.webp',
+      );
     });
   });
 
