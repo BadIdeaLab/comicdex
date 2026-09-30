@@ -157,6 +157,49 @@ class ComicTagIds extends Table {
   Set<Column<Object>> get primaryKey => <Column<Object>>{comicId, tagId};
 }
 
+/// The artists whose new work the user wants to hear about.
+///
+/// One row per tracked artist; there is deliberately no row per *new comic*.
+/// The watermark plus a count is enough to say "this artist has three you
+/// have not seen", and the three can always be fetched again — storing them
+/// would mean owning the state of a gallery that the site may since have
+/// removed.
+///
+/// See .codex/phases/P97-artist-update-tracking.md.
+class TrackedArtists extends Table {
+  @override
+  String get tableName => 'TrackedArtist';
+
+  /// The artist's tag id. Stored rather than the name, because names get
+  /// edited site-side and ids do not — the same reason the favourites filter
+  /// matches on ids (P80).
+  IntColumn get tagId => integer().named('tag_id')();
+
+  /// The newest upload time already accounted for. Everything newer than this
+  /// is what "new work" means.
+  ///
+  /// Set to the artist's current newest at the moment tracking starts, so the
+  /// first check reports nothing. Seeded empty it would announce the artist's
+  /// whole back catalogue as new.
+  IntColumn get lastSeenUploadDate =>
+      integer().named('last_seen_upload_date').nullable()();
+
+  /// When this artist was last asked about. Only used to order a run's
+  /// budget, oldest first, so tracking many artists spreads over runs instead
+  /// of arriving as one burst.
+  DateTimeColumn get lastCheckedAt =>
+      dateTime().named('last_checked_at').nullable()();
+
+  /// How many new works the last check found. Cannot be derived without
+  /// another request, so it is stored.
+  IntColumn get newCount => integer().named('new_count').withDefault(
+    const Constant<int>(0),
+  )();
+
+  @override
+  Set<Column<Object>> get primaryKey => <Column<Object>>{tagId};
+}
+
 @DriftDatabase(
   tables: [
     AppOptions,
@@ -167,6 +210,7 @@ class ComicTagIds extends Table {
     DownloadJobPages,
     DownloadedComics,
     ComicTagIds,
+    TrackedArtists,
   ],
 )
 class LocalDatabase extends _$LocalDatabase {
@@ -182,7 +226,7 @@ class LocalDatabase extends _$LocalDatabase {
   final DatabasePathResolver _databasePathResolver;
 
   @override
-  int get schemaVersion => 11;
+  int get schemaVersion => 12;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -294,6 +338,9 @@ class LocalDatabase extends _$LocalDatabase {
           'ALTER TABLE Collection '
           'ADD COLUMN read_count INTEGER NOT NULL DEFAULT 0',
         );
+      }
+      if (from < 12) {
+        await migrator.createTable(trackedArtists);
       }
     },
   );

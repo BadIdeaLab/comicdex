@@ -39,14 +39,22 @@ void main() {
   }
 
   /// Rewinds a freshly created database to what schema 9 looked like: no
-  /// ComicTagId table, no Collection.read_count, user_version 9.
+  /// ComicTagId table, no Collection.read_count, no TrackedArtist,
+  /// user_version 9.
   Future<void> rewindToSchema9(LocalDatabase database) async {
     await database.customStatement('DROP INDEX idx_comic_tag_id_tag');
     await database.customStatement('DROP TABLE ComicTagId');
+    await database.customStatement('DROP TABLE TrackedArtist');
     await database.customStatement(
       'ALTER TABLE Collection DROP COLUMN read_count',
     );
     await database.customStatement('PRAGMA user_version = 9');
+  }
+
+  /// Schema 11 — everything but TrackedArtist.
+  Future<void> rewindToSchema11(LocalDatabase database) async {
+    await database.customStatement('DROP TABLE TrackedArtist');
+    await database.customStatement('PRAGMA user_version = 11');
   }
 
   test(
@@ -105,5 +113,58 @@ void main() {
       <String>['100:2937', '100:12227'],
     );
     expect(index, hasLength(1));
+  });
+
+  test(
+    'upgrading from 11 adds TrackedArtist, leaving other rows alone',
+    () async {
+      final v11 = open();
+      await v11.initialize();
+      await v11.customStatement(
+        "INSERT INTO Collection (name, comicid, dateCreated) "
+        "VALUES ('Favorite', '1', '2026-01-01')",
+      );
+      await rewindToSchema11(v11);
+      await v11.close();
+
+      final upgraded = open();
+      await upgraded.initialize();
+      // Writing through the table is the check that matters: a table that
+      // exists but whose columns do not match what drift generated would pass
+      // a sqlite_master lookup and fail on the first insert, on a device.
+      await upgraded.customStatement(
+        'INSERT INTO TrackedArtist (tag_id, last_seen_upload_date) VALUES (20, 1700)',
+      );
+      final tracked = await upgraded
+          .customSelect('SELECT tag_id, new_count FROM TrackedArtist')
+          .getSingle();
+      final kept = await upgraded
+          .customSelect('SELECT comicid FROM Collection')
+          .getSingle();
+      await upgraded.close();
+
+      expect(tracked.read<int>('tag_id'), 20);
+      expect(
+        tracked.read<int>('new_count'),
+        0,
+        reason: 'a fresh row has nothing new in it yet',
+      );
+      expect(kept.read<String>('comicid'), '1');
+    },
+  );
+
+  test('a database created from scratch has TrackedArtist too', () async {
+    // onCreate and onUpgrade are separate paths, and a table added only to
+    // the second one works for every existing install and for nobody new.
+    final fresh = open();
+    await fresh.initialize();
+    final table = await fresh
+        .customSelect(
+          "SELECT name FROM sqlite_master WHERE name = 'TrackedArtist'",
+        )
+        .get();
+    await fresh.close();
+
+    expect(table, hasLength(1));
   });
 }

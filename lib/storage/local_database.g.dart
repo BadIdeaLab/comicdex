@@ -3709,6 +3709,344 @@ class ComicTagIdsCompanion extends UpdateCompanion<ComicTagId> {
   }
 }
 
+class $TrackedArtistsTable extends TrackedArtists
+    with TableInfo<$TrackedArtistsTable, TrackedArtist> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $TrackedArtistsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _tagIdMeta = const VerificationMeta('tagId');
+  @override
+  late final GeneratedColumn<int> tagId = GeneratedColumn<int>(
+    'tag_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _lastSeenUploadDateMeta =
+      const VerificationMeta('lastSeenUploadDate');
+  @override
+  late final GeneratedColumn<int> lastSeenUploadDate = GeneratedColumn<int>(
+    'last_seen_upload_date',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _lastCheckedAtMeta = const VerificationMeta(
+    'lastCheckedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> lastCheckedAt =
+      GeneratedColumn<DateTime>(
+        'last_checked_at',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _newCountMeta = const VerificationMeta(
+    'newCount',
+  );
+  @override
+  late final GeneratedColumn<int> newCount = GeneratedColumn<int>(
+    'new_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant<int>(0),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    tagId,
+    lastSeenUploadDate,
+    lastCheckedAt,
+    newCount,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'TrackedArtist';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<TrackedArtist> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('tag_id')) {
+      context.handle(
+        _tagIdMeta,
+        tagId.isAcceptableOrUnknown(data['tag_id']!, _tagIdMeta),
+      );
+    }
+    if (data.containsKey('last_seen_upload_date')) {
+      context.handle(
+        _lastSeenUploadDateMeta,
+        lastSeenUploadDate.isAcceptableOrUnknown(
+          data['last_seen_upload_date']!,
+          _lastSeenUploadDateMeta,
+        ),
+      );
+    }
+    if (data.containsKey('last_checked_at')) {
+      context.handle(
+        _lastCheckedAtMeta,
+        lastCheckedAt.isAcceptableOrUnknown(
+          data['last_checked_at']!,
+          _lastCheckedAtMeta,
+        ),
+      );
+    }
+    if (data.containsKey('new_count')) {
+      context.handle(
+        _newCountMeta,
+        newCount.isAcceptableOrUnknown(data['new_count']!, _newCountMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {tagId};
+  @override
+  TrackedArtist map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return TrackedArtist(
+      tagId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}tag_id'],
+      )!,
+      lastSeenUploadDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}last_seen_upload_date'],
+      ),
+      lastCheckedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}last_checked_at'],
+      ),
+      newCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}new_count'],
+      )!,
+    );
+  }
+
+  @override
+  $TrackedArtistsTable createAlias(String alias) {
+    return $TrackedArtistsTable(attachedDatabase, alias);
+  }
+}
+
+class TrackedArtist extends DataClass implements Insertable<TrackedArtist> {
+  /// The artist's tag id. Stored rather than the name, because names get
+  /// edited site-side and ids do not — the same reason the favourites filter
+  /// matches on ids (P80).
+  final int tagId;
+
+  /// The newest upload time already accounted for. Everything newer than this
+  /// is what "new work" means.
+  ///
+  /// Set to the artist's current newest at the moment tracking starts, so the
+  /// first check reports nothing. Seeded empty it would announce the artist's
+  /// whole back catalogue as new.
+  final int? lastSeenUploadDate;
+
+  /// When this artist was last asked about. Only used to order a run's
+  /// budget, oldest first, so tracking many artists spreads over runs instead
+  /// of arriving as one burst.
+  final DateTime? lastCheckedAt;
+
+  /// How many new works the last check found. Cannot be derived without
+  /// another request, so it is stored.
+  final int newCount;
+  const TrackedArtist({
+    required this.tagId,
+    this.lastSeenUploadDate,
+    this.lastCheckedAt,
+    required this.newCount,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['tag_id'] = Variable<int>(tagId);
+    if (!nullToAbsent || lastSeenUploadDate != null) {
+      map['last_seen_upload_date'] = Variable<int>(lastSeenUploadDate);
+    }
+    if (!nullToAbsent || lastCheckedAt != null) {
+      map['last_checked_at'] = Variable<DateTime>(lastCheckedAt);
+    }
+    map['new_count'] = Variable<int>(newCount);
+    return map;
+  }
+
+  TrackedArtistsCompanion toCompanion(bool nullToAbsent) {
+    return TrackedArtistsCompanion(
+      tagId: Value(tagId),
+      lastSeenUploadDate: lastSeenUploadDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastSeenUploadDate),
+      lastCheckedAt: lastCheckedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastCheckedAt),
+      newCount: Value(newCount),
+    );
+  }
+
+  factory TrackedArtist.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return TrackedArtist(
+      tagId: serializer.fromJson<int>(json['tagId']),
+      lastSeenUploadDate: serializer.fromJson<int?>(json['lastSeenUploadDate']),
+      lastCheckedAt: serializer.fromJson<DateTime?>(json['lastCheckedAt']),
+      newCount: serializer.fromJson<int>(json['newCount']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'tagId': serializer.toJson<int>(tagId),
+      'lastSeenUploadDate': serializer.toJson<int?>(lastSeenUploadDate),
+      'lastCheckedAt': serializer.toJson<DateTime?>(lastCheckedAt),
+      'newCount': serializer.toJson<int>(newCount),
+    };
+  }
+
+  TrackedArtist copyWith({
+    int? tagId,
+    Value<int?> lastSeenUploadDate = const Value.absent(),
+    Value<DateTime?> lastCheckedAt = const Value.absent(),
+    int? newCount,
+  }) => TrackedArtist(
+    tagId: tagId ?? this.tagId,
+    lastSeenUploadDate: lastSeenUploadDate.present
+        ? lastSeenUploadDate.value
+        : this.lastSeenUploadDate,
+    lastCheckedAt: lastCheckedAt.present
+        ? lastCheckedAt.value
+        : this.lastCheckedAt,
+    newCount: newCount ?? this.newCount,
+  );
+  TrackedArtist copyWithCompanion(TrackedArtistsCompanion data) {
+    return TrackedArtist(
+      tagId: data.tagId.present ? data.tagId.value : this.tagId,
+      lastSeenUploadDate: data.lastSeenUploadDate.present
+          ? data.lastSeenUploadDate.value
+          : this.lastSeenUploadDate,
+      lastCheckedAt: data.lastCheckedAt.present
+          ? data.lastCheckedAt.value
+          : this.lastCheckedAt,
+      newCount: data.newCount.present ? data.newCount.value : this.newCount,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TrackedArtist(')
+          ..write('tagId: $tagId, ')
+          ..write('lastSeenUploadDate: $lastSeenUploadDate, ')
+          ..write('lastCheckedAt: $lastCheckedAt, ')
+          ..write('newCount: $newCount')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(tagId, lastSeenUploadDate, lastCheckedAt, newCount);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is TrackedArtist &&
+          other.tagId == this.tagId &&
+          other.lastSeenUploadDate == this.lastSeenUploadDate &&
+          other.lastCheckedAt == this.lastCheckedAt &&
+          other.newCount == this.newCount);
+}
+
+class TrackedArtistsCompanion extends UpdateCompanion<TrackedArtist> {
+  final Value<int> tagId;
+  final Value<int?> lastSeenUploadDate;
+  final Value<DateTime?> lastCheckedAt;
+  final Value<int> newCount;
+  const TrackedArtistsCompanion({
+    this.tagId = const Value.absent(),
+    this.lastSeenUploadDate = const Value.absent(),
+    this.lastCheckedAt = const Value.absent(),
+    this.newCount = const Value.absent(),
+  });
+  TrackedArtistsCompanion.insert({
+    this.tagId = const Value.absent(),
+    this.lastSeenUploadDate = const Value.absent(),
+    this.lastCheckedAt = const Value.absent(),
+    this.newCount = const Value.absent(),
+  });
+  static Insertable<TrackedArtist> custom({
+    Expression<int>? tagId,
+    Expression<int>? lastSeenUploadDate,
+    Expression<DateTime>? lastCheckedAt,
+    Expression<int>? newCount,
+  }) {
+    return RawValuesInsertable({
+      if (tagId != null) 'tag_id': tagId,
+      if (lastSeenUploadDate != null)
+        'last_seen_upload_date': lastSeenUploadDate,
+      if (lastCheckedAt != null) 'last_checked_at': lastCheckedAt,
+      if (newCount != null) 'new_count': newCount,
+    });
+  }
+
+  TrackedArtistsCompanion copyWith({
+    Value<int>? tagId,
+    Value<int?>? lastSeenUploadDate,
+    Value<DateTime?>? lastCheckedAt,
+    Value<int>? newCount,
+  }) {
+    return TrackedArtistsCompanion(
+      tagId: tagId ?? this.tagId,
+      lastSeenUploadDate: lastSeenUploadDate ?? this.lastSeenUploadDate,
+      lastCheckedAt: lastCheckedAt ?? this.lastCheckedAt,
+      newCount: newCount ?? this.newCount,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (tagId.present) {
+      map['tag_id'] = Variable<int>(tagId.value);
+    }
+    if (lastSeenUploadDate.present) {
+      map['last_seen_upload_date'] = Variable<int>(lastSeenUploadDate.value);
+    }
+    if (lastCheckedAt.present) {
+      map['last_checked_at'] = Variable<DateTime>(lastCheckedAt.value);
+    }
+    if (newCount.present) {
+      map['new_count'] = Variable<int>(newCount.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TrackedArtistsCompanion(')
+          ..write('tagId: $tagId, ')
+          ..write('lastSeenUploadDate: $lastSeenUploadDate, ')
+          ..write('lastCheckedAt: $lastCheckedAt, ')
+          ..write('newCount: $newCount')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$LocalDatabase extends GeneratedDatabase {
   _$LocalDatabase(QueryExecutor e) : super(e);
   $LocalDatabaseManager get managers => $LocalDatabaseManager(this);
@@ -3726,6 +4064,7 @@ abstract class _$LocalDatabase extends GeneratedDatabase {
     this,
   );
   late final $ComicTagIdsTable comicTagIds = $ComicTagIdsTable(this);
+  late final $TrackedArtistsTable trackedArtists = $TrackedArtistsTable(this);
   late final Index idxComicTagIdTag = Index(
     'idx_comic_tag_id_tag',
     'CREATE INDEX idx_comic_tag_id_tag ON ComicTagId (tag_id)',
@@ -3743,6 +4082,7 @@ abstract class _$LocalDatabase extends GeneratedDatabase {
     downloadJobPages,
     downloadedComics,
     comicTagIds,
+    trackedArtists,
     idxComicTagIdTag,
   ];
 }
@@ -5674,6 +6014,191 @@ typedef $$ComicTagIdsTableProcessedTableManager =
       ComicTagId,
       PrefetchHooks Function()
     >;
+typedef $$TrackedArtistsTableCreateCompanionBuilder =
+    TrackedArtistsCompanion Function({
+      Value<int> tagId,
+      Value<int?> lastSeenUploadDate,
+      Value<DateTime?> lastCheckedAt,
+      Value<int> newCount,
+    });
+typedef $$TrackedArtistsTableUpdateCompanionBuilder =
+    TrackedArtistsCompanion Function({
+      Value<int> tagId,
+      Value<int?> lastSeenUploadDate,
+      Value<DateTime?> lastCheckedAt,
+      Value<int> newCount,
+    });
+
+class $$TrackedArtistsTableFilterComposer
+    extends Composer<_$LocalDatabase, $TrackedArtistsTable> {
+  $$TrackedArtistsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get tagId => $composableBuilder(
+    column: $table.tagId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get lastSeenUploadDate => $composableBuilder(
+    column: $table.lastSeenUploadDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get lastCheckedAt => $composableBuilder(
+    column: $table.lastCheckedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get newCount => $composableBuilder(
+    column: $table.newCount,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$TrackedArtistsTableOrderingComposer
+    extends Composer<_$LocalDatabase, $TrackedArtistsTable> {
+  $$TrackedArtistsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get tagId => $composableBuilder(
+    column: $table.tagId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get lastSeenUploadDate => $composableBuilder(
+    column: $table.lastSeenUploadDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get lastCheckedAt => $composableBuilder(
+    column: $table.lastCheckedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get newCount => $composableBuilder(
+    column: $table.newCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$TrackedArtistsTableAnnotationComposer
+    extends Composer<_$LocalDatabase, $TrackedArtistsTable> {
+  $$TrackedArtistsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get tagId =>
+      $composableBuilder(column: $table.tagId, builder: (column) => column);
+
+  GeneratedColumn<int> get lastSeenUploadDate => $composableBuilder(
+    column: $table.lastSeenUploadDate,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get lastCheckedAt => $composableBuilder(
+    column: $table.lastCheckedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get newCount =>
+      $composableBuilder(column: $table.newCount, builder: (column) => column);
+}
+
+class $$TrackedArtistsTableTableManager
+    extends
+        RootTableManager<
+          _$LocalDatabase,
+          $TrackedArtistsTable,
+          TrackedArtist,
+          $$TrackedArtistsTableFilterComposer,
+          $$TrackedArtistsTableOrderingComposer,
+          $$TrackedArtistsTableAnnotationComposer,
+          $$TrackedArtistsTableCreateCompanionBuilder,
+          $$TrackedArtistsTableUpdateCompanionBuilder,
+          (
+            TrackedArtist,
+            BaseReferences<
+              _$LocalDatabase,
+              $TrackedArtistsTable,
+              TrackedArtist
+            >,
+          ),
+          TrackedArtist,
+          PrefetchHooks Function()
+        > {
+  $$TrackedArtistsTableTableManager(
+    _$LocalDatabase db,
+    $TrackedArtistsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$TrackedArtistsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$TrackedArtistsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$TrackedArtistsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> tagId = const Value.absent(),
+                Value<int?> lastSeenUploadDate = const Value.absent(),
+                Value<DateTime?> lastCheckedAt = const Value.absent(),
+                Value<int> newCount = const Value.absent(),
+              }) => TrackedArtistsCompanion(
+                tagId: tagId,
+                lastSeenUploadDate: lastSeenUploadDate,
+                lastCheckedAt: lastCheckedAt,
+                newCount: newCount,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> tagId = const Value.absent(),
+                Value<int?> lastSeenUploadDate = const Value.absent(),
+                Value<DateTime?> lastCheckedAt = const Value.absent(),
+                Value<int> newCount = const Value.absent(),
+              }) => TrackedArtistsCompanion.insert(
+                tagId: tagId,
+                lastSeenUploadDate: lastSeenUploadDate,
+                lastCheckedAt: lastCheckedAt,
+                newCount: newCount,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$TrackedArtistsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$LocalDatabase,
+      $TrackedArtistsTable,
+      TrackedArtist,
+      $$TrackedArtistsTableFilterComposer,
+      $$TrackedArtistsTableOrderingComposer,
+      $$TrackedArtistsTableAnnotationComposer,
+      $$TrackedArtistsTableCreateCompanionBuilder,
+      $$TrackedArtistsTableUpdateCompanionBuilder,
+      (
+        TrackedArtist,
+        BaseReferences<_$LocalDatabase, $TrackedArtistsTable, TrackedArtist>,
+      ),
+      TrackedArtist,
+      PrefetchHooks Function()
+    >;
 
 class $LocalDatabaseManager {
   final _$LocalDatabase _db;
@@ -5694,4 +6219,6 @@ class $LocalDatabaseManager {
       $$DownloadedComicsTableTableManager(_db, _db.downloadedComics);
   $$ComicTagIdsTableTableManager get comicTagIds =>
       $$ComicTagIdsTableTableManager(_db, _db.comicTagIds);
+  $$TrackedArtistsTableTableManager get trackedArtists =>
+      $$TrackedArtistsTableTableManager(_db, _db.trackedArtists);
 }

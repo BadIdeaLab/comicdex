@@ -5,6 +5,7 @@ import 'package:concept_nhv/storage/download_queue_repository.dart';
 import 'package:concept_nhv/storage/downloaded_library_repository.dart';
 import 'package:concept_nhv/storage/local_database.dart';
 import 'package:concept_nhv/storage/search_history_repository.dart';
+import 'package:concept_nhv/storage/tracked_artist_repository.dart';
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 
@@ -16,6 +17,7 @@ class SqliteTestHarness {
   late DownloadQueueRepository downloadQueueRepository;
   late DownloadedLibraryRepository downloadedLibraryRepository;
   late SearchHistoryRepository searchHistoryRepository;
+  late TrackedArtistRepository trackedArtistRepository;
 
   Future<void> initialize() async {
     localDatabase = LocalDatabase(
@@ -35,6 +37,9 @@ class SqliteTestHarness {
       localDatabase: localDatabase,
     );
     searchHistoryRepository = SearchHistoryRepository(
+      localDatabase: localDatabase,
+    );
+    trackedArtistRepository = TrackedArtistRepository(
       localDatabase: localDatabase,
     );
   }
