@@ -6,6 +6,7 @@ import 'package:concept_nhv/screens/collection_screen.dart';
 import 'package:concept_nhv/screens/comic_reader_screen.dart';
 import 'package:concept_nhv/screens/home_shell.dart';
 import 'package:concept_nhv/screens/settings_screen.dart';
+import 'package:concept_nhv/screens/tracking_screen.dart';
 import 'package:concept_nhv/state/comic_feed_model.dart';
 import 'package:concept_nhv/state/home_ui_model.dart';
 import 'package:concept_nhv/state/download_manager_model.dart';
@@ -36,6 +37,11 @@ GoRouter createAppRouter() {
             name: 'analysis',
             path: '/analysis',
             builder: (context, state) => const AnalysisScreen(),
+          ),
+          GoRoute(
+            name: 'tracking',
+            path: '/tracking',
+            builder: (context, state) => const TrackingScreen(),
           ),
           GoRoute(
             name: 'collection',

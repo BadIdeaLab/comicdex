@@ -1141,4 +1141,83 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get readerOnlineLookupFailed =>
       'Could not reach the site. Try again later.';
+
+  @override
+  String tagActionTrackArtist(String tag) {
+    return 'Track \"$tag\" for new work';
+  }
+
+  @override
+  String tagActionUntrackArtist(String tag) {
+    return 'Stop tracking \"$tag\"';
+  }
+
+  @override
+  String tagActionTracked(String tag) {
+    return 'Tracking \"$tag\". New work shows up on the bell.';
+  }
+
+  @override
+  String tagActionUntracked(String tag) {
+    return 'No longer tracking \"$tag\"';
+  }
+
+  @override
+  String get trackingTitle => 'Tracked artists';
+
+  @override
+  String get trackingEntryCard => 'Tracked artists';
+
+  @override
+  String trackingEntrySubtitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count artists',
+      one: '1 artist',
+      zero: 'Nothing tracked yet',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String trackingNewWorkBadge(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count artists have new work',
+      one: '1 artist has new work',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String trackingNewCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count new',
+      one: '1 new',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get trackingNoNewWork => 'Nothing new';
+
+  @override
+  String get trackingEmptyTitle => 'No artists tracked yet';
+
+  @override
+  String get trackingEmptyBody =>
+      'Long-press an artist tag anywhere in the app and choose \"Track\" to be told when they publish something.';
+
+  @override
+  String get trackingUnknownArtist => 'Unknown artist';
+
+  @override
+  String get trackingUntrackAction => 'Stop tracking';
+
+  @override
+  String get trackingBellTooltip => 'Artists with new work';
 }

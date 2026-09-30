@@ -376,5 +376,69 @@
   "readerSimilarOnline": "網站上的相似作品",
   "readerSearchedTag": "搜尋了：{tag}",
   "readerNothingNewOnline": "這裡沒有你還沒有的。",
-  "readerOnlineLookupFailed": "無法連到網站，請稍後再試。"
+  "readerOnlineLookupFailed": "無法連到網站，請稍後再試。",
+  "tagActionTrackArtist": "追蹤「{tag}」的新作",
+  "@tagActionTrackArtist": {
+    "placeholders": {
+      "tag": {
+        "type": "String"
+      }
+    }
+  },
+  "tagActionUntrackArtist": "取消追蹤「{tag}」",
+  "@tagActionUntrackArtist": {
+    "placeholders": {
+      "tag": {
+        "type": "String"
+      }
+    }
+  },
+  "tagActionTracked": "已追蹤「{tag}」，有新作會出現在鈴鐺上。",
+  "@tagActionTracked": {
+    "placeholders": {
+      "tag": {
+        "type": "String"
+      }
+    }
+  },
+  "tagActionUntracked": "已取消追蹤「{tag}」",
+  "@tagActionUntracked": {
+    "placeholders": {
+      "tag": {
+        "type": "String"
+      }
+    }
+  },
+  "trackingTitle": "追蹤中的作者",
+  "trackingEntryCard": "追蹤中的作者",
+  "trackingEntrySubtitle": "{count, plural, =0{尚未追蹤任何作者} other{{count} 位作者}}",
+  "@trackingEntrySubtitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "trackingNewWorkBadge": "{count} 位作者有新作",
+  "@trackingNewWorkBadge": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "trackingNewCount": "{count} 本新作",
+  "@trackingNewCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "trackingNoNewWork": "沒有新作",
+  "trackingEmptyTitle": "還沒有追蹤任何作者",
+  "trackingEmptyBody": "在 App 裡任何地方長壓一個作者標籤，選「追蹤」，他們發新作時就會通知你。",
+  "trackingUnknownArtist": "未知的作者",
+  "trackingUntrackAction": "取消追蹤",
+  "trackingBellTooltip": "有新作的作者"
 }

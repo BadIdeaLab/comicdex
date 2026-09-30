@@ -786,5 +786,69 @@
     }
   },
   "readerNothingNewOnline": "Nothing here you do not already have.",
-  "readerOnlineLookupFailed": "Could not reach the site. Try again later."
+  "readerOnlineLookupFailed": "Could not reach the site. Try again later.",
+  "tagActionTrackArtist": "Track \"{tag}\" for new work",
+  "@tagActionTrackArtist": {
+    "placeholders": {
+      "tag": {
+        "type": "String"
+      }
+    }
+  },
+  "tagActionUntrackArtist": "Stop tracking \"{tag}\"",
+  "@tagActionUntrackArtist": {
+    "placeholders": {
+      "tag": {
+        "type": "String"
+      }
+    }
+  },
+  "tagActionTracked": "Tracking \"{tag}\". New work shows up on the bell.",
+  "@tagActionTracked": {
+    "placeholders": {
+      "tag": {
+        "type": "String"
+      }
+    }
+  },
+  "tagActionUntracked": "No longer tracking \"{tag}\"",
+  "@tagActionUntracked": {
+    "placeholders": {
+      "tag": {
+        "type": "String"
+      }
+    }
+  },
+  "trackingTitle": "Tracked artists",
+  "trackingEntryCard": "Tracked artists",
+  "trackingEntrySubtitle": "{count, plural, =0{Nothing tracked yet} =1{1 artist} other{{count} artists}}",
+  "@trackingEntrySubtitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "trackingNewWorkBadge": "{count, plural, =1{1 artist has new work} other{{count} artists have new work}}",
+  "@trackingNewWorkBadge": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "trackingNewCount": "{count, plural, =1{1 new} other{{count} new}}",
+  "@trackingNewCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "trackingNoNewWork": "Nothing new",
+  "trackingEmptyTitle": "No artists tracked yet",
+  "trackingEmptyBody": "Long-press an artist tag anywhere in the app and choose \"Track\" to be told when they publish something.",
+  "trackingUnknownArtist": "Unknown artist",
+  "trackingUntrackAction": "Stop tracking",
+  "trackingBellTooltip": "Artists with new work"
 }

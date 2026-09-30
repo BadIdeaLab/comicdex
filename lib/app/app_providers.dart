@@ -62,7 +62,11 @@ import 'package:concept_nhv/state/favorite_sync_model.dart';
 import 'package:concept_nhv/state/home_ui_model.dart';
 import 'package:concept_nhv/state/preference_score_model.dart';
 import 'package:concept_nhv/state/tag_catalog_browser_model.dart';
+import 'package:concept_nhv/application/tracking/check_tracked_artists_use_case.dart';
 import 'package:concept_nhv/state/tag_preference_model.dart';
+import 'package:concept_nhv/state/tracking_model.dart';
+import 'package:concept_nhv/storage/tracked_artist_repository.dart';
+import 'package:concept_nhv/storage/tracking_state_store.dart';
 import 'package:concept_nhv/storage/collection_repository.dart';
 import 'package:concept_nhv/storage/comic_repository.dart';
 import 'package:concept_nhv/storage/comic_tag_repository.dart';
@@ -133,6 +137,13 @@ List<SingleChildWidget> _buildStorageProviders() {
   return <SingleChildWidget>[
     Provider(
       create: (context) => ComicRepository(localDatabase: context.read()),
+    ),
+    Provider(
+      create: (context) =>
+          TrackedArtistRepository(localDatabase: context.read()),
+    ),
+    Provider(
+      create: (context) => TrackingStateStore(optionsStore: context.read()),
     ),
     Provider(
       create: (context) => CollectionRepository(localDatabase: context.read()),
@@ -431,6 +442,27 @@ List<SingleChildWidget> _buildStateProviders() {
           clearFavoriteAuthUseCase: context.read(),
           syncRemoteFavoritesUseCase: context.read(),
           toggleFavoriteUseCase: context.read(),
+        );
+        model.initialize();
+        return model;
+      },
+    ),
+    Provider(
+      create: (context) => CheckTrackedArtistsUseCase(
+        trackedArtistRepository: context.read(),
+        trackingStateStore: context.read(),
+        nhentaiGateway: context.read(),
+        localTagCatalogService: context.read(),
+        blockedTagsRepository: context.read(),
+        searchQueryBuilder: context.read(),
+      ),
+    ),
+    ChangeNotifierProvider(
+      create: (context) {
+        final model = TrackingModel(
+          trackedArtistRepository: context.read(),
+          checkTrackedArtistsUseCase: context.read(),
+          localTagCatalogService: context.read(),
         );
         model.initialize();
         return model;

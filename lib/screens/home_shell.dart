@@ -10,6 +10,7 @@ import 'package:concept_nhv/l10n/app_localizations.dart';
 import 'package:concept_nhv/state/preference_score_model.dart';
 import 'package:concept_nhv/widgets/feed_failure_message.dart';
 import 'package:concept_nhv/state/tag_preference_model.dart';
+import 'package:concept_nhv/state/tracking_model.dart';
 import 'package:concept_nhv/widgets/collection_grid_sliver.dart';
 import 'package:concept_nhv/widgets/comic_grid_sliver.dart';
 import 'package:concept_nhv/widgets/download_job_list_sliver.dart';
@@ -20,6 +21,8 @@ import 'package:concept_nhv/widgets/glass_container.dart';
 import 'package:concept_nhv/widgets/search_suggestions_panel.dart';
 import 'package:concept_nhv/widgets/tag_actions_sheet.dart';
 import 'package:concept_nhv/widgets/tag_preference_sliver.dart';
+import 'package:concept_nhv/widgets/tracking/tracked_artists_card.dart';
+import 'package:concept_nhv/widgets/tracking/tracking_bell_action.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -204,6 +207,9 @@ class _HomeShellState extends State<HomeShell> {
             searchController: homeUiModel.searchController,
             onSubmitted: (value) => _handleSearchSubmit(context, value),
             barTrailing: <Widget>[
+              // Renders nothing unless a tracked artist has published, which
+              // keeps the search field its usual width the rest of the time.
+              const TrackingBellAction(),
               IconButton.filledTonal(
                 onPressed: homeUiModel.isLoading
                     ? null
@@ -421,6 +427,10 @@ class _CollectionOverviewScreenState extends State<CollectionOverviewScreen> {
       // Optional, like the badge itself — this screen has to build with no
       // preference data above it.
       context.read<PreferenceScoreModel?>()?.refresh();
+      // Same reasoning as the line above: this is where the user looks at
+      // what they collect. The cooldown refuses most of these, so asking
+      // costs nothing when it is not due.
+      context.read<TrackingModel?>()?.check();
     });
   }
 
@@ -478,6 +488,8 @@ class _CollectionOverviewScreenState extends State<CollectionOverviewScreen> {
         return SliverMainAxisGroup(
           slivers: <Widget>[
             CollectionGridSliver(collections: snapshot.requireData),
+            const SliverToBoxAdapter(child: SizedBox(height: 8)),
+            const SliverToBoxAdapter(child: TrackedArtistsCard()),
             _buildTagPreferences(context),
           ],
         );

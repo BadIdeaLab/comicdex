@@ -1970,6 +1970,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Could not reach the site. Try again later.'**
   String get readerOnlineLookupFailed;
+
+  /// No description provided for @tagActionTrackArtist.
+  ///
+  /// In en, this message translates to:
+  /// **'Track \"{tag}\" for new work'**
+  String tagActionTrackArtist(String tag);
+
+  /// No description provided for @tagActionUntrackArtist.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop tracking \"{tag}\"'**
+  String tagActionUntrackArtist(String tag);
+
+  /// No description provided for @tagActionTracked.
+  ///
+  /// In en, this message translates to:
+  /// **'Tracking \"{tag}\". New work shows up on the bell.'**
+  String tagActionTracked(String tag);
+
+  /// No description provided for @tagActionUntracked.
+  ///
+  /// In en, this message translates to:
+  /// **'No longer tracking \"{tag}\"'**
+  String tagActionUntracked(String tag);
+
+  /// No description provided for @trackingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Tracked artists'**
+  String get trackingTitle;
+
+  /// No description provided for @trackingEntryCard.
+  ///
+  /// In en, this message translates to:
+  /// **'Tracked artists'**
+  String get trackingEntryCard;
+
+  /// No description provided for @trackingEntrySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{Nothing tracked yet} =1{1 artist} other{{count} artists}}'**
+  String trackingEntrySubtitle(int count);
+
+  /// No description provided for @trackingNewWorkBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 artist has new work} other{{count} artists have new work}}'**
+  String trackingNewWorkBadge(int count);
+
+  /// No description provided for @trackingNewCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 new} other{{count} new}}'**
+  String trackingNewCount(int count);
+
+  /// No description provided for @trackingNoNewWork.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing new'**
+  String get trackingNoNewWork;
+
+  /// No description provided for @trackingEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No artists tracked yet'**
+  String get trackingEmptyTitle;
+
+  /// No description provided for @trackingEmptyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Long-press an artist tag anywhere in the app and choose \"Track\" to be told when they publish something.'**
+  String get trackingEmptyBody;
+
+  /// No description provided for @trackingUnknownArtist.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown artist'**
+  String get trackingUnknownArtist;
+
+  /// No description provided for @trackingUntrackAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop tracking'**
+  String get trackingUntrackAction;
+
+  /// No description provided for @trackingBellTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Artists with new work'**
+  String get trackingBellTooltip;
 }
 
 class _AppLocalizationsDelegate

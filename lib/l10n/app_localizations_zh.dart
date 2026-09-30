@@ -1113,6 +1113,85 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get readerOnlineLookupFailed =>
       'Could not reach the site. Try again later.';
+
+  @override
+  String tagActionTrackArtist(String tag) {
+    return 'Track \"$tag\" for new work';
+  }
+
+  @override
+  String tagActionUntrackArtist(String tag) {
+    return 'Stop tracking \"$tag\"';
+  }
+
+  @override
+  String tagActionTracked(String tag) {
+    return 'Tracking \"$tag\". New work shows up on the bell.';
+  }
+
+  @override
+  String tagActionUntracked(String tag) {
+    return 'No longer tracking \"$tag\"';
+  }
+
+  @override
+  String get trackingTitle => 'Tracked artists';
+
+  @override
+  String get trackingEntryCard => 'Tracked artists';
+
+  @override
+  String trackingEntrySubtitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count artists',
+      one: '1 artist',
+      zero: 'Nothing tracked yet',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String trackingNewWorkBadge(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count artists have new work',
+      one: '1 artist has new work',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String trackingNewCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count new',
+      one: '1 new',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get trackingNoNewWork => 'Nothing new';
+
+  @override
+  String get trackingEmptyTitle => 'No artists tracked yet';
+
+  @override
+  String get trackingEmptyBody =>
+      'Long-press an artist tag anywhere in the app and choose \"Track\" to be told when they publish something.';
+
+  @override
+  String get trackingUnknownArtist => 'Unknown artist';
+
+  @override
+  String get trackingUntrackAction => 'Stop tracking';
+
+  @override
+  String get trackingBellTooltip => 'Artists with new work';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -2185,4 +2264,69 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get readerOnlineLookupFailed => '無法連到網站，請稍後再試。';
+
+  @override
+  String tagActionTrackArtist(String tag) {
+    return '追蹤「$tag」的新作';
+  }
+
+  @override
+  String tagActionUntrackArtist(String tag) {
+    return '取消追蹤「$tag」';
+  }
+
+  @override
+  String tagActionTracked(String tag) {
+    return '已追蹤「$tag」，有新作會出現在鈴鐺上。';
+  }
+
+  @override
+  String tagActionUntracked(String tag) {
+    return '已取消追蹤「$tag」';
+  }
+
+  @override
+  String get trackingTitle => '追蹤中的作者';
+
+  @override
+  String get trackingEntryCard => '追蹤中的作者';
+
+  @override
+  String trackingEntrySubtitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 位作者',
+      zero: '尚未追蹤任何作者',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String trackingNewWorkBadge(int count) {
+    return '$count 位作者有新作';
+  }
+
+  @override
+  String trackingNewCount(int count) {
+    return '$count 本新作';
+  }
+
+  @override
+  String get trackingNoNewWork => '沒有新作';
+
+  @override
+  String get trackingEmptyTitle => '還沒有追蹤任何作者';
+
+  @override
+  String get trackingEmptyBody => '在 App 裡任何地方長壓一個作者標籤，選「追蹤」，他們發新作時就會通知你。';
+
+  @override
+  String get trackingUnknownArtist => '未知的作者';
+
+  @override
+  String get trackingUntrackAction => '取消追蹤';
+
+  @override
+  String get trackingBellTooltip => '有新作的作者';
 }
