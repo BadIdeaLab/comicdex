@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 
-import 'package:concept_nhv/services/nhentai_api_client.dart';
 import 'package:dio/dio.dart';
+import 'package:concept_nhv/services/nhentai_request_options.dart';
 
 abstract class RemoteAssetFetcher {
   Future<Uint8List> fetchBytes(String url);

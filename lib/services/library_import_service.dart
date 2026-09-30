@@ -5,13 +5,14 @@ import 'package:concept_nhv/models/stored_comic.dart';
 import 'package:concept_nhv/storage/collection_repository.dart';
 import 'package:concept_nhv/storage/comic_repository.dart';
 import 'package:dio/dio.dart';
+import 'package:concept_nhv/services/nhentai_request_options.dart';
 
 class LibraryImportService {
   LibraryImportService({
     required this.comicRepository,
     required this.collectionRepository,
     Dio? dio,
-  }) : _dio = dio ?? Dio();
+  }) : _dio = dio ?? Dio(nhentaiRequestOptions);
 
   final ComicRepository comicRepository;
   final CollectionRepository collectionRepository;

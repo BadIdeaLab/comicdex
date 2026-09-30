@@ -44,13 +44,22 @@ class _BootstrapScreenState extends State<BootstrapScreen> {
     }
 
     final homeUiModel = context.read<HomeUiModel>();
+    final feed = context.read<ComicFeedModel>();
+
+    // Navigate first, load after. Awaiting the feed here left the user on a
+    // spinner for the whole timeout-and-retry chain whenever the site was
+    // unreachable — with no back button, no error and no retry, because the
+    // screen that has all three is the one being waited for. The home tab
+    // already shows its own loading state and, since P89, its own failure
+    // and retry.
     homeUiModel.setLoading(true);
-    await context.read<ComicFeedModel>().loadHomeFeed();
+    context.go('/index');
+
+    await feed.loadHomeFeed();
     if (!mounted) {
       return;
     }
     homeUiModel.setLoading(false);
-    context.go('/index');
   }
 
   @override

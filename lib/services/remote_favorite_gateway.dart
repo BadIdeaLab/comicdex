@@ -8,6 +8,7 @@ import 'package:concept_nhv/services/nhentai_auth_service.dart';
 import 'package:concept_nhv/services/request_retry.dart';
 import 'package:concept_nhv/storage/nhentai_api_key_store.dart';
 import 'package:dio/dio.dart';
+import 'package:concept_nhv/services/nhentai_request_options.dart';
 
 class RemoteFavoriteAuthException implements Exception {
   const RemoteFavoriteAuthException(this.message);
@@ -56,7 +57,7 @@ class NhentaiApiRemoteFavoriteGateway implements RemoteFavoriteGateway {
     required this.apiKeyStore,
     required this.authService,
     Dio? dio,
-  }) : _dio = dio ?? Dio();
+  }) : _dio = dio ?? Dio(nhentaiRequestOptions);
 
   final NhentaiApiKeyStore apiKeyStore;
   final NhentaiAuthService authService;
@@ -74,7 +75,10 @@ class NhentaiApiRemoteFavoriteGateway implements RemoteFavoriteGateway {
 
     while (true) {
       await Future<void>.delayed(_favoritePageDelay);
-      final response = await _fetchFavoritesPage(page, onRateLimit: onRateLimit);
+      final response = await _fetchFavoritesPage(
+        page,
+        onRateLimit: onRateLimit,
+      );
       final searchResponse = _mapFavoritesResponse(response.data ?? const {});
       comics.addAll(searchResponse.result);
 

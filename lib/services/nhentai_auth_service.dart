@@ -1,6 +1,7 @@
 import 'package:concept_nhv/models/nhentai_api_credential.dart';
 import 'package:concept_nhv/storage/nhentai_api_key_store.dart';
 import 'package:dio/dio.dart';
+import 'package:concept_nhv/services/nhentai_request_options.dart';
 
 class NhentaiAuthException implements Exception {
   const NhentaiAuthException(this.message);
@@ -13,7 +14,7 @@ class NhentaiAuthException implements Exception {
 
 class NhentaiAuthService {
   NhentaiAuthService({required this.apiKeyStore, Dio? dio})
-    : _dio = dio ?? Dio();
+    : _dio = dio ?? Dio(nhentaiRequestOptions);
 
   final NhentaiApiKeyStore apiKeyStore;
   final Dio _dio;
@@ -76,13 +77,15 @@ class NhentaiAuthService {
     try {
       final response = await _dio.getUri<Map<String, dynamic>>(
         Uri.https('nhentai.net', '/api/v2/user'),
-        options: Options(headers: <String, String>{
-          'Authorization': 'Key $apiKey',
-        }),
+        options: Options(
+          headers: <String, String>{'Authorization': 'Key $apiKey'},
+        ),
       );
       final username = response.data?['username'] as String?;
       if (username == null || username.trim().isEmpty) {
-        throw const NhentaiAuthException('API key validation returned no user.');
+        throw const NhentaiAuthException(
+          'API key validation returned no user.',
+        );
       }
       return username;
     } on DioException catch (error) {

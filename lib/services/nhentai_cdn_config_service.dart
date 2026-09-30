@@ -1,8 +1,10 @@
 import 'package:concept_nhv/models/nhentai_cdn_config.dart';
 import 'package:dio/dio.dart';
+import 'package:concept_nhv/services/nhentai_request_options.dart';
 
 class NhentaiCdnConfigService {
-  NhentaiCdnConfigService({Dio? dio}) : _dio = dio ?? Dio();
+  NhentaiCdnConfigService({Dio? dio})
+    : _dio = dio ?? Dio(nhentaiRequestOptions);
 
   static const List<String> _defaultImageHosts = <String>[
     'i1.nhentai.net',

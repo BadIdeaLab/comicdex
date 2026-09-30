@@ -6,17 +6,12 @@ import 'package:concept_nhv/models/comic_tag.dart';
 import 'package:concept_nhv/models/comic_title.dart';
 import 'package:concept_nhv/services/nhentai_cdn_config_service.dart';
 import 'package:concept_nhv/storage/nhentai_api_key_store.dart';
+import 'package:concept_nhv/services/nhentai_request_options.dart';
 import 'package:dio/dio.dart';
 
 /// Without these a stalled server leaves the request hanging forever, and
 /// the reader just watches a spinner. Long enough for a slow page, short
 /// enough that a dead connection becomes a retryable timeout (P89).
-final BaseOptions nhentaiRequestOptions = BaseOptions(
-  connectTimeout: const Duration(seconds: 15),
-  receiveTimeout: const Duration(seconds: 30),
-  sendTimeout: const Duration(seconds: 30),
-);
-
 abstract class NhentaiGateway {
   Future<void> pingHomepage();
 
@@ -24,9 +19,8 @@ abstract class NhentaiGateway {
 
   Future<Comic> loadComicDetail(String comicId);
 
-  Future<({List<ComicTag> tags, int? numFavorites, int? uploadDate})> loadComicMeta(
-    String comicId,
-  );
+  Future<({List<ComicTag> tags, int? numFavorites, int? uploadDate})>
+  loadComicMeta(String comicId);
 }
 
 class NhentaiApiClient implements NhentaiGateway {
@@ -69,12 +63,15 @@ class NhentaiApiClient implements NhentaiGateway {
   }
 
   @override
-  Future<({List<ComicTag> tags, int? numFavorites, int? uploadDate})> loadComicMeta(
-    String comicId,
-  ) async {
+  Future<({List<ComicTag> tags, int? numFavorites, int? uploadDate})>
+  loadComicMeta(String comicId) async {
     final cached = _comicTagCache[comicId];
     if (cached != null) {
-      return (tags: cached, numFavorites: _comicFavoritesCache[comicId], uploadDate: _comicUploadDateCache[comicId]);
+      return (
+        tags: cached,
+        numFavorites: _comicFavoritesCache[comicId],
+        uploadDate: _comicUploadDateCache[comicId],
+      );
     }
 
     final result = await _get(
@@ -84,14 +81,15 @@ class NhentaiApiClient implements NhentaiGateway {
     _comicTagCache[comic.id] = comic.tags;
     _comicFavoritesCache[comic.id] = comic.numFavorites;
     _comicUploadDateCache[comic.id] = comic.uploadDate;
-    return (tags: comic.tags, numFavorites: comic.numFavorites, uploadDate: comic.uploadDate);
+    return (
+      tags: comic.tags,
+      numFavorites: comic.numFavorites,
+      uploadDate: comic.uploadDate,
+    );
   }
 
   Future<Response<dynamic>> _get(Uri uri) async {
-    return _dio.getUri(
-      uri,
-      options: Options(headers: await _buildHeaders()),
-    );
+    return _dio.getUri(uri, options: Options(headers: await _buildHeaders()));
   }
 
   Future<Map<String, String>> _buildHeaders() async {
