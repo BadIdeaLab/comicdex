@@ -90,14 +90,43 @@ class TrackedArtistRepository {
 
   /// Moves the watermark up and clears the count, once the user has seen what
   /// was found.
-  Future<void> markSeen({required int tagId, required int uploadDate}) {
+  ///
+  /// The watermark becomes [seenAt] rather than a specific gallery's upload
+  /// time, because the user is looking at that artist's results right now:
+  /// everything uploaded before this moment has been put in front of them.
+  ///
+  /// The cost, which is the same one the count already carries: a search only
+  /// reads its first page, so an artist who published more than a page's
+  /// worth between two checks has the overflow marked seen along with the
+  /// rest. Both numbers come from that one page, so neither is more right
+  /// than the other.
+  Future<void> markSeen({required int tagId, required DateTime seenAt}) {
     return (localDatabase.update(
       localDatabase.trackedArtists,
     )..where((table) => table.tagId.equals(tagId))).write(
       TrackedArtistsCompanion(
-        lastSeenUploadDate: drift.Value<int>(uploadDate),
+        lastSeenUploadDate: drift.Value<int>(
+          seenAt.toUtc().millisecondsSinceEpoch ~/ 1000,
+        ),
         newCount: const drift.Value<int>(0),
       ),
     );
+  }
+
+  /// Sets the watermark of an artist that has never had one.
+  ///
+  /// Tracking starts with no watermark on purpose — pressing "track" must not
+  /// become a network request that can fail — so the first check is what
+  /// establishes where "new" begins.
+  Future<void> seedWatermark({required int tagId, required int uploadDate}) {
+    return (localDatabase.update(localDatabase.trackedArtists)..where(
+          (table) =>
+              table.tagId.equals(tagId) & table.lastSeenUploadDate.isNull(),
+        ))
+        .write(
+          TrackedArtistsCompanion(
+            lastSeenUploadDate: drift.Value<int>(uploadDate),
+          ),
+        );
   }
 }

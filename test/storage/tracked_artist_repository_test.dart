@@ -35,12 +35,12 @@ void main() {
       // Un-tracking and re-tracking should not replay what the user has
       // already been shown.
       await repository.track(20, lastSeenUploadDate: 1700);
-      await repository.markSeen(tagId: 20, uploadDate: 1900);
+      await repository.markSeen(tagId: 20, seenAt: DateTime.utc(2026, 9, 30));
 
       await repository.track(20, lastSeenUploadDate: 1000);
 
       final rows = await repository.loadAll();
-      expect(rows.single.lastSeenUploadDate, 1900);
+      expect(rows.single.lastSeenUploadDate, greaterThan(1700));
     });
 
     test('untracking removes the row', () async {
@@ -113,7 +113,10 @@ void main() {
       );
     });
 
-    test('marking seen moves the watermark and clears the count', () async {
+    test('marking seen moves the watermark to that moment', () async {
+      // Not to a particular gallery's upload time: the user is looking at
+      // that artist's results, so everything uploaded before now has been put
+      // in front of them.
       await repository.track(20, lastSeenUploadDate: 1700);
       await repository.recordCheck(
         tagId: 20,
@@ -121,11 +124,38 @@ void main() {
         newCount: 3,
       );
 
-      await repository.markSeen(tagId: 20, uploadDate: 1900);
+      final seenAt = DateTime.utc(2026, 9, 30, 12);
+      await repository.markSeen(tagId: 20, seenAt: seenAt);
 
       final row = (await repository.loadAll()).single;
-      expect(row.lastSeenUploadDate, 1900);
+      expect(
+        row.lastSeenUploadDate,
+        seenAt.millisecondsSinceEpoch ~/ 1000,
+        reason: 'nhentai upload dates are epoch seconds',
+      );
       expect(row.newCount, 0);
+    });
+
+    group('seedWatermark', () {
+      test('fills in an artist that has none', () async {
+        // Tracking starts with no watermark on purpose, so that pressing
+        // "track" is not a request that can fail.
+        await repository.track(20);
+
+        await repository.seedWatermark(tagId: 20, uploadDate: 1700);
+
+        expect((await repository.loadAll()).single.lastSeenUploadDate, 1700);
+      });
+
+      test('never overwrites one that already exists', () async {
+        // A later check must not rewind an artist to whatever happens to be
+        // on page one today.
+        await repository.track(20, lastSeenUploadDate: 1700);
+
+        await repository.seedWatermark(tagId: 20, uploadDate: 100);
+
+        expect((await repository.loadAll()).single.lastSeenUploadDate, 1700);
+      });
     });
   });
 }

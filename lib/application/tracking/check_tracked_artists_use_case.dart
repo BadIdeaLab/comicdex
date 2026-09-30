@@ -158,6 +158,20 @@ class CheckTrackedArtistsUseCase {
       checkedAt: now(),
       newCount: newCount,
     );
+
+    // The first check is what establishes where "new" begins: tracking starts
+    // with no watermark so that pressing "track" is not a request that can
+    // fail. Until this runs, everything looks new, which is why
+    // [countNewerThan] answers 0 for a null watermark.
+    if (artist.lastSeenUploadDate == null) {
+      final newest = newestUploadDate(response.result);
+      if (newest != null) {
+        await trackedArtistRepository.seedWatermark(
+          tagId: artist.tagId,
+          uploadDate: newest,
+        );
+      }
+    }
     return newCount;
   }
 }

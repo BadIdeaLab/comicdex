@@ -254,6 +254,44 @@ void main() {
         },
       );
 
+      test(
+        'the first check seeds the watermark, the second can report',
+        () async {
+          // Tracking carries no watermark, so the first check is what decides
+          // where "new" begins. Without this the artist would report nothing
+          // for ever, which looks exactly like tracking that does not work.
+          await artists.track(1);
+          await buildUseCase(
+            _SearchGateway(response: withUploadDates(<int>[1800, 1500])),
+          ).execute();
+
+          expect((await artists.loadAll()).single.lastSeenUploadDate, 1800);
+
+          clock = clock.add(kTrackingRunInterval);
+          final result = await buildUseCase(
+            _SearchGateway(response: withUploadDates(<int>[2500, 1800])),
+          ).execute();
+
+          expect(result.artistsWithNewWork, 1);
+          expect((await artists.loadAll()).single.newCount, 1);
+        },
+      );
+
+      test('a seeded watermark is not rewritten by a later check', () async {
+        await artists.track(1);
+        await buildUseCase(
+          _SearchGateway(response: withUploadDates(<int>[1800])),
+        ).execute();
+
+        clock = clock.add(kTrackingRunInterval);
+        await buildUseCase(
+          // The site returned an older page this time, for whatever reason.
+          _SearchGateway(response: withUploadDates(<int>[900])),
+        ).execute();
+
+        expect((await artists.loadAll()).single.lastSeenUploadDate, 1800);
+      });
+
       test('an artist the catalog cannot name is not asked about', () async {
         // No slug means no query to send. It must still be marked checked, or
         // it sits at the front of every future run for ever.
