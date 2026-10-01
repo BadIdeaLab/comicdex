@@ -28,9 +28,7 @@ class AppShellNavigationController {
         if (feedModel.comics != null) {
           return const AppShellNavigationResult();
         }
-        homeUiModel.setLoading(true);
         final statusCode = await feedModel.loadHomeFeed(clearComic: true);
-        homeUiModel.setLoading(false);
         return AppShellNavigationResult(
           statusMessage: _statusMessageFromCode(statusCode),
         );
@@ -57,9 +55,7 @@ class AppShellNavigationController {
         ? 'Sort by popular type: ${current?.label ?? 'None'}'
         : null;
 
-    homeUiModel.setLoading(true);
     await feedModel.fetchNextPage(page: 1);
-    homeUiModel.setLoading(false);
 
     return AppShellNavigationResult(sortMessage: sortMessage);
   }

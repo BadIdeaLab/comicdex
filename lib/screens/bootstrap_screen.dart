@@ -1,7 +1,6 @@
 import 'package:concept_nhv/l10n/app_localizations.dart';
 import 'package:concept_nhv/services/backup/restore_progress_flag.dart';
 import 'package:concept_nhv/state/comic_feed_model.dart';
-import 'package:concept_nhv/state/home_ui_model.dart';
 import 'package:concept_nhv/widgets/interrupted_restore_prompt.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -43,7 +42,6 @@ class _BootstrapScreenState extends State<BootstrapScreen> {
       return;
     }
 
-    final homeUiModel = context.read<HomeUiModel>();
     final feed = context.read<ComicFeedModel>();
 
     // Navigate first, load after. Awaiting the feed here left the user on a
@@ -52,17 +50,12 @@ class _BootstrapScreenState extends State<BootstrapScreen> {
     // screen that has all three is the one being waited for. The home tab
     // already shows its own loading state and, since P89, its own failure
     // and retry.
-    homeUiModel.setLoading(true);
     context.go('/index');
 
+    // Not awaited for anything: ComicFeedModel raises and lowers its own
+    // `isFetching` around this, so there is nothing left here to clean up —
+    // which is what the P98 regression turned out to be about.
     await feed.loadHomeFeed();
-    // Deliberately not guarded by `mounted`. Navigating above takes this
-    // screen out of the tree, so a guard here never lets the flag be cleared
-    // — which left the loading bar running for ever and, because the same
-    // flag gates the infinite scroll, switched auto-loading off until a
-    // restart. `homeUiModel` was read before the navigation and is
-    // app-scoped, so it outlives this screen by design.
-    homeUiModel.setLoading(false);
   }
 
   @override

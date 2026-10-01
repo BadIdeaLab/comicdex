@@ -1,4 +1,5 @@
 import 'package:concept_nhv/application/feed/feed_load_result.dart';
+import 'package:concept_nhv/application/search/blocked_tags_repository.dart';
 import 'package:concept_nhv/application/feed/load_collection_summaries_use_case.dart';
 import 'package:concept_nhv/application/feed/search_comics_use_case.dart';
 import 'package:concept_nhv/models/comic.dart';
@@ -45,6 +46,84 @@ void main() {
       result: <dynamic>[sampleComic(id: id)].cast(),
       numPages: 5,
     );
+
+    group('isFetching', () {
+      test(
+        'is raised while a request is in flight and lowered after',
+        () async {
+          final gateway = _SequenceGateway(<Object>[page('1')]);
+          final model = buildModel(gateway);
+          expect(model.isFetching, isFalse);
+
+          final pending = model.loadHomeFeed();
+          expect(
+            model.isFetching,
+            isTrue,
+            reason: 'raised synchronously, before the first await',
+          );
+
+          await pending;
+          expect(model.isFetching, isFalse);
+        },
+      );
+
+      test('comes back down when the blocked-tag read throws', () async {
+        // The shape of the eight holes this replaced: nine callers used to
+        // raise this flag by hand around their own calls, and only one of
+        // them used try/finally. Anything thrown from in here left it raised
+        // for ever — and because the same flag gates the infinite scroll,
+        // that switched auto-loading off until a restart.
+        final model = ComicFeedModel(
+          searchComicsUseCase: SearchComicsUseCase(
+            nhentaiGateway: _SequenceGateway(<Object>[page('1')]),
+            searchQueryBuilder: const SearchQueryBuilder(),
+            retrySleep: (_) async {},
+          ),
+          loadCollectionSummariesUseCase: LoadCollectionSummariesUseCase(
+            collectionRepository: harness.collectionRepository,
+          ),
+          blockedTagsRepository: _ThrowingBlockedTagsRepository(),
+        );
+
+        await expectLater(
+          model.loadHomeFeed(clearComic: true),
+          throwsA(isA<StateError>()),
+        );
+        expect(model.isFetching, isFalse);
+      });
+
+      test(
+        'two overlapping requests: the first to finish does not clear it',
+        () async {
+          // A bool would have the earlier one declare that nothing is running
+          // while the later one is still going, which is exactly when the
+          // infinite scroll would fire a third.
+          final gateway = _SequenceGateway(<Object>[page('1'), page('2')]);
+          final model = buildModel(gateway);
+
+          final first = model.loadHomeFeed();
+          final second = model.fetchNextPage(page: 2);
+          await first;
+
+          expect(model.isFetching, isTrue, reason: 'the second is still going');
+
+          await second;
+          expect(model.isFetching, isFalse);
+        },
+      );
+
+      test('notifies listeners when it changes', () async {
+        // The progress bar and the refresh button both read it, so a change
+        // nobody is told about is a bar that never appears.
+        final model = buildModel(_SequenceGateway(<Object>[page('1')]));
+        var notifications = 0;
+        model.addListener(() => notifications += 1);
+
+        await model.loadHomeFeed();
+
+        expect(notifications, greaterThanOrEqualTo(2));
+      });
+    });
 
     test('a failed page leaves pagination exactly where it was', () async {
       // The point of P89: one 504 used to set `noMorePage`, which switched
@@ -102,6 +181,17 @@ void main() {
       expect(model.noMorePage, isTrue);
     });
   });
+}
+
+/// Fails before the request is even built, which is the path that used to
+/// leak the flag.
+class _ThrowingBlockedTagsRepository implements BlockedTagsRepository {
+  @override
+  Future<List<String>> loadBlockedTags() async =>
+      throw StateError('blocked tags unavailable');
+
+  @override
+  Future<void> saveBlockedTags(List<String> tags) async {}
 }
 
 DioException _serverError() {

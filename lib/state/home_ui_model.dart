@@ -16,8 +16,6 @@ class HomeUiModel extends ChangeNotifier {
   final TextEditingController downloadsSearchController =
       TextEditingController();
 
-  bool _isLoading = false;
-
   /// Tag ids the Downloads tab filters by, ANDed together (P82).
   ///
   /// Ids rather than text: tag names contain spaces (`sole female`), so
@@ -26,7 +24,6 @@ class HomeUiModel extends ChangeNotifier {
   final List<int> _downloadsTagIds = <int>[];
 
   int get navigationIndex => _navigationIndex;
-  bool get isLoading => _isLoading;
   String get downloadsSearchQuery => downloadsSearchController.text;
   List<int> get downloadsTagIds => List<int>.unmodifiable(_downloadsTagIds);
 
@@ -91,11 +88,6 @@ class HomeUiModel extends ChangeNotifier {
       searchController.text = '';
     }
     _navigationIndex = value;
-    notifyListeners();
-  }
-
-  void setLoading(bool value) {
-    _isLoading = value;
     notifyListeners();
   }
 

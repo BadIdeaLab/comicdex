@@ -51,7 +51,7 @@ void main() {
       final result = await controller.handleDestinationSelected(0);
 
       expect(homeUiModel.navigationIndex, 0);
-      expect(homeUiModel.isLoading, isFalse);
+      expect(feedModel.isFetching, isFalse);
       expect(feedModel.comicsLoaded, greaterThan(0));
       expect(result.statusMessage, isNull);
     });
@@ -76,20 +76,23 @@ void main() {
       expect(homeUiModel.searchController.text, isEmpty);
     });
 
-    test('does not refetch when returning to home with results in hand', () async {
-      // The reported symptom: every trip back to Home re-ran the search and
-      // dropped the reader at the top, discarding everything already paged in.
-      await controller.handleDestinationSelected(0);
-      final searchesAfterFirstLoad = gateway.searchedUris.length;
-      final loadedAfterFirstLoad = feedModel.comicsLoaded;
+    test(
+      'does not refetch when returning to home with results in hand',
+      () async {
+        // The reported symptom: every trip back to Home re-ran the search and
+        // dropped the reader at the top, discarding everything already paged in.
+        await controller.handleDestinationSelected(0);
+        final searchesAfterFirstLoad = gateway.searchedUris.length;
+        final loadedAfterFirstLoad = feedModel.comicsLoaded;
 
-      await controller.handleDestinationSelected(1);
-      await controller.handleDestinationSelected(0);
+        await controller.handleDestinationSelected(1);
+        await controller.handleDestinationSelected(0);
 
-      expect(gateway.searchedUris.length, searchesAfterFirstLoad);
-      expect(feedModel.comicsLoaded, loadedAfterFirstLoad);
-      expect(homeUiModel.navigationIndex, 0);
-    });
+        expect(gateway.searchedUris.length, searchesAfterFirstLoad);
+        expect(feedModel.comicsLoaded, loadedAfterFirstLoad);
+        expect(homeUiModel.navigationIndex, 0);
+      },
+    );
 
     test('loads on return when there is still nothing to show', () async {
       // An empty feed means the first load never succeeded, so coming back has
@@ -103,30 +106,39 @@ void main() {
       expect(feedModel.comicsLoaded, greaterThan(0));
     });
 
-    test('refreshes collection summaries when opening collection tabs', () async {
-      final result = await controller.handleDestinationSelected(2);
+    test(
+      'refreshes collection summaries when opening collection tabs',
+      () async {
+        final result = await controller.handleDestinationSelected(2);
 
-      expect(homeUiModel.navigationIndex, 2);
-      expect(feedModel.collectionSummariesFuture, isNotNull);
-      expect(result.statusMessage, isNull);
-    });
+        expect(homeUiModel.navigationIndex, 2);
+        expect(feedModel.collectionSummariesFuture, isNotNull);
+        expect(result.statusMessage, isNull);
+      },
+    );
 
-    test('switches to downloads without refreshing collection summaries', () async {
-      final result = await controller.handleDestinationSelected(1);
+    test(
+      'switches to downloads without refreshing collection summaries',
+      () async {
+        final result = await controller.handleDestinationSelected(1);
 
-      expect(homeUiModel.navigationIndex, 1);
-      expect(feedModel.collectionSummariesFuture, isNull);
-      expect(result.statusMessage, isNull);
-    });
+        expect(homeUiModel.navigationIndex, 1);
+        expect(feedModel.collectionSummariesFuture, isNull);
+        expect(result.statusMessage, isNull);
+      },
+    );
 
-    test('returns a sort snackbar message when the sort state changes', () async {
-      final result = await controller.toggleSortAndRefresh(
-        PopularSortType.month,
-      );
+    test(
+      'returns a sort snackbar message when the sort state changes',
+      () async {
+        final result = await controller.toggleSortAndRefresh(
+          PopularSortType.month,
+        );
 
-      expect(result.sortMessage, 'Sort by popular type: This month');
-      expect(feedModel.sortByPopularType, PopularSortType.month);
-      expect(homeUiModel.isLoading, isFalse);
-    });
+        expect(result.sortMessage, 'Sort by popular type: This month');
+        expect(feedModel.sortByPopularType, PopularSortType.month);
+        expect(feedModel.isFetching, isFalse);
+      },
+    );
   });
 }

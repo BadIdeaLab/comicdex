@@ -173,15 +173,9 @@ class _HomeShellState extends State<HomeShell> {
   /// whereas the old automatic reload moved a reader who had asked for
   /// nothing.
   Future<void> _refreshHomeFeed(BuildContext context) async {
-    final homeUiModel = context.read<HomeUiModel>();
     final feedModel = context.read<ComicFeedModel>();
 
-    homeUiModel.setLoading(true);
-    try {
-      await feedModel.refreshCurrentQuery();
-    } finally {
-      homeUiModel.setLoading(false);
-    }
+    await feedModel.refreshCurrentQuery();
 
     if (!mounted) {
       return;
@@ -202,7 +196,9 @@ class _HomeShellState extends State<HomeShell> {
           flexibleSpace: GlassContainer.bar(child: const SizedBox.expand()),
           floating: true,
           snap: true,
-          bottom: LoadingIndicatorBar(isLoading: homeUiModel.isLoading),
+          bottom: LoadingIndicatorBar(
+            isLoading: context.watch<ComicFeedModel>().isFetching,
+          ),
           title: SearchAnchor.bar(
             searchController: homeUiModel.searchController,
             onSubmitted: (value) => _handleSearchSubmit(context, value),
@@ -211,7 +207,7 @@ class _HomeShellState extends State<HomeShell> {
               // keeps the search field its usual width the rest of the time.
               const TrackingBellAction(),
               IconButton.filledTonal(
-                onPressed: homeUiModel.isLoading
+                onPressed: context.watch<ComicFeedModel>().isFetching
                     ? null
                     : () => _refreshHomeFeed(context),
                 icon: const Icon(Icons.refresh),

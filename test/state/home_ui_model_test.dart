@@ -45,18 +45,6 @@ void main() {
       expect(model.navigationIndex, 1);
       expect(model.searchController.text, 'keep');
     });
-
-    test('notifies listeners when loading state changes', () {
-      var notificationCount = 0;
-      model.addListener(() {
-        notificationCount += 1;
-      });
-
-      model.setLoading(true);
-
-      expect(model.isLoading, isTrue);
-      expect(notificationCount, 1);
-    });
   });
 
   group('downloads tag filters (P82)', () {

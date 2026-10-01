@@ -33,16 +33,12 @@ class HomeShellController {
       homeUiModel.setNavigationIndex(0);
     }
 
-    homeUiModel.setLoading(true);
     await feedModel.searchComics(query: value, clearComic: true);
-    homeUiModel.setLoading(false);
     return const HomeSearchActionResult(openComicReader: false);
   }
 
   Future<int?> retryHomeFeed() async {
-    homeUiModel.setLoading(true);
     final statusCode = await feedModel.loadHomeFeed(clearComic: true);
-    homeUiModel.setLoading(false);
     return statusCode;
   }
 
@@ -69,19 +65,15 @@ class HomeShellController {
       homeUiModel.setNavigationIndex(0);
     }
 
-    homeUiModel.setLoading(true);
     await feedModel.searchComics(
       query: query,
       clearComic: true,
       includeTagFilters: false,
     );
-    homeUiModel.setLoading(false);
   }
 
   /// Applies the selected sort type and tag filters, then refreshes the feed.
   Future<void> applySortAndFilters() async {
-    homeUiModel.setLoading(true);
     await feedModel.fetchNextPage(page: 1, includeTagFilters: true);
-    homeUiModel.setLoading(false);
   }
 }

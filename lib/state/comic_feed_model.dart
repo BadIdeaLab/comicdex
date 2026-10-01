@@ -30,12 +30,29 @@ class ComicFeedModel extends ChangeNotifier {
   PopularSortType? sortByPopularType;
   List<String> _tagFilters = <String>[];
 
+  /// How many feed requests are in flight.
+  ///
+  /// A count, not a flag: two overlapping requests would otherwise have the
+  /// first one to finish declare that nothing is running.
+  int _inFlight = 0;
+
   List<Comic>? get comics {
     if (_comics.isEmpty) {
       return null;
     }
     return List<Comic>.unmodifiable(_comics);
   }
+
+  /// Whether a feed request is in flight.
+  ///
+  /// This is both the progress bar and the guard that stops the infinite
+  /// scroll from firing a second request on top of the first. It lives here —
+  /// rather than on `HomeUiModel`, where nine callers used to raise and lower
+  /// it by hand around their own calls into this class — because this is the
+  /// object that knows. Eight of those nine had no `try`/`finally`, so any
+  /// throw left the flag raised for ever, and with it the infinite scroll
+  /// switched off (P99).
+  bool get isFetching => _inFlight > 0;
 
   bool get noMorePage => _noMorePage;
   int? get numPages => _numPages;
@@ -78,6 +95,31 @@ class ComicFeedModel extends ChangeNotifier {
     PopularSortType? sortType,
     bool clearComic = false,
     bool includeTagFilters = true,
+  }) async {
+    // Every feed read funnels through here — loadHomeFeed, fetchNextPage and
+    // jumpToPage all call it — so counting in one place covers all of them.
+    _inFlight += 1;
+    notifyListeners();
+    try {
+      return await _search(
+        query: query,
+        page: page,
+        sortType: sortType,
+        clearComic: clearComic,
+        includeTagFilters: includeTagFilters,
+      );
+    } finally {
+      _inFlight -= 1;
+      notifyListeners();
+    }
+  }
+
+  Future<int?> _search({
+    required String query,
+    required int page,
+    required PopularSortType? sortType,
+    required bool clearComic,
+    required bool includeTagFilters,
   }) async {
     if (clearComic) {
       _comics.clear();

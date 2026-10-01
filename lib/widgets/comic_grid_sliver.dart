@@ -2,7 +2,6 @@ import 'package:concept_nhv/l10n/app_localizations.dart';
 import 'package:concept_nhv/models/collection_type.dart';
 import 'package:concept_nhv/models/comic_card_data.dart';
 import 'package:concept_nhv/state/comic_feed_model.dart';
-import 'package:concept_nhv/state/home_ui_model.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -46,7 +45,6 @@ class ComicGridSliver extends StatelessWidget {
       delegate: SliverChildBuilderDelegate((context, index) {
         final reachLastItem = index + 1 == comics.length;
         final feedModel = context.read<ComicFeedModel>();
-        final homeUiModel = context.read<HomeUiModel>();
 
         // A page is fetched only at the very bottom, only when the feed says
         // there is more, and never on top of a fetch already in flight.
@@ -54,13 +52,16 @@ class ComicGridSliver extends StatelessWidget {
             pageLoaded != null &&
             reachLastItem &&
             !feedModel.noMorePage &&
-            !homeUiModel.isLoading;
+            !feedModel.isFetching;
         if (shouldLoadNextPage) {
           WidgetsBinding.instance.addPostFrameCallback((_) async {
-            if (homeUiModel.isLoading) {
+            // Checked again, and still needed: two builders in the same frame
+            // can both reach the last item and both queue a callback. The
+            // first one to run raises the count before awaiting, so the
+            // second sees it.
+            if (feedModel.isFetching) {
               return;
             }
-            homeUiModel.setLoading(true);
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(
@@ -72,7 +73,6 @@ class ComicGridSliver extends StatelessWidget {
               ),
             );
             await feedModel.fetchNextPage(page: pageLoaded! + 1);
-            homeUiModel.setLoading(false);
 
             // Scrolling is deliberately still alive after a failure, so the
             // only way the reader learns a page did not arrive is being told.

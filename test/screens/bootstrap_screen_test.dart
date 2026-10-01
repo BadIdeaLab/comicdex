@@ -66,11 +66,10 @@ void main() {
       }
     });
 
-    late HomeUiModel homeUiModel;
+    late ComicFeedModel feed;
 
     Widget buildApp(FakeNhentaiGateway gateway) {
-      homeUiModel = HomeUiModel();
-      final feed = ComicFeedModel(
+      feed = ComicFeedModel(
         searchComicsUseCase: SearchComicsUseCase(
           nhentaiGateway: gateway,
           searchQueryBuilder: const SearchQueryBuilder(),
@@ -103,7 +102,7 @@ void main() {
               supportDirectory: () async => tempDirectory,
             ),
           ),
-          ChangeNotifierProvider<HomeUiModel>.value(value: homeUiModel),
+          ChangeNotifierProvider<HomeUiModel>(create: (_) => HomeUiModel()),
           ChangeNotifierProvider<ComicFeedModel>.value(value: feed),
         ],
         child: localizedTestRouterApp(routerConfig: router),
@@ -162,7 +161,7 @@ void main() {
       }
 
       expect(gateway.searchCount, 1, reason: 'the load did happen');
-      expect(homeUiModel.isLoading, isFalse);
+      expect(feed.isFetching, isFalse);
     });
   });
 }

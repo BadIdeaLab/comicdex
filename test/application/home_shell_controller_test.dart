@@ -58,36 +58,45 @@ void main() {
       expect(history.first.query, '77');
     });
 
-    test('runs feed search for text queries and returns to index tab', () async {
-      homeUiModel.setNavigationIndex(2);
+    test(
+      'runs feed search for text queries and returns to index tab',
+      () async {
+        homeUiModel.setNavigationIndex(2);
 
-      final result = await controller.submitSearch('tag:test');
-      final history = await harness.searchHistoryRepository.load();
+        final result = await controller.submitSearch('tag:test');
+        final history = await harness.searchHistoryRepository.load();
 
-      expect(result.openComicReader, isFalse);
-      expect(homeUiModel.navigationIndex, 0);
-      expect(homeUiModel.isLoading, isFalse);
-      expect(feedModel.comicsLoaded, greaterThan(0));
-      expect(history.first.query, 'tag:test');
-    });
+        expect(result.openComicReader, isFalse);
+        expect(homeUiModel.navigationIndex, 0);
+        expect(feedModel.isFetching, isFalse);
+        expect(feedModel.comicsLoaded, greaterThan(0));
+        expect(history.first.query, 'tag:test');
+      },
+    );
 
-    test('submitTagSearch saves history and ignores persistent tag filters', () async {
-      homeUiModel.setNavigationIndex(2);
-      feedModel.setTagFilters(<String>['tag:ignored']);
+    test(
+      'submitTagSearch saves history and ignores persistent tag filters',
+      () async {
+        homeUiModel.setNavigationIndex(2);
+        feedModel.setTagFilters(<String>['tag:ignored']);
 
-      await controller.submitTagSearch(<String>[
-        'language:chinese',
-        'tag:full-color',
-      ]);
-      final history = await harness.searchHistoryRepository.load();
+        await controller.submitTagSearch(<String>[
+          'language:chinese',
+          'tag:full-color',
+        ]);
+        final history = await harness.searchHistoryRepository.load();
 
-      expect(homeUiModel.navigationIndex, 0);
-      expect(homeUiModel.searchController.text, 'language:chinese tag:full-color');
-      expect(history.first.query, 'language:chinese tag:full-color');
-      expect(
-        gateway.searchedUris.single.queryParameters['query'],
-        'language:chinese tag:full-color',
-      );
-    });
+        expect(homeUiModel.navigationIndex, 0);
+        expect(
+          homeUiModel.searchController.text,
+          'language:chinese tag:full-color',
+        );
+        expect(history.first.query, 'language:chinese tag:full-color');
+        expect(
+          gateway.searchedUris.single.queryParameters['query'],
+          'language:chinese tag:full-color',
+        );
+      },
+    );
   });
 }
