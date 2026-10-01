@@ -56,9 +56,12 @@ class _BootstrapScreenState extends State<BootstrapScreen> {
     context.go('/index');
 
     await feed.loadHomeFeed();
-    if (!mounted) {
-      return;
-    }
+    // Deliberately not guarded by `mounted`. Navigating above takes this
+    // screen out of the tree, so a guard here never lets the flag be cleared
+    // — which left the loading bar running for ever and, because the same
+    // flag gates the infinite scroll, switched auto-loading off until a
+    // restart. `homeUiModel` was read before the navigation and is
+    // app-scoped, so it outlives this screen by design.
     homeUiModel.setLoading(false);
   }
 

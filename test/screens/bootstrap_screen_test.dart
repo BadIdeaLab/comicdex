@@ -20,6 +20,23 @@ import '../test_support/fakes/fake_nhentai_gateway.dart';
 import '../test_support/helpers/localized_test_app.dart';
 import '../test_support/storage/sqlite_test_harness.dart';
 
+/// A site that answers, but only after a frame or two has gone by.
+///
+/// The delay is the whole point: with an instant answer the load finishes
+/// before any frame is pumped, so the bootstrap screen is still mounted and a
+/// `mounted` guard looks harmless. On a device the request always takes long
+/// enough for the navigation to unmount it first.
+class _SlowGateway extends FakeNhentaiGateway {
+  int searchCount = 0;
+
+  @override
+  Future<ComicSearchResponse> searchComics(Uri uri) async {
+    searchCount += 1;
+    await Future<void>.delayed(const Duration(seconds: 2));
+    return ComicSearchResponse();
+  }
+}
+
 /// A site that accepted the connection and then said nothing — the case that
 /// used to strand the user on the loading screen, and the one a timeout only
 /// shortens rather than fixes.
@@ -49,7 +66,10 @@ void main() {
       }
     });
 
+    late HomeUiModel homeUiModel;
+
     Widget buildApp(FakeNhentaiGateway gateway) {
+      homeUiModel = HomeUiModel();
       final feed = ComicFeedModel(
         searchComicsUseCase: SearchComicsUseCase(
           nhentaiGateway: gateway,
@@ -83,7 +103,7 @@ void main() {
               supportDirectory: () async => tempDirectory,
             ),
           ),
-          ChangeNotifierProvider<HomeUiModel>(create: (_) => HomeUiModel()),
+          ChangeNotifierProvider<HomeUiModel>.value(value: homeUiModel),
           ChangeNotifierProvider<ComicFeedModel>.value(value: feed),
         ],
         child: localizedTestRouterApp(routerConfig: router),
@@ -120,6 +140,29 @@ void main() {
         isNotEmpty,
         reason: 'navigating first must not mean never loading',
       );
+    });
+
+    testWidgets('clears the loading flag although it has navigated away', (
+      tester,
+    ) async {
+      // The gap in the two tests above, and the bug it let through: they
+      // proved the navigation happened and the request went out, but not
+      // that the flag came back down. Navigating unmounts this screen, so a
+      // `mounted` guard before clearing it never runs — leaving the loading
+      // bar going for ever and, because the same flag gates the infinite
+      // scroll, auto-loading off until a restart.
+      final gateway = _SlowGateway();
+      await tester.pumpWidget(buildApp(gateway));
+      // Long enough for the navigation to unmount this screen before the
+      // load comes back, which is the order a real request arrives in.
+      // Past the route transition: until that finishes the outgoing screen is
+      // still mounted, which is why a shorter delay hides the bug entirely.
+      for (var i = 0; i < 12; i++) {
+        await tester.pump(const Duration(milliseconds: 250));
+      }
+
+      expect(gateway.searchCount, 1, reason: 'the load did happen');
+      expect(homeUiModel.isLoading, isFalse);
     });
   });
 }
