@@ -37,56 +37,34 @@
 
 ## Features
 
-### Browsing and search
+### Search and browsing
 
-- Home feed with search, popularity sorting, and language-aware fallback queries
-- Offline tag catalog with instant cross-category search and multi-select across
-  tag / language / parody / character / artist, ranked by how common each tag is
-- Blocked tag list that applies to every search, not just the one in front of you
-- Language badge on each cover, read from the listing's own tag ids — no extra requests
-- Per-tab scroll position and a refresh button, so returning to the feed does not
-  throw away what you had already scrolled through
-
-### Reading
-
-- Vertical reader with tap zones, page-jump bar, and configurable prefetch
-- Reading position remembered per comic, with a one-tap way back to page one
-- End-of-comic overlay and, on the page past the last one, comics from your own
-  library that genuinely resemble the one you just finished
-- Optional look on the site for more like it, excluding everything you already have
-- Favourite and language are visible on each recommendation, and reachable after
-  opening one
+- Offline tag catalog: instant cross-category search and multi-select across
+  tag / language / parody / character / artist, with no network round trip
+- A blocked tag list that applies to every search, not just the one in front of you
+- Language shown on each cover, read from the listing's own tag ids — no extra requests
 
 ### Downloads and offline reading
 
-- Queue with paused, failed, and completed jobs, resumable page by page
-- Repair a single download or scan the whole library for missing pages and covers
-- Multi-select download from Favourites, skipping what is already downloaded and
-  throttling requests so the site is not hammered
-- Offline reader that serves pages from local files
-- Search by title or tag (including translated tag names), filter by tag chips, and
-  sort by date / title / author / popularity / last read / taste
-- Grid or list view, remembered between sessions
-- "Open something random", weighted so that what you have not read in a while comes
-  up more often — without ever excluding anything outright
+- Resumable page-by-page downloads, readable with no connection
+- Repair: scan one comic or the whole library for missing pages and covers
+- Multi-select download from Favourites, skipping what you already have and throttling
+  requests so the site is not hammered
+- Sort by date / title / author / popularity / last read / taste, and search by tag
+  including its translated name
+- "Open something random", weighted towards what you have not read in a while — without
+  ever excluding anything outright
 
-### Collections and tracking
+### Recommendations and taste
 
-- `Favorite / Next / History` collections, with multi-select
-- Favourites synced from your nhentai account, incrementally: it stops as soon as it
-  reaches galleries it already knows about
-- Track artists and be told when they publish, with an in-app bell. Checks are
-  foreground-only and rate-limited to fewer than two requests an hour however many
-  artists you follow
-
-### What you actually read
-
-- Tag preference ranking built from the comics you keep, smoothed so a tag seen three
-  times cannot top the chart
-- Taste badges on comics matching the tags you keep — scored against your own library
-  rather than against what is merely popular
-- Analysis page: tag coverage, the full ranking, frequent tag combinations, and which
-  tags you tend to collect together
+- After the last page: comics from your own library that genuinely resemble the one you
+  just finished, and an optional look on the site for more, excluding what you have
+- Badges on comics matching the tags you keep — scored against your own library rather
+  than against what is merely popular
+- Analysis page: tag coverage, the full ranking, and which tags you tend to collect
+  together
+- Track artists and be told when they publish. Checks are foreground-only and
+  rate-limited to fewer than two requests an hour however many artists you follow
 
 ### Backup and restore
 
@@ -98,9 +76,6 @@
 
 - Android and iOS, with a Windows desktop server for backups
 - English and Traditional Chinese interface
-- Glassmorphism-styled UI across reader, screens, and sheets, with cross-platform
-  performance tuning
-- CI builds Android and iOS from the same commit and publishes them together
 
 <p align="right"><a href="#readme-top">‣ back to top</a></p>
 

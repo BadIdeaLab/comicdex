@@ -20,10 +20,19 @@ on:
   push:
     branches:
       - main
-    # The desktop backup server is a separate Flutter project with its own
-    # workflow; a change confined to it has nothing to rebuild here.
     paths-ignore:
+      # A separate Flutter project with its own workflow; a change confined to
+      # it has nothing to rebuild here.
       - 'desktop_backup_server/**'
+      # Documentation cannot change the binary. Without this, editing the
+      # README spends ~20 minutes of macOS runner time and republishes the
+      # release under a new commit with byte-identical artifacts.
+      #
+      # `paths-ignore` skips the run only when *every* changed file matches, so
+      # a commit touching both code and docs still builds.
+      - '**.md'
+      - 'LICENSE.txt'
+      - 'readme-asset/**'
   workflow_dispatch:
 
 permissions:
