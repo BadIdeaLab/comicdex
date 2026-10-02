@@ -1,0 +1,201 @@
+name: flutter-workflow-app
+
+# One workflow for the app's release, replacing the separate apk and ipa
+# workflows (P100).
+#
+# They published to the same `latest-build` tag from two workflows, so they
+# shared a concurrency group to stop their release steps racing. But a
+# concurrency group holds at most one running and one *pending* run — anything
+# beyond that is cancelled outright rather than queued. The iOS build takes
+# ~20 minutes on macOS, so it was structurally always the one evicted: two
+# pushes within the hour produced no iOS artifact at all while every workflow
+# still reported success, and the release went on showing a two-day-old IPA
+# beside a fresh APK with nothing to say so.
+#
+# One workflow with one publishing job removes the race rather than
+# serialising it, and makes the release what the word means: every file in it
+# built from the same commit.
+
+on:
+  push:
+    branches:
+      - main
+    # The desktop backup server is a separate Flutter project with its own
+    # workflow; a change confined to it has nothing to rebuild here.
+    paths-ignore:
+      - 'desktop_backup_server/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  # An older run builds artifacts for a commit that is no longer the head of
+  # main, and publishing them would move the release backwards.
+  cancel-in-progress: true
+
+jobs:
+  # Analyze and test once, on the cheapest runner, before either build starts.
+  # Previously both workflows ran these independently, which paid for them
+  # twice and let a macOS build burn 20 minutes on code the tests had already
+  # rejected.
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.41.5
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Generate database code
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test
+        run: flutter test
+
+  build-android:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v5
+
+      # Pinned rather than relying on the runner's default JDK. Android Gradle
+      # Plugin 8.9 needs JDK 17+, and an unpinned toolchain means GitHub
+      # changing its default can break a release with no change on our side —
+      # a failure that looks like it came from the app.
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.41.5
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Generate database code
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Build APK
+        run: flutter build apk --release
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
+
+      # Carried through the same artifact mechanism as the binaries so the
+      # publishing job needs nothing but the artifacts it is handed.
+      - name: Upload tag catalog
+        uses: actions/upload-artifact@v7
+        with:
+          name: tag-catalog
+          path: |
+            assets/tag_catalog.bin
+            assets/tag_catalog.version
+          if-no-files-found: error
+
+  build-ios:
+    needs: verify
+    runs-on: macos-latest
+    timeout-minutes: 40
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.41.5
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Generate database code
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Build iOS (unsigned)
+        run: |
+          rm -rf Payload nhviewer-ios-unsigned.ipa
+          flutter build ios --release --no-codesign
+          mkdir Payload
+          cp -R build/ios/iphoneos/Runner.app Payload/
+          ditto -c -k --sequesterRsrc --keepParent Payload nhviewer-ios-unsigned.ipa
+
+      - name: Upload unsigned IPA
+        uses: actions/upload-artifact@v7
+        with:
+          name: nhviewer-ios-unsigned
+          path: nhviewer-ios-unsigned.ipa
+          if-no-files-found: error
+
+  # The only job that touches the release, and it runs only when both
+  # platforms succeeded. That is deliberate: a release that publishes whatever
+  # happened to build is how a stale IPA sat next to a fresh APK for two days
+  # without anything indicating it. If one platform fails, the release stays on
+  # the last commit that produced a complete set — visible as "not updated"
+  # rather than invisible as "half updated".
+  publish:
+    needs: [build-android, build-ios]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v8
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Resolve commit label
+        id: commit
+        run: |
+          echo "short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - name: List what is being published
+        run: ls -lh artifacts
+
+      # The commit is in the title because a rolling tag never moves off the
+      # commit it was first created on, so the tag itself says nothing about
+      # which build this is.
+      - name: Create Release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: latest-build
+          name: Latest Build — ${{ steps.commit.outputs.short }}
+          body: |
+            Rolling build of `main`. Every file here is from the same commit;
+            each push replaces all of them together.
+
+            Commit: ${{ github.sha }}
+
+            - `app-release.apk` — Android
+            - `nhviewer-ios-unsigned.ipa` — iOS, **unsigned**; it has to be
+              signed before it will install
+            - `tag_catalog.bin` / `tag_catalog.version` — offline tag catalog
+          draft: false
+          prerelease: false
+          make_latest: true
+          files: artifacts/*

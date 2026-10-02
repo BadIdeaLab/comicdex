@@ -1,7 +1,7 @@
 <a name="readme-top"></a>
 
-[![APK Build](https://github.com/BadIdeaLab/comicdex/actions/workflows/flutter-workflow-apk.yml/badge.svg)](https://github.com/BadIdeaLab/comicdex/actions/workflows/flutter-workflow-apk.yml)
-[![IPA Build](https://github.com/BadIdeaLab/comicdex/actions/workflows/flutter-workflow-ipa.yml/badge.svg)](https://github.com/BadIdeaLab/comicdex/actions/workflows/flutter-workflow-ipa.yml)
+[![App Build](https://github.com/BadIdeaLab/comicdex/actions/workflows/flutter-workflow-app.yml/badge.svg)](https://github.com/BadIdeaLab/comicdex/actions/workflows/flutter-workflow-app.yml)
+[![Backup Server Build](https://github.com/BadIdeaLab/comicdex/actions/workflows/flutter-workflow-windows.yml/badge.svg)](https://github.com/BadIdeaLab/comicdex/actions/workflows/flutter-workflow-windows.yml)
 [![MIT License][license-shield]][license-url]
 
 <br />

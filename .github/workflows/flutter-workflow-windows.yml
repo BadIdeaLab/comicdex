@@ -17,13 +17,14 @@ on:
 permissions:
   contents: write
 
-# Shares the group with the apk and ipa workflows: all three publish to the
-# same `latest-build` release tag, and runs triggered by one push execute in
-# parallel across workflows. Without this they can race and create duplicate
-# releases instead of updating one.
+# Its own group now. This used to be shared with the app workflows so their
+# release steps could not race over one `latest-build` tag, but a concurrency
+# group holds only one pending run and cancelled the rest outright — see
+# flutter-workflow-app.yml. The backup server publishes to its own tag, so
+# there is nothing here to serialise against.
 concurrency:
-  group: latest-build-release
-  cancel-in-progress: false
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -87,11 +88,29 @@ jobs:
         name: release-windows
         path: scripts/out/*.zip
 
+    # PowerShell, because this job defaults to pwsh; the app workflow does the
+    # same thing in bash.
+    - name: Resolve commit label
+      id: commit
+      run: |
+        "short=$($env:GITHUB_SHA.Substring(0,7))" |
+          Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+    # Its own tag, because this is a different product: the desktop backup
+    # server, not a platform build of the app. Sharing the app's release made
+    # a zip last built in September look like part of today's build.
     - name: Create Release
       uses: softprops/action-gh-release@v3
       with:
-        tag_name: latest-build
-        name: Latest Build
+        tag_name: latest-build-server
+        name: Backup Server (Windows) — ${{ steps.commit.outputs.short }}
+        body: |
+          Rolling build of the desktop backup server from `main`.
+
+          Commit: ${{ github.sha }}
         draft: false
-        prerelease: true
+        prerelease: false
+        # The app's release keeps the repository's "Latest" badge; this one
+        # would otherwise take it whenever the server happened to build last.
+        make_latest: false
         files: scripts/out/*.zip
