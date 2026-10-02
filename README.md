@@ -10,9 +10,10 @@
 
   <p align="center">
     A Flutter rewrite of NHViewer. <br />
-    Built with Material 3 / glassmorphism UI, cross-platform support, Drift-based local
-    persistence, an offline tag catalog with instant search, and an incremental download
-    management flow.
+    An offline-first reader: an on-device tag catalog with instant search, resumable
+    downloads you can read without a connection, recommendations and taste analysis
+    built from what you actually keep, and LAN backup of the whole library to your
+    own machine.
     <br />
     <br />
     <a href="https://github.com/BadIdeaLab/comicdex/issues">Report Bug</a>
@@ -36,30 +37,70 @@
 
 ## Features
 
-- Home feed with search and language-aware fallback queries
-- Local, offline tag catalog with instant cross-category search and multi-select
-  (tag / language / parody / character / artist), ranked by popularity
-- Blocked tag list — exclude specific tags from all search results
-- Collections flow for `Favorite / Next / History`
-- Downloads tab for queued, paused, failed, and completed download jobs
-- Favorites multi-select download with select-all, already-downloaded skipping, and
-  request throttling to avoid rate limits
-- Resumable page-by-page downloads with offline asset persistence
-- Repair and reload for completed downloads (re-fetch missing pages or full re-download)
-- Offline reader entry for completed downloads using local page files
-- Download list search across titles and tags, sortable by title/author/popularity/last read
-- Reader end-of-comic overlay, page-jump navigation, and navigation expansion on last page
-- Similar-comic recommendations on the page after the last one — drawn from your own
-  library first, with an optional look on the site that excludes what you already have
-- Taste badges on comics that match the tags you actually keep, scored against your
-  library rather than against what is merely popular
-- Vertical reader experience
-- LAN backup and restore to a desktop server: QR or PIN pairing, incremental mirroring
-  of the whole download library, pausable transfers, and interrupted-restore detection
+### Browsing and search
+
+- Home feed with search, popularity sorting, and language-aware fallback queries
+- Offline tag catalog with instant cross-category search and multi-select across
+  tag / language / parody / character / artist, ranked by how common each tag is
+- Blocked tag list that applies to every search, not just the one in front of you
+- Language badge on each cover, read from the listing's own tag ids — no extra requests
+- Per-tab scroll position and a refresh button, so returning to the feed does not
+  throw away what you had already scrolled through
+
+### Reading
+
+- Vertical reader with tap zones, page-jump bar, and configurable prefetch
+- Reading position remembered per comic, with a one-tap way back to page one
+- End-of-comic overlay and, on the page past the last one, comics from your own
+  library that genuinely resemble the one you just finished
+- Optional look on the site for more like it, excluding everything you already have
+- Favourite and language are visible on each recommendation, and reachable after
+  opening one
+
+### Downloads and offline reading
+
+- Queue with paused, failed, and completed jobs, resumable page by page
+- Repair a single download or scan the whole library for missing pages and covers
+- Multi-select download from Favourites, skipping what is already downloaded and
+  throttling requests so the site is not hammered
+- Offline reader that serves pages from local files
+- Search by title or tag (including translated tag names), filter by tag chips, and
+  sort by date / title / author / popularity / last read / taste
+- Grid or list view, remembered between sessions
+- "Open something random", weighted so that what you have not read in a while comes
+  up more often — without ever excluding anything outright
+
+### Collections and tracking
+
+- `Favorite / Next / History` collections, with multi-select
+- Favourites synced from your nhentai account, incrementally: it stops as soon as it
+  reaches galleries it already knows about
+- Track artists and be told when they publish, with an in-app bell. Checks are
+  foreground-only and rate-limited to fewer than two requests an hour however many
+  artists you follow
+
+### What you actually read
+
+- Tag preference ranking built from the comics you keep, smoothed so a tag seen three
+  times cannot top the chart
+- Taste badges on comics matching the tags you keep — scored against your own library
+  rather than against what is merely popular
+- Analysis page: tag coverage, the full ranking, frequent tag combinations, and which
+  tags you tend to collect together
+
+### Backup and restore
+
+- Mirror the whole download library and database to a desktop server over your LAN
+- Pair by QR code or PIN; transfers are incremental and can be paused and resumed
+- An interrupted restore is detected on the next launch rather than left looking normal
+
+### Platform
+
+- Android and iOS, with a Windows desktop server for backups
 - English and Traditional Chinese interface
-- Glassmorphism-styled UI across reader, screens, and sheets with cross-platform
+- Glassmorphism-styled UI across reader, screens, and sheets, with cross-platform
   performance tuning
-- Android build pipeline and GitHub-hosted unsigned iOS build verification
+- CI builds Android and iOS from the same commit and publishes them together
 
 <p align="right"><a href="#readme-top">‣ back to top</a></p>
 
